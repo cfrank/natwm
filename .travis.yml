@@ -1,11 +1,17 @@
 language: c
 
 # Build on both Linux and OSX
-matrix:
-    include:
-        - os: linux
-          dist: xenial
-        - os: osx
+os:
+    - linux
+    - osx
+
+# Modern cmake
+addons:
+    apt:
+        sources:
+            - ubuntu-toolchain-r-test
+        packages:
+            - cmake-3.12
 
 compiler:
     - clang
