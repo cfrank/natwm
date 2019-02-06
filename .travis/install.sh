@@ -4,7 +4,8 @@
 
 if [[ $TRAVIS_OS_NAME == 'linux' ]]; then
     # Linux
-    .$TRAVIS_BUILD_DIR/.travis/dependencies/cmake.sh
+    cd $TRAVIS_BUILD_DIR
+    ./.travis/dependencies/cmake.sh
 else
     # OSX
     echo "OSX Build step"
