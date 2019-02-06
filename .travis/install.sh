@@ -8,5 +8,5 @@ if [[ $TRAVIS_OS_NAME == 'osx' ]]; then
     echo "OSX Build step"
 else
     # Linux
-    sudo apt-get install -y libxcb
+    sudo apt-get install -y libxcb1-dev
 fi
