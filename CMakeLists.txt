@@ -86,4 +86,3 @@ target_link_libraries(natwm
 )
 
 target_include_directories(natwm PRIVATE src)
-
