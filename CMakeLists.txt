@@ -7,12 +7,12 @@ project(natwm
 )
 
 set(PACKAGE_VERSION_STRING v${PROJECT_VERSION})
-set(PROJECT_STRING ${PROJECT_NAME} ${PACKAGE_VERSION_STRING})
+set(PROJECT_STRING "${PROJECT_NAME} ${PACKAGE_VERSION_STRING}")
 
 add_compile_definitions(NATWM_VERSION_MAJOR=${PROJECT_VERSION_MAJOR})
 add_compile_definitions(NATWM_VERSION_MINOR=${PROJECT_VERSION_MINOR})
 add_compile_definitions(NATWM_VERSION_PATCH=${PROJECT_VERSION_PATCH})
-add_compile_definitions(NATWM_VERSION_STRING=${PROJECT_STRING})
+add_compile_definitions(NATWM_VERSION_STRING="${PROJECT_STRING}")
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_compile_definitions(DEBUG=1)
@@ -33,12 +33,16 @@ find_program(CLANG_FORMAT
 
 if(CLANG_FORMAT)
     add_custom_target(clang-format
-        COMMAND find ${CLANG_SRCS_DIRECTORY} -iname *.h -o -iname *.c | xargs ${CLANG_FORMAT} -i
-        COMMENT "Running clang-format against *.{c,h} inside ${CLANG_SRCS_DIRECTORY}"
+        COMMAND find ${CMAKE_SRCS_DIRECTORY} -iname *.h -o -iname *.c | xargs ${CLANG_FORMAT} -i
+        COMMENT "Running clang-format against *.{c,h} inside ${CMAKE_SRCS_DIRECTORY}"
     )
 else()
     message(WARNING "Unable to find clang-format! Target was not created")
 endif()
+
+add_executable(natwm
+    ${CMAKE_SRCS_DIRECTORY}/natwm.c
+)
 
 # Compilation flags
 
@@ -49,24 +53,24 @@ set_target_properties(natwm
     C_EXTENSIONS OFF
 )
 
-string(APPEND CMAKE_C_FLAGS "-Wall"
-    "-D_FORTIFY_SOURCE=2"
-    "-Wextra -Wcast-align -Wcase-qual -Wpointer-arith"
-    "-Waggregate-return -Wunreachable-code -Wfloat-equal"
-    "-Wformat=2 -Wredundant-decls -Wundef"
-    "-Wdisabled-optimization -Wshadow -Wmissing-braces"
-    "-Wstrict-aliasing=2 -Wstrict-overflows=5 -Wconversion"
-    "-Wno-unused-parameter"
-    "-pedantic")
-
 string(APPEND CMAKE_C_FLAGS_DEBUG "-g3"
-    "-O")
+    " -O")
 
 string(APPEND CMAKE_C_FLAGS_RELEASE "-O2"
-    "-O2"
-    "-march=native"
-    "-mtune=native"
-    "-ftree-vectorize")
+    " -O2"
+    " -march=native"
+    " -mtune=native"
+    " -ftree-vectorize")
+
+string(APPEND CMAKE_C_FLAGS "-Wall"
+    " -D_FORTIFY_SOURCE=2"
+    " -Wextra -Wcast-align -Wcast-qual -Wpointer-arith"
+    " -Waggregate-return -Wunreachable-code -Wfloat-equal"
+    " -Wformat=2 -Wredundant-decls -Wundef"
+    " -Wdisabled-optimization -Wshadow -Wmissing-braces"
+    " -Wstrict-aliasing=2 -Wstrict-overflow=5 -Wconversion"
+    " -Wno-unused-parameter"
+    " -pedantic")
 
 target_link_libraries(natwm
     xcb
