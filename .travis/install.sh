@@ -4,7 +4,7 @@
 
 if [[ $TRAVIS_OS_NAME == 'osx' ]]; then
     # OSX
-    brew install cmake
+    brew upgrade cmake
     echo "OSX Build step"
 else
     # Linux

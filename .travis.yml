@@ -1,9 +1,11 @@
 language: c
 
 # Build on both Linux and OSX
-os:
-    - linux
-    - osx
+matrix:
+    include:
+        - os: linux
+          dist: xenial
+        - os: osx
 
 compiler:
     - clang
@@ -20,4 +22,3 @@ script:
     - mkdir build; cd build
     - cmake ../
     - make
-    - make test
