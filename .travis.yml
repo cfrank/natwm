@@ -1,0 +1,25 @@
+dist: xenial
+
+language: c
+
+env:
+    global:
+        - CACHE_ENABLE=true
+
+# Build on both Linux and Darwin
+os:
+    - linux
+    - osx
+
+addons:
+    apt:
+        packages:
+            - cmake
+    homebrew:
+        update: true
+        packages:
+            - cmake
+
+cache:
+    apt: true
+    ccache: true
