@@ -16,8 +16,12 @@ add_compile_definitions(NATWM_VERSION_STRING="${PROJECT_STRING}")
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_compile_definitions(DEBUG=1)
-else()
+elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
     add_compile_definitions(DEBUG=0)
+else()
+    message(STATUS "No CMAKE_BUILD_TYPE specified - Defaulting to \"Debug\"")
+    set(CMAKE_BUILD_TYPE "Debug")
+    add_compile_definitions(DEBUG=1)
 endif()
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
@@ -44,6 +48,8 @@ add_executable(natwm
     ${CMAKE_SRCS_DIRECTORY}/natwm.c
 )
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 # Compilation flags
 
 set_target_properties(natwm
@@ -53,16 +59,15 @@ set_target_properties(natwm
     C_EXTENSIONS OFF
 )
 
-string(APPEND CMAKE_C_FLAGS_DEBUG "-g3"
+string(APPEND CMAKE_C_FLAGS_DEBUG " -g3"
     " -O")
 
-string(APPEND CMAKE_C_FLAGS_RELEASE "-O2"
-    " -O2"
+string(APPEND CMAKE_C_FLAGS_RELEASE " -O2"
     " -march=native"
     " -mtune=native"
     " -ftree-vectorize")
 
-string(APPEND CMAKE_C_FLAGS "-Wall"
+string(APPEND CMAKE_C_FLAGS " -Wall"
     " -D_FORTIFY_SOURCE=2"
     " -Wextra -Wcast-align -Wcast-qual -Wpointer-arith"
     " -Waggregate-return -Wunreachable-code -Wfloat-equal"
