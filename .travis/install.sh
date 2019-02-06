@@ -2,11 +2,10 @@
 
 # Install dependencies for both Linux and OSX
 
-if [[ $TRAVIS_OS_NAME == 'osx' ]]; then
-    # OSX
-    brew upgrade cmake
-    echo "OSX Build step"
-else
+if [[ $TRAVIS_OS_NAME == 'linux' ]]; then
     # Linux
-    sudo apt-get install -y libxcb1-dev
+    ./dependencies/cmake.sh
+else
+    # OSX
+    echo "OSX Build step"
 fi
