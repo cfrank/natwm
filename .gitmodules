@@ -1,3 +1,3 @@
 [submodule ".travis/dependencies/CMake"]
 	path = .travis/dependencies/CMake
-	url = git@github.com:Kitware/CMake.git
+	url = https://github.com/Kitware/CMake.git
