@@ -11,6 +11,11 @@ os:
     - linux
     - osx
 
+# Build on both Clang and GCC
+compilers:
+    - clang
+    - gcc
+
 addons:
     apt:
         packages:
