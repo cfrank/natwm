@@ -23,7 +23,7 @@ git_clone() {
 
     cd $module
 
-    ACLOCAL="aclocal -I /usr/local/share/aclocal" ./autogen.sh
+    ACLOCAL="aclocal -I /opt/X11/share/aclocal -I /usr/local/share/aclocal" ./autogen.sh
 
     make
 

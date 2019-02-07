@@ -29,10 +29,10 @@ addons:
     homebrew:
         update: true
         taps: caskroom/cask
-        packages:
-            - cmake
         casks:
             - xquartz
+        packages:
+            - cmake
 
 cache:
     apt: true
