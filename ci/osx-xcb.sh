@@ -48,8 +48,6 @@ install_xcb() {
     git_clone "$XCB_GIT_URL/libxcb" "libxcb" $DEP_DOWNLOAD_DIR
     git_clone "$XCB_GIT_URL/util" "xcb-util" $DEP_DOWNLOAD_DIR
     git_clone "$XCB_GIT_URL/util-keysyms" "util-keysyms" $DEP_DOWNLOAD_DIR
-
-    git_clone "https://github.com/Airblader/xcb-util-xrm.git" "util-xrm" $DEP_DOWNLOAD_DIR
 }
 
 install() {
@@ -61,8 +59,8 @@ install() {
     install_xcb
 
     git_clone "$XORG_GIT_URL/lib/libxtrans" "libxtrans" $DEP_DOWNLOAD_DIR
-    git_clone "$XORG_GIT_URL/lib/libXfont" "libxfont" $DEP_DOWNLOAD_DIR
     git_clone "$XORG_GIT_URL/lib/libX11" "libX11" $DEP_DOWNLOAD_DIR
+    git_clone "https://github.com/Airblader/xcb-util-xrm.git" "util-xrm" $DEP_DOWNLOAD_DIR
 }
 
 if [[ $TRAVIS_OS_NAME == "osx" ]]; then
