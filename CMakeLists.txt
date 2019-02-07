@@ -78,7 +78,7 @@ string(APPEND CMAKE_C_FLAGS " -Wall"
     " -pedantic")
 
 include_directories(
-    /opt/X11/include/
+    /opt/X11/include
 )
 
 target_link_libraries(natwm

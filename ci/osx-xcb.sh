@@ -26,7 +26,7 @@ git_clone() {
     autoreconf -fvi
     ACLOCAL="aclocal -I /opt/X11/share/aclocal -I /usr/local/share/aclocal"\
     PKG_CONFIG_PATH="/opt/X11/share/pkgconfig:/opt/X11/lib/pkgconfig:${PKG_CONFIG_PATH}"\
-    ./configure --prefix=/opt/X11 --disable-dependency-tracking
+    ./autogen.sh --prefix=/opt/X11 --disable-dependency-tracking
 
     make
 
