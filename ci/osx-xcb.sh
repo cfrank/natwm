@@ -25,7 +25,7 @@ git_clone() {
 
     make
 
-    if [[ CI == "true" ]]; then
+    if [[ $CI == "true" ]]; then
         sudo make install
     fi
 }

@@ -22,6 +22,9 @@ addons:
     apt:
         packages:
             - cmake
+            - libxcb-randr0
+            - xcb-util-keysyms
+            - xcb-util-wm
     homebrew:
         update: true
         packages:
