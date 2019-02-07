@@ -29,7 +29,6 @@ addons:
     homebrew:
         update: true
         taps: caskroom/cask
-        casks: xquartz
         packages:
             - cmake
 
@@ -41,6 +40,7 @@ cache:
         - "$HOME/Library/Caches/Homebrew"
 
 install:
+    - [[ $TRAVIS_OS_NAME == "osx" ]]; then brew cask install xquartz fi
     - ./ci/install.sh
 
 script:
