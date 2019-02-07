@@ -30,6 +30,7 @@ addons:
         update: true
         packages:
             - cmake
+            - linuxbrew/xorg/xorg
 
 cache:
     apt: true
