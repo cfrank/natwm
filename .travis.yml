@@ -1,17 +1,12 @@
 dist: xenial
 
-osx_image: xcode10.1
-
 language: c
 
 env:
     global:
         - CACHE_ENABLE=true
 
-# Build on both Linux and Darwin
-os:
-    - linux
-    - osx
+os: linux
 
 # Build on both Clang and GCC
 compiler:
@@ -26,23 +21,12 @@ addons:
             - libxcb-keysyms1-dev
             - libxcb-ewmh-dev
             - libxcb-icccm4-dev
-    homebrew:
-        update: true
-        taps: caskroom/cask
-        casks:
-            - xquartz
-        packages:
-            - cmake
 
 cache:
     apt: true
     ccache: true
     directories:
         - "$TRAVIS_BUILD_DIR/.cache/dep-dl"
-        - "$HOME/Library/Caches/Homebrew"
-
-install:
-    - ./ci/install.sh
 
 script:
     - mkdir build; cd build

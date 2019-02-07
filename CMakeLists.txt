@@ -77,10 +77,6 @@ string(APPEND CMAKE_C_FLAGS " -Wall"
     " -Wno-unused-parameter"
     " -pedantic")
 
-include_directories(
-    /opt/X11/include
-)
-
 target_link_libraries(natwm
     xcb
     xcb-randr
