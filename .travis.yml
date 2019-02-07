@@ -28,10 +28,8 @@ addons:
             - libxcb-icccm4-dev
     homebrew:
         update: true
-        taps:
-            - caskroom/cask
-        casks:
-            - xquartz
+        taps: caskroom/cask
+        casks: xquartz
         packages:
             - cmake
 
