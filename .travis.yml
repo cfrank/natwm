@@ -23,3 +23,8 @@ addons:
 cache:
     apt: true
     ccache: true
+
+script:
+    - mkdir build; cd build
+    - cmake ../
+    - make
