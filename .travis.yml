@@ -22,7 +22,7 @@ addons:
     apt:
         packages:
             - cmake
-            - libxcb-randr0
+            - libxcb-randr0-dev
             - libxcb-keysyms1-dev
             - libxcb-ewmh-dev
             - libxcb-icccm4-dev
@@ -36,6 +36,7 @@ cache:
     ccache: true
     directories:
         - "$TRAVIS_BUILD_DIR/.cache/dep-dl"
+        - "$HOME/Library/Caches/Homebrew"
 
 install:
     - ./ci/install.sh
