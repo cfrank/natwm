@@ -45,3 +45,4 @@
 # Folders
 bin/
 build/
+.cache/
