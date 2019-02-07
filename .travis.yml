@@ -1,5 +1,7 @@
 dist: xenial
 
+osx_image: xcode10.1
+
 language: c
 
 env:
