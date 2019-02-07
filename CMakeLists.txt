@@ -82,6 +82,7 @@ include_directories(
 )
 
 target_link_libraries(natwm
+    xcb
     xcb-randr
     xcb-keysyms
     xcb-icccm
