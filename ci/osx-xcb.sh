@@ -13,11 +13,13 @@ git_clone() {
     local module=$2
     local output=$3
 
-    echo $url $module $output
-
     cd $output
 
-    git clone --recursive $url $module
+    if [[ -f "$module" ]]; then
+        echo "Found $module in cache. No need to clone it again"
+    else
+        git clone --recursive $url $module
+    fi
 
     cd $module
 
@@ -36,8 +38,6 @@ install_xorg() {
     git_clone "$XORG_GIT_URL/util/macros" "util-macros" $DEP_DOWNLOAD_DIR
     git_clone "$XORG_GIT_URL/proto/xorgproto" "xorgproto" $DEP_DOWNLAOD_DIR
     git_clone "$XORG_GIT_URL/lib/libXau" "libXau" $DEP_DOWNLOAD_DIR
-    git_clone "$XORG_GIT_URL/lib/libxtrans" "libxtrans" $DEP_DOWNLOAD_DIR
-    git_clone "$XORG_GIT_URL/lib/libX11" "libX11" $DEP_DOWNLOAD_DIR
 }
 
 install_xcb() {
@@ -59,6 +59,9 @@ install() {
 
     install_xorg
     install_xcb
+
+    git_clone "$XORG_GIT_URL/lib/libxtrans" "libxtrans" $DEP_DOWNLOAD_DIR
+    git_clone "$XORG_GIT_URL/lib/libX11" "libX11" $DEP_DOWNLOAD_DIR
 }
 
 if [[ $TRAVIS_OS_NAME == "osx" ]]; then
