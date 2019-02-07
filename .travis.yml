@@ -12,7 +12,7 @@ os:
     - osx
 
 # Build on both Clang and GCC
-compilers:
+compiler:
     - clang
     - gcc
 
