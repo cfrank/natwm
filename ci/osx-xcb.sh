@@ -23,7 +23,9 @@ git_clone() {
 
     cd $module
 
-    ACLOCAL="aclocal -I /opt/X11/share/aclocal -I /usr/local/share/aclocal" ./autogen.sh
+    ACLOCAL="aclocal -I /opt/X11/share/aclocal -I /usr/local/share/aclocal"\
+    PKG_CONFIG_PATH="/opt/X11/share/pkgconfig:/opt/X11/lib/pkgconfig:${PKG_CONFIG_PATH}"\
+    ./autogen.sh
 
     make
 
