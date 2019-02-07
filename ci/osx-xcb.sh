@@ -36,7 +36,6 @@ install_xorg() {
     echo "Installing XORG libraries..."
 
     git_clone "$XORG_GIT_URL/util/macros" "util-macros" $DEP_DOWNLOAD_DIR
-    git_clone "$XORG_GIT_URL/xserver" "xserver" $DEP_DOWNLOAD_DIR
     git_clone "$XORG_GIT_URL/proto/xorgproto" "xorgproto" $DEP_DOWNLAOD_DIR
     git_clone "$XORG_GIT_URL/lib/libXau" "libXau" $DEP_DOWNLOAD_DIR
 }
@@ -62,6 +61,7 @@ install() {
     install_xcb
 
     git_clone "$XORG_GIT_URL/lib/libxtrans" "libxtrans" $DEP_DOWNLOAD_DIR
+    git_clone "$XORG_GIT_URL/lib/libXfont" "libxfont" $DEP_DOWNLOAD_DIR
     git_clone "$XORG_GIT_URL/lib/libX11" "libX11" $DEP_DOWNLOAD_DIR
 }
 
