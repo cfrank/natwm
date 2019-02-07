@@ -30,6 +30,11 @@ addons:
 cache:
     apt: true
     ccache: true
+    directories:
+        - "$TRAVIS_BUILD_DIR/.cache/dep-dl"
+
+install:
+    - ./ci/install.sh
 
 script:
     - mkdir build; cd build
