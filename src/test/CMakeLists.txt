@@ -1,14 +1,7 @@
-add_executable(test
-    test_main.c
-)
+function(create_test exec_name file_name lib_list test_name)
+    add_executable(${exec_name} ${file_name})
+    target_link_libraries(${exec_name} PRIVATE ${lib_list})
+    add_test(NAME ${test_name} COMMAND ${exec_name})
+endfunction()
 
-set_target_properties(natwm
-    PROPERTIES
-    VERSION ${PROJECT_VERSION}
-    C_STANDARD 99
-    C_EXTENSIONS OFF
-)
-
-target_link_libraries(test PRIVATE unity)
-
-add_test(NAME natwm-test COMMAND test)
+create_test(example-test test_main.c "unity" ExampleTest)

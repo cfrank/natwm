@@ -66,5 +66,9 @@ string(APPEND CMAKE_C_FLAGS " -Wall"
     " -Wno-unused-parameter"
     " -pedantic")
 
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    include(CTest)
+endif()
+
 add_subdirectory(vendor)
 add_subdirectory(src)
