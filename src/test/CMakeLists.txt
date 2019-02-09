@@ -4,4 +4,4 @@ function(create_test exec_name file_name lib_list test_name)
     add_test(NAME ${test_name} COMMAND ${exec_name})
 endfunction()
 
-create_test(example-test test_main.c "unity" ExampleTest)
+create_test(example-test test_main.c "cmocka" ExampleTest)

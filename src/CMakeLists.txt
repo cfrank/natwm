@@ -1,5 +1,5 @@
 add_subdirectory(natwm)
 
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+if(ENABLE_TESTING)
     add_subdirectory(test)
 endif()

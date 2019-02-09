@@ -24,6 +24,8 @@ else()
     add_compile_definitions(DEBUG=1)
 endif()
 
+option(ENABLE_TESTING "Enable automated testing" OFF)
+
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
 set(CMAKE_SRCS_DIRECTORY ${PROJECT_SOURCE_DIR}/src)
 
@@ -66,7 +68,7 @@ string(APPEND CMAKE_C_FLAGS " -Wall"
     " -Wno-unused-parameter"
     " -pedantic")
 
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+if(ENABLE_TESTING)
     include(CTest)
 endif()
 
