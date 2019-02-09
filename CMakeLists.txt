@@ -44,20 +44,9 @@ else()
     message(WARNING "Unable to find clang-format! Target was not created")
 endif()
 
-add_executable(natwm
-    ${CMAKE_SRCS_DIRECTORY}/natwm.c
-)
-
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Compilation flags
-
-set_target_properties(natwm
-    PROPERTIES
-    VERSION ${PROJECT_VERSION}
-    C_STANDARD 99
-    C_EXTENSIONS OFF
-)
 
 string(APPEND CMAKE_C_FLAGS_DEBUG " -g3"
     " -O")
@@ -77,12 +66,5 @@ string(APPEND CMAKE_C_FLAGS " -Wall"
     " -Wno-unused-parameter"
     " -pedantic")
 
-target_link_libraries(natwm
-    xcb
-    xcb-randr
-    xcb-keysyms
-    xcb-icccm
-    xcb-ewmh
-)
-
-target_include_directories(natwm PRIVATE src)
+add_subdirectory(vendor)
+add_subdirectory(src)
