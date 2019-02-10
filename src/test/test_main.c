@@ -1,15 +1,19 @@
-#include <stdio.h>
+#include <setjmp.h>
+#include <stdarg.h>
+#include <stddef.h>
 
-#include <unity.h>
+#include <cmocka.h>
 
-void test_Example_should_Run(void)
+static void test(void **state)
 {
-        TEST_ASSERT_EQUAL_INT(1, 1);
+        assert_int_equal(1, 1);
 }
 
 int main(void)
 {
-        UNITY_BEGIN();
-        RUN_TEST(test_Example_should_Run);
-        return UNITY_END();
+        const struct CMUnitTest tests[] = {
+                cmocka_unit_test(test),
+        };
+
+        return cmocka_run_group_tests(tests, NULL, NULL);
 }
