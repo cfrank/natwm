@@ -12,7 +12,7 @@ static void test_list_creation_succeeds(void **state)
 
         assert_null(list->head);
         assert_null(list->tail);
-        assert_int_equal(1, list->size);
+        assert_int_equal(0, list->size);
 }
 
 int main(void)
