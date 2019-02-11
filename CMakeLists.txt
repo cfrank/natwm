@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.4)
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
 project(natwm
     VERSION 0.0.1
     DESCRIPTION "Not another tiling window manager"
@@ -70,6 +72,7 @@ string(APPEND CMAKE_C_FLAGS " -Wall"
 
 if(ENABLE_TESTING)
     include(CTest)
+    include(AddNatwmTest)
 endif()
 
 add_subdirectory(vendor)
