@@ -2,6 +2,7 @@
 // Licensed under BSD-3-Clause
 // Refer to the license.txt file included in the root of the project
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
 
@@ -156,22 +157,10 @@ static void clear_list(struct list *list, bool destroy)
 
 void destroy_list(struct list *list)
 {
-        empty_list(list);
-
-        free(list);
+        clear_list(list, true);
 }
 
-void empty_list(struct list *list, bool free)
+void empty_list(struct list *list)
 {
-        struct node *node = list->head;
-        struct node *next;
-
-        while (node != NULL) {
-                next = node->next;
-
-                list_remove(list, node);
-                destroy_node(node);
-
-                node = next;
-        }
+        clear_list(list, false);
 }
