@@ -21,3 +21,18 @@ struct list *create_list(void)
 
         return list;
 }
+
+struct node *create_node(void *data)
+{
+        struct node *node = malloc(sizeof(struct node));
+
+        if (node == NULL) {
+                return NULL;
+        }
+
+        node->next = NULL;
+        node->previous = NULL;
+        node->data = data;
+
+        return node;
+}

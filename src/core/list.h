@@ -17,3 +17,4 @@ struct list {
 };
 
 struct list *create_list(void);
+struct node *create_node(void *data);
