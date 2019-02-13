@@ -9,7 +9,7 @@
 struct node {
         struct node *next;
         struct node *previous;
-        void *data;
+        const void *data;
 };
 
 struct list {

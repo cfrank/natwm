@@ -139,7 +139,7 @@ void list_remove(struct list *list, struct node *node)
 
 bool list_is_empty(const struct list *list)
 {
-        return (list->size < 1);
+        return list->size == 0;
 }
 
 static void clear_list(struct list *list, bool destroy)

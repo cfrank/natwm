@@ -35,7 +35,7 @@ static void test_node_creation_succeeds(void **state)
         assert_non_null(node);
         assert_null(node->next);
         assert_null(node->previous);
-        assert_int_equal(expected_data, *(int *)node->data);
+        assert_int_equal(expected_data, *(const int *)node->data);
 
         destroy_node(node);
 }
