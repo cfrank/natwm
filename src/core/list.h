@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <stdbool.h>
+
 struct node {
         struct node *next;
         struct node *previous;
@@ -16,16 +18,17 @@ struct list {
         size_t size;
 };
 
-struct node *create_node(void *data);
+struct node *create_node(const void *data);
 void destroy_node(struct node *node);
 
 struct list *create_list(void);
 struct node *list_insert_after(struct list *list, struct node *node,
-                               void *data);
+                               const void *data);
 struct node *list_insert_before(struct list *list, struct node *node,
-                                void *data);
-struct node *list_insert(struct list *list, void *data);
-struct node *list_insert_end(struct list *list, void *data);
+                                const void *data);
+struct node *list_insert(struct list *list, const void *data);
+struct node *list_insert_end(struct list *list, const void *data);
 void list_remove(struct list *list, struct node *node);
+bool list_is_empty(const struct list *list);
 void destroy_list(struct list *list);
 void empty_list(struct list *list);

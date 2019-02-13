@@ -2,13 +2,12 @@
 // Licensed under BSD-3-Clause
 // Refer to the license.txt file included in the root of the project
 
-#include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
 
 #include "list.h"
 
-struct node *create_node(void *data)
+struct node *create_node(const void *data)
 {
         struct node *node = malloc(sizeof(struct node));
 
@@ -43,7 +42,8 @@ struct list *create_list(void)
         return list;
 }
 
-struct node *list_insert_after(struct list *list, struct node *node, void *data)
+struct node *list_insert_after(struct list *list, struct node *node,
+                               const void *data)
 {
         struct node *new_node = create_node(data);
 
@@ -67,7 +67,7 @@ struct node *list_insert_after(struct list *list, struct node *node, void *data)
 }
 
 struct node *list_insert_before(struct list *list, struct node *node,
-                                void *data)
+                                const void *data)
 {
         struct node *new_node = create_node(data);
 
@@ -90,7 +90,7 @@ struct node *list_insert_before(struct list *list, struct node *node,
         return new_node;
 }
 
-struct node *list_insert(struct list *list, void *data)
+struct node *list_insert(struct list *list, const void *data)
 {
         if (list->head == NULL) {
                 struct node *new_node = create_node(data);
@@ -109,7 +109,7 @@ struct node *list_insert(struct list *list, void *data)
         }
 }
 
-struct node *list_insert_end(struct list *list, void *data)
+struct node *list_insert_end(struct list *list, const void *data)
 {
         if (list->tail == NULL) {
                 return list_insert(list, data);
@@ -135,6 +135,11 @@ void list_remove(struct list *list, struct node *node)
         }
 
         --list->size;
+}
+
+bool list_is_empty(const struct list *list)
+{
+        return (list->size < 1);
 }
 
 static void clear_list(struct list *list, bool destroy)

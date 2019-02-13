@@ -50,76 +50,169 @@ static void test_list_creation_succeeds(void **state)
         assert_int_equal(0, list->size);
 }
 
-static void test_list_insert_after_single_tail(void **state)
+static void test_list_insert_after_single_node(void **state)
 {
-        int expected_existing_data = 10;
-        int expected_created_data = 20;
         struct list *list = *(struct list **)state;
 
-        struct node *existing_node = list_insert(list, &expected_existing_data);
+        struct node *existing_node = list_insert(list, NULL);
 
         assert_int_equal(1, list->size);
-        assert_int_equal(expected_existing_data, *(int *)list->tail->data);
+        assert_memory_equal(existing_node, list->tail, sizeof(struct node *));
 
-        struct node *new_node
-                = list_insert_after(list, list->tail, &expected_created_data);
+        struct node *new_node = list_insert_after(list, list->tail, NULL);
 
         assert_non_null(new_node);
 
         // Expect head to be the existing node
-        assert_memory_equal(
-                &expected_existing_data, list->head->data, sizeof(int *));
+        assert_memory_equal(existing_node, list->head, sizeof(struct node *));
 
         // Expect the new node to be after the existing node
         assert_memory_equal(
                 existing_node, new_node->previous, sizeof(struct node *));
 
         // Expect tail to be the newly created data
-        assert_memory_equal(
-                &expected_created_data, list->tail->data, sizeof(int *));
-}
-
-static void test_list_insert_after_single_head(void **state)
-{
-        int expected_existing_data = 10;
-        int expected_created_data = 20;
-        struct list *list = *(struct list **)state;
-
-        struct node *existing_node = list_insert(list, &expected_existing_data);
-
-        assert_non_null(existing_node);
-
-        struct node *new_node
-                = list_insert_after(list, list->head, &expected_existing_data);
-
-        // Expect head to be existing created data
-        assert_memory_equal(
-                &expected_existing_data, list->head->data, sizeof(int *));
+        assert_memory_equal(new_node, list->tail, sizeof(struct node *));
 }
 
 static void test_list_insert_after_middle_node(void **state)
 {
-        int expected_tail_data = 10;
-        int expected_head_data = 20;
-        int expected_created_data = 30;
+        struct list *list = *(struct list **)state;
+        struct node *tail_node = list_insert(list, NULL); // 'D'
+        struct node *middle_node = list_insert(list, NULL); // 'C'
+        struct node *head_node = list_insert(list, NULL); // 'A'
+
+        // When inserting data after 'C' in a list with this structure:
+        // D - C - A
+        // Should result in:
+        // D - C - B - A
+        // Where 'B' is the inserted data
+        struct node *created_node = list_insert_after(list, head_node, NULL);
+
+        // Head and tail should be the same
+        assert_memory_equal(tail_node, list->tail, sizeof(struct node *));
+        assert_memory_equal(head_node, list->head, sizeof(struct node *));
+
+        // Created node should be after middle node
+        assert_memory_equal(
+                middle_node, created_node->next, sizeof(struct node *));
+}
+
+static void test_list_insert_before_single_node(void **state)
+{
+        struct list *list = *(struct list **)state;
+        struct node *existing_node = list_insert(list, NULL);
+
+        assert_memory_equal(existing_node, list->head, sizeof(struct node *));
+
+        struct node *new_node = list_insert_before(list, existing_node, NULL);
+
+        assert_int_equal(2, list->size);
+
+        // Inserting before a single element should result in the new node
+        // occupying the head of the list
+        assert_memory_equal(new_node, list->head, sizeof(struct node *));
+
+        // The next node after the newly inserted node should be the existing
+        // node
+        assert_memory_equal(
+                existing_node, list->head->next, sizeof(struct node *));
+}
+
+static void test_list_insert_before_middle_node(void **state)
+{
+        struct list *list = *(struct list **)state;
+        struct node *tail_node = list_insert(list, NULL); // 'D'
+        struct node *middle_node = list_insert(list, NULL); // 'C'
+        struct node *head_node = list_insert(list, NULL); // 'A'
+
+        // When inserting a node before 'C' in a list with this structure
+        // 'D' - 'C' - 'A'
+        // The resulting list should look like this
+        // 'D' - 'C' - 'B' - 'A'
+
+        struct node *created_node = list_insert_before(list, middle_node, NULL);
+
+        assert_int_equal(4, list->size);
+
+        // Expect the head and tail to be the same
+        assert_memory_equal(head_node, list->head, sizeof(struct node *));
+        assert_memory_equal(tail_node, list->tail, sizeof(struct node *));
+
+        // Expect the created node to come before the middle node
+        assert_memory_equal(
+                created_node, middle_node->previous, sizeof(struct node *));
+
+        // Expect the middle node to come after the created node
+        assert_memory_equal(
+                middle_node, created_node->next, sizeof(struct node *));
+}
+
+static void test_list_remove_head_node(void **state)
+{
         struct list *list = *(struct list **)state;
 
-        list_insert(list, &expected_tail_data);
+        struct node *node = list_insert(list, NULL);
+
+        assert_int_equal(1, list->size);
+
+        list_remove(list, node);
+
+        assert_int_equal(0, list->size);
+        assert_null(list->head);
+        assert_null(list->tail);
+}
+
+static void test_list_remove_tail_node(void **state)
+{
+        int expected_resulting_data = 10;
+        struct list *list = *(struct list **)state;
+        struct node *node = list_insert(list, NULL);
+
+        // Insert a node which will be before the tail node
+        list_insert(list, &expected_resulting_data);
+
+        assert_int_equal(2, list->size);
+        assert_memory_equal(node, list->tail, sizeof(struct node *));
+
+        list_remove(list, node);
+
+        assert_int_equal(1, list->size);
+        assert_memory_equal(
+                &expected_resulting_data, list->tail->data, sizeof(int *));
+}
+
+static void test_list_remove_middle_node(void **state)
+{
+        int expected_head_data = 10;
+        int expected_middle_data = 20;
+        int expected_tail_data = 10;
+        struct list *list = *(struct list **)state;
+
+        struct node *tail_node = list_insert(list, &expected_tail_data);
+        struct node *middle_node = list_insert(list, &expected_middle_data);
         struct node *head_node = list_insert(list, &expected_head_data);
 
-        // When inserting data after the head in a list with this structure:
-        // A - C
-        // Should result in:
-        // A - B - C
-        // Where 'B' is the inserted data
-        list_insert_after(list, head_node, &expected_created_data);
+        assert_int_equal(3, list->size);
+        assert_memory_equal(
+                middle_node, list->head->next, sizeof(struct node *));
 
-        assert_memory_equal(
-                &expected_tail_data, list->tail->data, sizeof(int *));
-        assert_memory_equal(
-                &expected_head_data, list->head->data, sizeof(int *));
-        assert_memory_equal(
-                &expected_created_data, list->head->next->data, sizeof(int *));
+        list_remove(list, middle_node);
+
+        // Removing the middle node should leave the head and tail the same
+        assert_int_equal(2, list->size);
+        assert_memory_equal(head_node, list->head, sizeof(struct node *));
+        assert_memory_equal(tail_node, list->tail, sizeof(struct node *));
+}
+
+static void test_list_is_empty_succeeds(void **state)
+{
+        struct list *list = *(struct list **)state;
+
+        assert_true(list_is_empty(list));
+
+        list_insert(list, NULL);
+
+        assert_false(list_is_empty(list));
 }
 
 static void test_list_empty_succeeds(void **state)
@@ -146,17 +239,30 @@ int main(void)
                 cmocka_unit_test_setup_teardown(
                         test_list_creation_succeeds, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(
-                        test_list_insert_after_single_head,
-                        test_setup,
-                        test_teardown),
-                cmocka_unit_test_setup_teardown(
-                        test_list_insert_after_single_tail,
+                        test_list_insert_after_single_node,
                         test_setup,
                         test_teardown),
                 cmocka_unit_test_setup_teardown(
                         test_list_insert_after_middle_node,
                         test_setup,
                         test_teardown),
+                cmocka_unit_test_setup_teardown(
+                        test_list_insert_before_single_node,
+                        test_setup,
+                        test_teardown),
+                cmocka_unit_test_setup_teardown(
+                        test_list_insert_before_middle_node,
+                        test_setup,
+                        test_teardown),
+                cmocka_unit_test_setup_teardown(
+                        test_list_remove_head_node, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(
+                        test_list_remove_tail_node, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(test_list_remove_middle_node,
+                                                test_setup,
+                                                test_teardown),
+                cmocka_unit_test_setup_teardown(
+                        test_list_is_empty_succeeds, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(
                         test_list_empty_succeeds, test_setup, test_teardown),
         };
