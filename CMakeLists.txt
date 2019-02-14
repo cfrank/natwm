@@ -73,6 +73,10 @@ string(APPEND CMAKE_C_FLAGS " -Wall"
 if(ENABLE_TESTING)
     include(CTest)
     include(AddNatwmTest)
+    # Add a target for calling ctest with verbose output on failure
+    add_custom_target(check
+        COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
+    )
 endif()
 
 add_subdirectory(vendor)
