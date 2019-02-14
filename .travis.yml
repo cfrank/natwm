@@ -30,4 +30,4 @@ script:
     - mkdir build; cd build
     - cmake -D ENABLE_TESTING=ON ../
     - make
-    - ctest
+    - make check
