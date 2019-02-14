@@ -146,6 +146,78 @@ static void test_list_insert_before_middle_node(void **state)
                 middle_node, created_node->next, sizeof(struct node *));
 }
 
+static void test_list_insert_empty_list(void **state)
+{
+        struct list *list = *(struct list **)state;
+
+        assert_int_equal(0, list->size);
+
+        struct node *node = list_insert(list, NULL);
+
+        // Expect the list to have one element and the head and tail to
+        // be the inserted node
+        assert_int_equal(1, list->size);
+        assert_memory_equal(node, list->head, sizeof(struct node *));
+        assert_memory_equal(node, list->tail, sizeof(struct node *));
+}
+
+static void test_list_insert_occupied_list(void **state)
+{
+        size_t num_nodes = 5;
+        struct list *list = *(struct list **)state;
+
+        for (size_t i = 0; i < num_nodes; ++i) {
+                list_insert(list, NULL);
+        }
+
+        assert_int_equal(num_nodes, list->size);
+
+        // When inserting a node in a list which already contains data that
+        // newly inserted node should occupy the head of the list
+
+        struct node *new_node = list_insert(list, NULL);
+
+        assert_int_equal((num_nodes + 1), list->size);
+        assert_memory_equal(new_node, list->head, sizeof(struct node *));
+}
+
+static void test_list_insert_end_empty_list(void **state)
+{
+        struct list *list = *(struct list **)state;
+
+        assert_int_equal(0, list->size);
+
+        struct node *node = list_insert_end(list, NULL);
+
+        // When doing a list_insert_end call on a list with no data it should
+        // behave exactly like list_insert. Thus the data should occupy the head
+        // and tail of the list
+        assert_int_equal(1, list->size);
+        assert_memory_equal(node, list->head, sizeof(struct node *));
+        assert_memory_equal(node, list->tail, sizeof(struct node *));
+}
+
+static void test_list_insert_end_occupied_list(void **state)
+{
+        struct list *list = *(struct list **)state;
+
+        struct node *old_tail_node = list_insert(list, NULL);
+        struct node *head_node = list_insert(list, NULL);
+
+        assert_int_equal(2, list->size);
+
+        struct node *new_node = list_insert_end(list, NULL);
+
+        // When inserting a node into the end of a list which already contains
+        // data it should occupy the tail and the old tail should come directly
+        // after it. The head of the list should stay the same
+        assert_int_equal(3, list->size);
+        assert_memory_equal(new_node, list->tail, sizeof(struct node *));
+        assert_memory_equal(
+                old_tail_node, list->tail->previous, sizeof(struct node *));
+        assert_memory_equal(head_node, list->head, sizeof(struct node *));
+}
+
 static void test_list_remove_head_node(void **state)
 {
         struct list *list = *(struct list **)state;
@@ -256,6 +328,18 @@ int main(void)
                         test_teardown),
                 cmocka_unit_test_setup_teardown(
                         test_list_insert_before_middle_node,
+                        test_setup,
+                        test_teardown),
+                cmocka_unit_test_setup_teardown(
+                        test_list_insert_empty_list, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(test_list_insert_occupied_list,
+                                                test_setup,
+                                                test_teardown),
+                cmocka_unit_test_setup_teardown(test_list_insert_end_empty_list,
+                                                test_setup,
+                                                test_teardown),
+                cmocka_unit_test_setup_teardown(
+                        test_list_insert_end_occupied_list,
                         test_setup,
                         test_teardown),
                 cmocka_unit_test_setup_teardown(

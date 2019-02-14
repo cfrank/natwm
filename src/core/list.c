@@ -114,7 +114,7 @@ struct node *list_insert_end(struct list *list, const void *data)
         if (list->tail == NULL) {
                 return list_insert(list, data);
         } else {
-                return list_insert_before(list, list->tail, data);
+                return list_insert_after(list, list->tail, data);
         }
 }
 
