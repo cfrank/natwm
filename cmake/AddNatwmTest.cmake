@@ -67,5 +67,4 @@ function(ADD_NATWM_TEST _TARGET_NAME)
     endif()
 
     add_test(NAME ${TEST_NAME} COMMAND ${_TARGET_NAME})
-
 endfunction(ADD_NATWM_TEST)
