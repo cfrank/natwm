@@ -2,4 +2,6 @@
 
 #include <clog.h>
 
-extern struct logger *natwm_logger = create_logger("NATWM");
+extern struct logger *natwm_logger;
+
+void initialize_logger(void);

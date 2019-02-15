@@ -4,5 +4,5 @@ add_library(common STATIC
 )
 
 target_link_libraries(common
-    clog
+    PUBLIC clog
 )

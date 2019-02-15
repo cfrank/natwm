@@ -1,7 +1,8 @@
-#include <common/logger.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <xcb/xcb.h>
+
+#include <common/logger.h>
 
 static void handle_connection_error(xcb_connection_t *connection, int error)
 {
@@ -37,6 +38,10 @@ int main(void)
         if (connection == NULL) {
                 exit(EXIT_FAILURE);
         }
+
+        LOG_INFO_SHORT(natwm_logger, "Successfully connected to X server");
+
+        xcb_disconnect(connection);
 
         return EXIT_SUCCESS;
 }
