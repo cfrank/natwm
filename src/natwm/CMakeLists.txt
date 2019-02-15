@@ -10,6 +10,12 @@ set_target_properties(natwm
 )
 
 target_link_libraries(natwm
-    core
-    xcb
+    PRIVATE
+        common
+        core
+)
+
+target_link_libraries(natwm
+    PRIVATE
+        xcb
 )

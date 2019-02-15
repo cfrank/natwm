@@ -1,8 +1,4 @@
-add_library(core
+add_library(core STATIC
     list.c
     list.h
-)
-
-target_include_directories(core
-    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
 )

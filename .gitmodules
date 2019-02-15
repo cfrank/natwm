@@ -1,3 +1,6 @@
 [submodule "vendor/cmocka"]
 	path = vendor/cmocka
 	url = https://git.cryptomilk.org/projects/cmocka.git
+[submodule "vendor/clog"]
+	path = vendor/clog
+	url = https://github.com/cfrank/libclog.git
