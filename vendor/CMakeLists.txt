@@ -5,3 +5,5 @@ if (ENABLE_TESTING)
     option(WITH_EXAMPLES "Don't include cmocka examples" OFF)
     add_subdirectory(cmocka)
 endif()
+
+add_subdirectory(clog)
