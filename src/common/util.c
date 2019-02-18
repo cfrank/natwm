@@ -5,12 +5,14 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "constants.h"
+
 /*
  * Duplicates a stack allocated string to a heap allocated string. This allows
  * for mutating/building upon a string with for instance the string_append
  * function
  */
-__attribute__((__nonnull__)) char *alloc_string(const char *string)
+ATTR_NONNULL char *alloc_string(const char *string)
 {
         size_t length = strlen(string) + 1;
 

@@ -1,4 +1,5 @@
 add_library(common STATIC
+    constants.h
     logger.c
     logger.h
     util.c
