@@ -4,8 +4,8 @@
 
 #pragma once
 
-#include <clog.h>
-
-extern struct logger *natwm_logger;
-
-void initialize_logger(void);
+#if defined __clang__ || defined __GNUC__
+#define ATTR_NONNULL __attribute__((__nonnull__))
+#else
+#define ATTR_NONNULL
+#endif
