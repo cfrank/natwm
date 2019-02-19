@@ -180,6 +180,12 @@ int main(int argc, char **argv)
 {
         struct argument_options *arg_options = parse_arguments(argc, argv);
 
+        if (arg_options == NULL) {
+                fprintf(stderr, "Failed to parse command line arguments");
+
+                exit(EXIT_FAILURE);
+        }
+
         // Initialize the logger
         initialize_logger(arg_options->verbose);
 
