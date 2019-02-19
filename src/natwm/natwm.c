@@ -143,8 +143,7 @@ static struct argument_options *parse_arguments(int argc, char **argv)
                         printf("%s\n", NATWM_VERSION_STRING);
                         printf("-c <file>, Set the config file\n");
                         printf("-h,        Print this help message\n");
-                        printf("-v,        Print version "
-                               "information\n");
+                        printf("-v,        Print version information\n");
                         printf("-V,        Verbose mode\n");
 
                         goto exit_success;
