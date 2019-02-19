@@ -1,12 +1,18 @@
 // Required for handling signals
 #define _POSIX_C_SOURCE 200809L
 
+#include <getopt.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <xcb/xcb.h>
 
 #include <common/logger.h>
+
+struct argument_options {
+        const char *config_path;
+        bool verbose;
+};
 
 static void handle_connection_error(int error)
 {
@@ -110,16 +116,77 @@ static int start_natwm(void)
         return 0;
 }
 
-int main(void)
+static struct argument_options *parse_arguments(int argc, char **argv)
 {
+        int opt;
+        struct argument_options *arg_options
+                = malloc(sizeof(struct argument_options));
+
+        if (arg_options == NULL) {
+                return NULL;
+        }
+
+        // defaults
+        arg_options->config_path = NULL;
+        arg_options->verbose = false;
+
+        opterr = 0;
+
+        while ((opt = getopt(argc, argv, "c:hvV")) != -1) {
+                switch (opt) {
+                case 'c':
+                        arg_options->config_path = optarg;
+                        break;
+                case 'h':
+                        printf("%s\n", NATWM_VERSION_STRING);
+                        printf("-c <file>, Set the config file\n");
+                        printf("-h,        Print this help message\n");
+                        printf("-v,        Print version information\n");
+                        printf("-V,        Verbose mode\n");
+
+                        goto exit_success;
+                case 'v':
+                        printf("%s\n", NATWM_VERSION_STRING);
+                        printf("Copywrite (c) 2019 Chris Frank\n");
+                        printf("Released under the Revised BSD License\n");
+
+                        goto exit_success;
+                case 'V':
+                        arg_options->verbose = true;
+                        break;
+                default:
+                        // Handle invalid opt
+                        fprintf(stderr,
+                                "Recieved invalid command line argument "
+                                "\"%c\"\n",
+                                optopt);
+
+                        free(arg_options);
+
+                        exit(EXIT_FAILURE);
+                }
+        }
+
+        return arg_options;
+
+exit_success:
+        free(arg_options);
+
+        exit(EXIT_SUCCESS);
+}
+
+int main(int argc, char **argv)
+{
+        struct argument_options *arg_options = parse_arguments(argc, argv);
+
         // Initialize the logger
-        initialize_logger();
+        initialize_logger(arg_options->verbose);
 
         // Catch and handle signals
         if (install_signal_handlers() < 0) {
-                LOG_ERROR_SHORT(
-                        natwm_logger,
-                        "Failed to handle signals - This may cause problems!");
+                LOG_ERROR_SHORT(natwm_logger,
+                                "Failed to handle signals - This may "
+                                "cause problems!");
         }
 
         // Start the window manager
@@ -127,6 +194,7 @@ int main(void)
                 return EXIT_FAILURE;
         }
 
+        free(arg_options);
         destroy_logger(natwm_logger);
 
         return EXIT_SUCCESS;

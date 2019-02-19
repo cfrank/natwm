@@ -5,7 +5,8 @@
 #pragma once
 
 #include <clog.h>
+#include <stdbool.h>
 
 extern struct logger *natwm_logger;
 
-void initialize_logger(void);
+void initialize_logger(bool verbose);

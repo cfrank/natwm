@@ -6,11 +6,11 @@
 
 struct logger *natwm_logger;
 
-void initialize_logger(void)
+void initialize_logger(bool verbose)
 {
         natwm_logger = create_logger("NATWM");
 
-        if (IS_DEBUG_BUILD == 1) {
+        if (IS_DEBUG_BUILD == 1 || verbose) {
                 set_logging_min_level(natwm_logger, LEVEL_TRACE);
         }
 }
