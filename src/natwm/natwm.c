@@ -130,6 +130,7 @@ static struct argument_options *parse_arguments(int argc, char **argv)
         arg_options->config_path = NULL;
         arg_options->verbose = false;
 
+        // disable default error handling behavior in getopt
         opterr = 0;
 
         while ((opt = getopt(argc, argv, "c:hvV")) != -1) {
@@ -184,9 +185,9 @@ int main(int argc, char **argv)
 
         // Catch and handle signals
         if (install_signal_handlers() < 0) {
-                LOG_ERROR_SHORT(natwm_logger,
-                                "Failed to handle signals - This may "
-                                "cause problems!");
+                LOG_ERROR_SHORT(
+                        natwm_logger,
+                        "Failed to handle signals - This may cause problems!");
         }
 
         // Start the window manager
