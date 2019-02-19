@@ -9,3 +9,5 @@
 #else
 #define ATTR_NONNULL
 #endif
+
+#define NATWM_CONFIG_FILE "natwm/config"

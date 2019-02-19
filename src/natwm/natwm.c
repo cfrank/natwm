@@ -8,6 +8,7 @@
 #include <xcb/xcb.h>
 
 #include <common/logger.h>
+#include <core/config.h>
 
 struct argument_options {
         const char *config_path;
@@ -142,14 +143,16 @@ static struct argument_options *parse_arguments(int argc, char **argv)
                         printf("%s\n", NATWM_VERSION_STRING);
                         printf("-c <file>, Set the config file\n");
                         printf("-h,        Print this help message\n");
-                        printf("-v,        Print version information\n");
+                        printf("-v,        Print version "
+                               "information\n");
                         printf("-V,        Verbose mode\n");
 
                         goto exit_success;
                 case 'v':
                         printf("%s\n", NATWM_VERSION_STRING);
                         printf("Copywrite (c) 2019 Chris Frank\n");
-                        printf("Released under the Revised BSD License\n");
+                        printf("Released under the Revised BSD "
+                               "License\n");
 
                         goto exit_success;
                 case 'V':
@@ -158,7 +161,8 @@ static struct argument_options *parse_arguments(int argc, char **argv)
                 default:
                         // Handle invalid opt
                         fprintf(stderr,
-                                "Recieved invalid command line argument "
+                                "Recieved invalid command line "
+                                "argument "
                                 "\"%c\"\n",
                                 optopt);
 
@@ -189,11 +193,14 @@ int main(int argc, char **argv)
         // Initialize the logger
         initialize_logger(arg_options->verbose);
 
+        // Initialize config
+        initialize_config(arg_options->config_path);
+
         // Catch and handle signals
         if (install_signal_handlers() < 0) {
-                LOG_ERROR_SHORT(
-                        natwm_logger,
-                        "Failed to handle signals - This may cause problems!");
+                LOG_ERROR_SHORT(natwm_logger,
+                                "Failed to handle signals - This may "
+                                "cause problems!");
         }
 
         // Start the window manager
