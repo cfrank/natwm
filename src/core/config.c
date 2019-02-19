@@ -32,8 +32,7 @@ static FILE *open_config_file(const char *path)
 
                 char *config_path = alloc_string(db->pw_dir);
 
-                string_append(&config_path, "/.config");
-                string_append_char(&config_path, '/');
+                string_append(&config_path, "/.config/");
                 string_append(&config_path, NATWM_CONFIG_FILE);
 
                 file = fopen(config_path, "r");
