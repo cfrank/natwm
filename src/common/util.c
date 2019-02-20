@@ -4,8 +4,10 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "constants.h"
+#include "util.h"
 
 /*
  * Duplicates a stack allocated string to a heap allocated string. This allows
@@ -80,4 +82,16 @@ int string_append_char(char **destination, char append)
         (*destination)[destination_size + 1] = '\0';
 
         return 0;
+}
+
+/*
+ * Returns whether or not a path exists
+ */
+bool path_exists(const char *path)
+{
+        if (access(path, F_OK) != 0) {
+                return false;
+        }
+
+        return true;
 }

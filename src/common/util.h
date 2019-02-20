@@ -4,6 +4,11 @@
 
 #pragma once
 
+#include <stdbool.h>
+
 char *alloc_string(const char *string);
 int string_append(char **destination, const char *append);
 int string_append_char(char **destination, char append);
+
+// fs utils
+bool path_exists(const char *path);
