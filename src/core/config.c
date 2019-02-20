@@ -57,6 +57,8 @@ static FILE *open_config_file(const char *path)
         file = fopen(config_path, "r");
 
         if (file == NULL) {
+                LOG_ERROR_SHORT(natwm_logger, "Failed to open %s", config_path);
+
                 goto release_config_path_and_error;
         }
 
