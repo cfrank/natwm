@@ -150,8 +150,7 @@ static struct argument_options *parse_arguments(int argc, char **argv)
                 case 'v':
                         printf("%s\n", NATWM_VERSION_STRING);
                         printf("Copywrite (c) 2019 Chris Frank\n");
-                        printf("Released under the Revised BSD "
-                               "License\n");
+                        printf("Released under the Revised BSD License\n");
 
                         goto exit_success;
                 case 'V':
@@ -160,8 +159,7 @@ static struct argument_options *parse_arguments(int argc, char **argv)
                 default:
                         // Handle invalid opt
                         fprintf(stderr,
-                                "Recieved invalid command line "
-                                "argument "
+                                "Recieved invalid command line argument "
                                 "\"%c\"\n",
                                 optopt);
 
@@ -197,9 +195,9 @@ int main(int argc, char **argv)
 
         // Catch and handle signals
         if (install_signal_handlers() < 0) {
-                LOG_ERROR_SHORT(natwm_logger,
-                                "Failed to handle signals - This may "
-                                "cause problems!");
+                LOG_ERROR_SHORT(
+                        natwm_logger,
+                        "Failed to handle signals - This may cause problems!");
         }
 
         // Start the window manager
