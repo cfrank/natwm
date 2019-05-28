@@ -21,10 +21,9 @@ static FILE *open_config_file(const char *path)
                 file = fopen(path, "r");
 
                 if (file == NULL) {
-                        LOG_ERROR_SHORT(
-                                natwm_logger,
-                                "Failed to find configuration file at %s",
-                                path);
+                        LOG_ERROR(natwm_logger,
+                                  "Failed to find configuration file at %s",
+                                  path);
 
                         return NULL;
                 }
@@ -35,7 +34,7 @@ static FILE *open_config_file(const char *path)
         struct passwd *db = getpwuid(getuid());
 
         if (db == NULL) {
-                LOG_ERROR_SHORT(natwm_logger, "Failed to find HOME directory");
+                LOG_ERROR(natwm_logger, "Failed to find HOME directory");
 
                 return NULL;
         }
@@ -47,9 +46,9 @@ static FILE *open_config_file(const char *path)
 
         // Check if the file exists
         if (!path_exists(config_path)) {
-                LOG_ERROR_SHORT(natwm_logger,
-                                "Failed to find configuration file at %s",
-                                config_path);
+                LOG_ERROR(natwm_logger,
+                          "Failed to find configuration file at %s",
+                          config_path);
 
                 goto release_config_path_and_error;
         }
@@ -57,7 +56,7 @@ static FILE *open_config_file(const char *path)
         file = fopen(config_path, "r");
 
         if (file == NULL) {
-                LOG_ERROR_SHORT(natwm_logger, "Failed to open %s", config_path);
+                LOG_ERROR(natwm_logger, "Failed to open %s", config_path);
 
                 goto release_config_path_and_error;
         }
