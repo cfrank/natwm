@@ -5,7 +5,6 @@
 #include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/types.h>
 #include <unistd.h>
 
 #include <common/constants.h>
@@ -126,26 +125,6 @@ release_config_path_and_error:
         free(config_path);
 
         return NULL;
-}
-
-/**
- * Get size of a file
- *
- * return -1 if we can't find the size
- */
-static int64_t get_file_size(FILE *file)
-{
-        fseek(file, 0L, SEEK_END);
-
-        int64_t size = ftell(file);
-
-        if (size < 0) {
-                return -1;
-        }
-
-        fseek(file, 0L, SEEK_SET);
-
-        return size;
 }
 
 /**

@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <stdint.h>
+
 /**
  * The available data types for natwm configuration files
  *

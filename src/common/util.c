@@ -84,6 +84,26 @@ int string_append_char(char **destination, char append)
         return 0;
 }
 
+/**
+ * Get size of a file
+ *
+ * return -1 if we can't find the size
+ */
+int64_t get_file_size(FILE *file)
+{
+        fseek(file, 0L, SEEK_END);
+
+        int64_t size = ftell(file);
+
+        if (size < 0) {
+                return -1;
+        }
+
+        fseek(file, 0L, SEEK_SET);
+
+        return size;
+}
+
 /*
  * Returns whether or not a path exists
  */
