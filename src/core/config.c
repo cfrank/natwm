@@ -27,44 +27,37 @@ struct parser_context {
 /**
  * Handle creating number pairs
  */
-static struct config_pair *create_number_pair(const char *key, int64_t number)
+static struct config_value *create_number(const char *key, int64_t number)
 {
         struct config_value *value = malloc(sizeof(struct config_value));
-        struct config_pair *pair = malloc(sizeof(struct config_pair));
 
-        if (value == NULL || pair == NULL) {
+        if (value == NULL) {
                 return NULL;
         }
 
+        value->key = key;
         value->type = NUMBER;
         value->data.number = number;
 
-        pair->key = key;
-        pair->value = value;
-
-        return pair;
+        return value;
 }
 
 /**
  * Handle creating string pairs
  */
-static struct config_pair *create_string_pair(const char *key,
-                                              const char *string)
+static struct config_value *create_string(const char *key, const char *string)
 {
         struct config_value *value = malloc(sizeof(struct config_value));
-        struct config_pair *pair = malloc(sizeof(struct config_pair));
 
-        if (value == NULL || pair == NULL) {
+        if (value == NULL) {
                 return NULL;
         }
 
+        value->key = key;
         value->type = STRING;
         value->data.string = string;
 
-        pair->key = key;
-        pair->value = value;
-
-        return pair;
+        return value;
 }
 
 /**

@@ -15,9 +15,10 @@ enum config_data_types {
 };
 
 /**
- * Represents a single config value
+ * Handle key value pairs
  */
 struct config_value {
+        const char *key;
         enum config_data_types type;
         union {
                 int64_t number;
@@ -26,19 +27,11 @@ struct config_value {
 };
 
 /**
- * Handle key value pairs
- */
-struct config_pair {
-        const char *key;
-        struct config_value *value;
-};
-
-/**
- * Holds all the configuration pairs
+ * Holds all the configuration values
  */
 struct config_list {
         uint32_t length;
-        struct config_pair **pairs;
+        struct config_value **values;
 };
 
 struct config_value *get_config_value(const struct config_list *list,
