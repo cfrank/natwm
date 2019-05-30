@@ -14,7 +14,7 @@ Then you need to follow the developers guide for `xcb` from here: [https://xcb.f
 Make sure to read the note about explicitly setting ACLOCAL before running autogen
 
 Here is the order which worked for me:
-	
+
 - `xorg/util/macros`
 - `xorg/proto/xorgproto`
 - `xorg/lib/libXau`
@@ -28,6 +28,6 @@ If you need X11 libs as well install the following:
 - `xorg/lib/libxtrans`
 - `xorg/lib/libX11`
 
-If you need `xcb-xrm` follow all the steps above then clone it and install:
+If you don't have `xcb-xrm` follow all the steps above then clone it and install:
 
 - `git clone --recursive https://github.com/Airblader/xcb-util-xrm.git`

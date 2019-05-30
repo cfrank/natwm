@@ -4,8 +4,10 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "constants.h"
+#include "util.h"
 
 /*
  * Duplicates a stack allocated string to a heap allocated string. This allows
@@ -80,4 +82,36 @@ int string_append_char(char **destination, char append)
         (*destination)[destination_size + 1] = '\0';
 
         return 0;
+}
+
+/**
+ * Get size of a file
+ *
+ * return -1 if we can't find the size
+ */
+int64_t get_file_size(FILE *file)
+{
+        fseek(file, 0L, SEEK_END);
+
+        int64_t size = ftell(file);
+
+        if (size < 0) {
+                return -1;
+        }
+
+        fseek(file, 0L, SEEK_SET);
+
+        return size;
+}
+
+/*
+ * Returns whether or not a path exists
+ */
+bool path_exists(const char *path)
+{
+        if (access(path, F_OK) != 0) {
+                return false;
+        }
+
+        return true;
 }

@@ -8,6 +8,7 @@
 #include <xcb/xcb.h>
 
 #include <common/logger.h>
+#include <core/config.h>
 
 struct argument_options {
         const char *config_path;
@@ -39,7 +40,7 @@ static void handle_connection_error(int error)
                 message = "Connection to the X server failed";
         }
 
-        LOG_CRITICAL_SHORT(natwm_logger, message);
+        LOG_CRITICAL(natwm_logger, message);
 }
 
 static xcb_connection_t *make_connection(int *screen_num)
@@ -63,14 +64,14 @@ static xcb_connection_t *make_connection(int *screen_num)
 static void signal_handler(int signum)
 {
         if (signum == SIGHUP) {
-                LOG_INFO_SHORT(natwm_logger, "Restarting natwm...");
+                LOG_INFO(natwm_logger, "Restarting natwm...");
                 // TODO: Reload WM
 
                 return;
         }
 
         // TODO: Handle gracefully closing WM
-        LOG_CRITICAL_SHORT(natwm_logger, "Terminating natwm...");
+        LOG_CRITICAL(natwm_logger, "Terminating natwm...");
 
         return;
 }
@@ -109,7 +110,7 @@ static int start_natwm(void)
                 return -1;
         }
 
-        LOG_INFO_SHORT(natwm_logger, "Successfully connected to X server");
+        LOG_INFO(natwm_logger, "Successfully connected to X server");
 
         xcb_disconnect(connection);
 
@@ -189,9 +190,12 @@ int main(int argc, char **argv)
         // Initialize the logger
         initialize_logger(arg_options->verbose);
 
+        // Initialize config
+        initialize_config(arg_options->config_path);
+
         // Catch and handle signals
         if (install_signal_handlers() < 0) {
-                LOG_ERROR_SHORT(
+                LOG_ERROR(
                         natwm_logger,
                         "Failed to handle signals - This may cause problems!");
         }
