@@ -12,7 +12,7 @@
 #include <common/util.h>
 #include "config.h"
 
-/*
+/**
  * Holds the parser context
  */
 struct parser_context {
@@ -22,6 +22,38 @@ struct parser_context {
         size_t col_num;
         struct config_pair **variables;
 };
+
+/**
+ * Initialize the parser context with the file buffer.
+ *
+ * This will be used to tract the position of the parser in the file.
+ */
+static struct parser_context *initialize_parser_context(const char *buffer)
+{
+        struct parser_context *context = malloc(sizeof(struct parser_context));
+
+        if (context == NULL) {
+                return NULL;
+        }
+
+        context->buffer = buffer;
+        context->pos = 0;
+        context->line_num = 0;
+        context->col_num = 0;
+        context->variables = NULL;
+
+        return context;
+}
+
+static void destroy_parser_context(struct parser_context *context)
+{
+        if (context->variables != NULL) {
+                // TODO: Use correct destroy function
+                free(context->variables);
+        }
+
+        free(context);
+}
 
 /**
  * Handle creating number pairs
@@ -148,7 +180,6 @@ static int read_file_into_buffer(FILE *file, char **buffer, size_t file_size)
 
         if (bytes_read != file_size) {
                 // Read the wrong amount of bytes
-
                 free(*buffer);
 
                 return -1;
@@ -160,11 +191,47 @@ static int read_file_into_buffer(FILE *file, char **buffer, size_t file_size)
 }
 
 /**
+ * Take the parsing context and use the current position to grab a line in the
+ * configuration.
+ *
+ * Read the line and store the content
+ *
+ * Reset the pos on the context to the correct position of the next line
+ */
+static int read_line(struct parser_context *context)
+{
+        char c;
+
+        while ((c = context->buffer[context->pos]) != '\n' && c != '\0') {
+                printf("%c - %zu\n", c, context->col_num);
+                context->col_num++;
+                context->pos++;
+        }
+
+        // If we hit the end of the buffer just exit out
+        if (c == '\0') {
+                return -1;
+        }
+
+        // When we find a new line move to the next character
+        // and update the current column/line
+        if (c == '\n') {
+                context->pos++;
+                context->col_num = 0;
+                context->line_num++;
+
+                return 0;
+        }
+
+        return -1;
+}
+
+/**
  * Parse a configuration file and return the list of configuration pairs
  */
 static struct config_list *parse_file(FILE *file)
 {
-        int64_t ftell_result = get_file_size(file);
+        ssize_t ftell_result = get_file_size(file);
 
         if (ftell_result < 0) {
                 return NULL;
@@ -178,7 +245,18 @@ static struct config_list *parse_file(FILE *file)
                 return NULL;
         }
 
-        printf("%s\n", file_buffer);
+        struct parser_context *context = initialize_parser_context(file_buffer);
+
+        if (context == NULL) {
+                return NULL;
+        }
+
+        while (read_line(context) == 0) {
+                printf("%s - %zu\n", "Read another line", context->line_num);
+        }
+
+        destroy_parser_context(context);
+        free(file_buffer);
 
         return NULL;
 }
