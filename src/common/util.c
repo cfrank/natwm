@@ -94,7 +94,11 @@ ssize_t string_find_char(const char *haystack, char needle)
         char c;
         ssize_t index = 0;
 
-        while ((c = haystack[index]) != '\0') {
+        if (haystack == NULL) {
+                return -1;
+        }
+
+        while ((c = haystack[index]) != '\0' && c != needle) {
                 ++index;
         }
 

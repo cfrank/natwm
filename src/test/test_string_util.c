@@ -102,6 +102,38 @@ static void test_string_append_char_empty_destination(void **state)
         free(first);
 }
 
+static void test_string_find_char(void **state)
+{
+        const ssize_t expected_result = 5;
+        const char *str = "Hello!";
+
+        assert_int_equal(expected_result, string_find_char(str, '!'));
+}
+
+static void test_string_find_char_not_found(void **state)
+{
+        const ssize_t expected_result = -1;
+        const char *str = "Not Found";
+
+        assert_int_equal(expected_result, string_find_char(str, '!'));
+}
+
+static void test_string_find_char_empty_string(void **state)
+{
+        const ssize_t expected_result = -1;
+        const char *str = "";
+
+        assert_int_equal(expected_result, string_find_char(str, '!'));
+}
+
+static void test_string_find_char_null_string(void **state)
+{
+        const ssize_t expected_result = -1;
+        const char *str = NULL;
+
+        assert_int_equal(expected_result, string_find_char(str, '!'));
+}
+
 int main(void)
 {
         const struct CMUnitTest tests[] = {
@@ -112,6 +144,10 @@ int main(void)
                 cmocka_unit_test(test_string_append_char_succeeds),
                 cmocka_unit_test(test_string_append_char_empty_append),
                 cmocka_unit_test(test_string_append_char_empty_destination),
+                cmocka_unit_test(test_string_find_char),
+                cmocka_unit_test(test_string_find_char_not_found),
+                cmocka_unit_test(test_string_find_char_empty_string),
+                cmocka_unit_test(test_string_find_char_null_string),
         };
 
         return cmocka_run_group_tests(tests, NULL, NULL);
