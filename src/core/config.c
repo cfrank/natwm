@@ -113,16 +113,32 @@ static int handle_variable_creation(struct parser_context *context)
         // Skip to the variable name
         increment_parser_context(context);
 
-        char c = context->buffer[context->pos];
+        const char *variable_string = context->buffer + context->pos;
 
-        if (char_to_token(c) != ALPHA_CHAR) {
+        if (char_to_token(variable_string[0]) != ALPHA_CHAR) {
                 LOG_ERROR(natwm_logger,
                           "Invalid char found: '%c' - Line: %zu Col: %zu",
-                          c,
+                          variable_string[0],
                           context->line_num,
                           context->col_num);
                 return -1;
         }
+
+        char *name;
+        ssize_t name_length
+                = string_get_delimiter(variable_string, '=', &name, false);
+
+        if (name_length < 0) {
+                LOG_ERROR(natwm_logger,
+                          "Invalid variable declaration: Line %zu",
+                          context->line_num);
+
+                return -1;
+        }
+
+        printf("Found variable name: %s\n", name);
+
+        free(name);
 
         return 0;
 }

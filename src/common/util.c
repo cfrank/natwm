@@ -85,6 +85,48 @@ int string_append_char(char **destination, char append)
 }
 
 /**
+ * Gets all characters up to a specified delimiter character
+ *
+ * The caller must supply a uninitialized char pointer which will
+ * contain the newly allocated string.
+ *
+ * The caller must free the result
+ *
+ * This function returns the strlen of the new string or -1 if there was
+ * an error
+ */
+ssize_t string_get_delimiter(const char *source, char delimiter,
+                             char **destination, bool consume)
+{
+        ssize_t delimiter_index = string_find_char(source, delimiter);
+        ssize_t buffer_size;
+
+        if (delimiter_index < 0) {
+                return -1;
+        }
+
+        if (consume) {
+                buffer_size = delimiter_index + 1;
+        } else {
+                buffer_size = delimiter_index;
+        }
+
+        char *buffer = malloc((size_t)buffer_size + 1);
+
+        if (buffer == NULL) {
+                return -1;
+        }
+
+        *destination = buffer;
+
+        memcpy(*destination, source, (size_t)buffer_size);
+
+        (*destination)[(size_t)buffer_size] = '\0';
+
+        return buffer_size;
+}
+
+/**
  * Search a string for a specific char
  *
  * Once the char has been found return the index position of it

@@ -12,6 +12,8 @@ char *alloc_string(const char *string);
 int string_append(char **destination, const char *append);
 int string_append_char(char **destination, char append);
 ssize_t string_find_char(const char *haystack, char needle);
+ssize_t string_get_delimiter(const char *source, char delimiter,
+                             char **destination, bool consume);
 
 // fs utils
 ssize_t get_file_size(FILE *file);

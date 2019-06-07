@@ -134,6 +134,59 @@ static void test_string_find_char_null_string(void **state)
         assert_int_equal(expected_result, string_find_char(str, '!'));
 }
 
+static void test_string_get_delimiter(void **state)
+{
+        const char *source = "Hello world! My name is computer";
+        const char *expected_string = "Hello world!";
+        ssize_t expected_result = (ssize_t)strlen(expected_string);
+        char *destination;
+
+        ssize_t result = string_get_delimiter(source, '!', &destination, true);
+
+        assert_int_equal(expected_result, result);
+        assert_string_equal(expected_string, destination);
+
+        free(destination);
+}
+
+static void test_string_get_delimiter_not_found(void **state)
+{
+        const char *source = "Hello world!";
+        ssize_t expected_result = -1;
+        char *destination;
+
+        ssize_t result = string_get_delimiter(source, '$', &destination, true);
+
+        assert_int_equal(expected_result, result);
+}
+
+static void test_string_get_delimiter_first_char(void **state)
+{
+        const char *source = "Hello world!";
+        const char *expected_string = "H";
+        ssize_t expected_result = 1;
+        char *destination;
+
+        ssize_t result = string_get_delimiter(source, 'H', &destination, true);
+
+        assert_int_equal(expected_result, result);
+        assert_string_equal(expected_string, destination);
+        assert_int_equal('\0', destination[expected_result]);
+
+        free(destination);
+}
+
+static void test_string_get_delimiter_empty_source(void **state)
+{
+        const char *source = "";
+        ssize_t expected_result = -1;
+        char *destination;
+
+        ssize_t result = string_get_delimiter(source, '!', &destination, true);
+
+        assert_int_equal(expected_result, result);
+}
+
 int main(void)
 {
         const struct CMUnitTest tests[] = {
@@ -148,6 +201,10 @@ int main(void)
                 cmocka_unit_test(test_string_find_char_not_found),
                 cmocka_unit_test(test_string_find_char_empty_string),
                 cmocka_unit_test(test_string_find_char_null_string),
+                cmocka_unit_test(test_string_get_delimiter),
+                cmocka_unit_test(test_string_get_delimiter_not_found),
+                cmocka_unit_test(test_string_get_delimiter_first_char),
+                cmocka_unit_test(test_string_get_delimiter_empty_source),
         };
 
         return cmocka_run_group_tests(tests, NULL, NULL);
