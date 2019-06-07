@@ -34,6 +34,15 @@ enum config_token_types {
 
 static enum config_token_types char_to_token(char c);
 
+void destroy_config_list(struct config_list *list)
+{
+        for (size_t i = 0; i < list->length; ++i) {
+                free(list->values[i]);
+        }
+
+        free(list);
+}
+
 /**
  * Initialize the parser context with the file buffer.
  *
@@ -49,8 +58,8 @@ static struct parser_context *initialize_parser_context(const char *buffer)
 
         context->buffer = buffer;
         context->pos = 0;
-        context->line_num = 0;
-        context->col_num = 0;
+        context->line_num = 1;
+        context->col_num = 1;
         context->variables = NULL;
 
         return context;
@@ -59,8 +68,7 @@ static struct parser_context *initialize_parser_context(const char *buffer)
 static void destroy_parser_context(struct parser_context *context)
 {
         if (context->variables != NULL) {
-                // TODO: Use correct destroy function
-                free(context->variables);
+                destroy_config_list(context->variables);
         }
 
         free(context);
@@ -75,7 +83,7 @@ static void increment_parser_context(struct parser_context *context)
 {
         if (context->buffer[context->pos] == '\n') {
                 ++context->line_num;
-                context->col_num = 0;
+                context->col_num = 1;
         } else {
                 ++context->col_num;
         }
@@ -102,7 +110,7 @@ static void consume_line(struct parser_context *context)
  * $variable_name = <variable_value>
  * ^
  * |
- * --(parser->pos)
+ * *-(parser->pos)
  *
  * Once the variable has been saved to the context, the context
  * should also be updated to point to the '\n' of the current
@@ -130,8 +138,9 @@ static int handle_variable_creation(struct parser_context *context)
 
         if (name_length < 0) {
                 LOG_ERROR(natwm_logger,
-                          "Invalid variable declaration: Line %zu",
-                          context->line_num);
+                          "Invalid variable declaration - Line: %zu Col: %zu",
+                          context->line_num,
+                          context->col_num);
 
                 return -1;
         }
@@ -377,15 +386,21 @@ static struct config_list *parse_file(FILE *file)
  * This will return the file configuration pairs which can be used to
  * read the configuration
  */
-void initialize_config(const char *path)
+int initialize_config(const char *path)
 {
         FILE *config_file = open_config_file(path);
 
         if (config_file == NULL) {
-                return;
+                return -1;
         }
 
-        parse_file(config_file);
+        if (parse_file(config_file) == NULL) {
+                fclose(config_file);
+
+                return -1;
+        }
 
         fclose(config_file);
+
+        return 0;
 }

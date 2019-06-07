@@ -191,7 +191,12 @@ int main(int argc, char **argv)
         initialize_logger(arg_options->verbose);
 
         // Initialize config
-        initialize_config(arg_options->config_path);
+        if (initialize_config(arg_options->config_path) < 0) {
+                free(arg_options);
+                destroy_logger(natwm_logger);
+
+                exit(EXIT_FAILURE);
+        }
 
         // Catch and handle signals
         if (install_signal_handlers() < 0) {

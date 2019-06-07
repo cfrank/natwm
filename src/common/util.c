@@ -99,19 +99,17 @@ ssize_t string_get_delimiter(const char *source, char delimiter,
                              char **destination, bool consume)
 {
         ssize_t delimiter_index = string_find_char(source, delimiter);
-        ssize_t buffer_size;
 
         if (delimiter_index < 0) {
                 return -1;
         }
 
         if (consume) {
-                buffer_size = delimiter_index + 1;
-        } else {
-                buffer_size = delimiter_index;
+                // Include the delimiter as well
+                delimiter_index++;
         }
 
-        char *buffer = malloc((size_t)buffer_size + 1);
+        char *buffer = malloc((size_t)delimiter_index + 1);
 
         if (buffer == NULL) {
                 return -1;
@@ -119,11 +117,11 @@ ssize_t string_get_delimiter(const char *source, char delimiter,
 
         *destination = buffer;
 
-        memcpy(*destination, source, (size_t)buffer_size);
+        memcpy(*destination, source, (size_t)delimiter_index);
 
-        (*destination)[(size_t)buffer_size] = '\0';
+        (*destination)[(size_t)delimiter_index] = '\0';
 
-        return buffer_size;
+        return delimiter_index;
 }
 
 /**
