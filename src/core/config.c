@@ -210,8 +210,7 @@ static FILE *open_config_file(const char *path)
 
                 if (file == NULL) {
                         LOG_ERROR(natwm_logger,
-                                  "Failed to find configuration file "
-                                  "at %s",
+                                  "Failed to find configuration file at %s",
                                   path);
 
                         return NULL;
