@@ -104,7 +104,7 @@ static void test_string_append_char_empty_destination(void **state)
 
 static void test_string_find_char(void **state)
 {
-        const ssize_t expected_result = 5;
+        ssize_t expected_result = 5;
         const char *str = "Hello!";
 
         assert_int_equal(expected_result, string_find_char(str, '!'));
@@ -112,7 +112,7 @@ static void test_string_find_char(void **state)
 
 static void test_string_find_char_not_found(void **state)
 {
-        const ssize_t expected_result = -1;
+        ssize_t expected_result = -1;
         const char *str = "Not Found";
 
         assert_int_equal(expected_result, string_find_char(str, '!'));
@@ -120,7 +120,7 @@ static void test_string_find_char_not_found(void **state)
 
 static void test_string_find_char_empty_string(void **state)
 {
-        const ssize_t expected_result = -1;
+        ssize_t expected_result = -1;
         const char *str = "";
 
         assert_int_equal(expected_result, string_find_char(str, '!'));
@@ -128,10 +128,72 @@ static void test_string_find_char_empty_string(void **state)
 
 static void test_string_find_char_null_string(void **state)
 {
-        const ssize_t expected_result = -1;
+        ssize_t expected_result = -1;
         const char *str = NULL;
 
         assert_int_equal(expected_result, string_find_char(str, '!'));
+}
+
+static void test_string_find_first_nonspace(void **state)
+{
+        ssize_t expected_result = 3;
+        const char *str = "   Hello world!";
+
+        assert_int_equal(expected_result, string_find_first_nonspace(str));
+}
+
+static void test_string_find_first_nonspace_not_found(void **state)
+{
+        ssize_t expected_result = -1;
+        const char *str = "   ";
+
+        assert_int_equal(expected_result, string_find_first_nonspace(str));
+}
+
+static void test_string_find_first_nonspace_single_char(void **state)
+{
+        ssize_t expected_result = 0;
+        const char *str = "H";
+
+        assert_int_equal(expected_result, string_find_first_nonspace(str));
+}
+
+static void test_string_find_first_nonspace_null_string(void **state)
+{
+        ssize_t expected_result = -1;
+
+        assert_int_equal(expected_result, string_find_first_nonspace(NULL));
+}
+
+static void test_string_find_last_nonspace(void **state)
+{
+        ssize_t expected_result = 11;
+        const char *str = "Hello World!    ";
+
+        assert_int_equal(expected_result, string_find_last_nonspace(str));
+}
+
+static void test_string_find_last_nonspace_not_found(void **state)
+{
+        ssize_t expected_result = -1;
+        const char *str = "    ";
+
+        assert_int_equal(expected_result, string_find_last_nonspace(str));
+}
+
+static void test_string_find_last_nonspace_single_char(void **state)
+{
+        ssize_t expected_result = 0;
+        const char *str = "H";
+
+        assert_int_equal(expected_result, string_find_last_nonspace(str));
+}
+
+static void test_string_find_last_nonspace_null_string(void **state)
+{
+        ssize_t expected_result = -1;
+
+        assert_int_equal(expected_result, string_find_last_nonspace(NULL));
 }
 
 static void test_string_get_delimiter(void **state)
@@ -201,6 +263,14 @@ int main(void)
                 cmocka_unit_test(test_string_find_char_not_found),
                 cmocka_unit_test(test_string_find_char_empty_string),
                 cmocka_unit_test(test_string_find_char_null_string),
+                cmocka_unit_test(test_string_find_first_nonspace),
+                cmocka_unit_test(test_string_find_first_nonspace_not_found),
+                cmocka_unit_test(test_string_find_first_nonspace_single_char),
+                cmocka_unit_test(test_string_find_first_nonspace_null_string),
+                cmocka_unit_test(test_string_find_last_nonspace),
+                cmocka_unit_test(test_string_find_last_nonspace_not_found),
+                cmocka_unit_test(test_string_find_last_nonspace_single_char),
+                cmocka_unit_test(test_string_find_last_nonspace_null_string),
                 cmocka_unit_test(test_string_get_delimiter),
                 cmocka_unit_test(test_string_get_delimiter_not_found),
                 cmocka_unit_test(test_string_get_delimiter_first_char),

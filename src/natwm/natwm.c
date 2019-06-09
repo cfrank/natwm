@@ -159,8 +159,7 @@ static struct argument_options *parse_arguments(int argc, char **argv)
                 default:
                         // Handle invalid opt
                         fprintf(stderr,
-                                "Recieved invalid command line argument "
-                                "\"%c\"\n",
+                                "Recieved invalid command line argument '%c'\n",
                                 optopt);
 
                         free(arg_options);

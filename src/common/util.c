@@ -2,6 +2,7 @@
 // Licensed under BSD-3-Clause
 // Refer to the license.txt file included in the root of the project
 
+#include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -85,6 +86,80 @@ int string_append_char(char **destination, char append)
 }
 
 /**
+ * Search a string for a specific char
+ *
+ * Once the char has been found return the index position of it
+ */
+ssize_t string_find_char(const char *haystack, char needle)
+{
+        char ch;
+        ssize_t index = 0;
+
+        if (haystack == NULL) {
+                return -1;
+        }
+
+        while ((ch = haystack[index]) != '\0' && ch != needle) {
+                ++index;
+        }
+
+        if (ch == '\0') {
+                return -1;
+        }
+
+        return index;
+}
+
+/**
+ * Search a string for the first non whitespace character and return the
+ * index of the character to the caller
+ *
+ * If no non-whitespace characters are found in the supplied string return -1
+ */
+ssize_t string_find_first_nonspace(const char *string)
+{
+        if (string == NULL) {
+                return -1;
+        }
+
+        ssize_t index = 0;
+        char ch;
+
+        while ((ch = string[index]) != '\0' && isspace(ch)) {
+                ++index;
+        }
+
+        if (ch == '\0') {
+                // Reached the end of the line without finding a nonspace char
+                return -1;
+        }
+
+        return index;
+}
+
+/**
+ * Search a string for the last non whitespace character and return the index
+ * of the character to the caller.
+ *
+ * If no non-whitespace character is found in the supplied string return -1
+ */
+ssize_t string_find_last_nonspace(const char *string)
+{
+        if (string == NULL) {
+                return -1;
+        }
+
+        ssize_t index = (ssize_t)strlen(string) - 1;
+
+        while (index >= 0 && isspace(string[index])) {
+                --index;
+        }
+
+        // If we reach the end of the string we will already be at -1
+        return index;
+}
+
+/**
  * Gets all characters up to a specified delimiter character
  *
  * The caller must supply a uninitialized char pointer which will
@@ -122,31 +197,6 @@ ssize_t string_get_delimiter(const char *source, char delimiter,
         (*destination)[(size_t)delimiter_index] = '\0';
 
         return delimiter_index;
-}
-
-/**
- * Search a string for a specific char
- *
- * Once the char has been found return the index position of it
- */
-ssize_t string_find_char(const char *haystack, char needle)
-{
-        char c;
-        ssize_t index = 0;
-
-        if (haystack == NULL) {
-                return -1;
-        }
-
-        while ((c = haystack[index]) != '\0' && c != needle) {
-                ++index;
-        }
-
-        if (c == '\0') {
-                return -1;
-        }
-
-        return index;
 }
 
 /**
