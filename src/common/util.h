@@ -16,6 +16,8 @@ ssize_t string_find_first_nonspace(const char *string);
 ssize_t string_find_last_nonspace(const char *string);
 ssize_t string_get_delimiter(const char *source, char delimiter,
                              char **destination, bool consume);
+ssize_t string_splice(const char *string, char **dest, ssize_t start,
+                      ssize_t end);
 
 // fs utils
 ssize_t get_file_size(FILE *file);

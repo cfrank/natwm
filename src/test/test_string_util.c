@@ -249,6 +249,94 @@ static void test_string_get_delimiter_empty_source(void **state)
         assert_int_equal(expected_result, result);
 }
 
+static void test_string_splice(void **state)
+{
+        const char *source = "Hello world!";
+        const char *expected_string = "world!";
+        ssize_t expected_result = (ssize_t)strlen(expected_string);
+        char *destination = NULL;
+
+        ssize_t result = string_splice(
+                source, &destination, 6, (ssize_t)strlen(source));
+
+        assert_int_equal(expected_result, result);
+        assert_string_equal(expected_string, destination);
+        assert_int_equal('\0', destination[(size_t)expected_result]);
+
+        free(destination);
+}
+
+static void test_string_splice_null_string(void **state)
+{
+        ssize_t expected_result = -1;
+        char *destination = NULL;
+        ssize_t result = string_splice(NULL, &destination, 0, 0);
+
+        assert_null(destination);
+        assert_int_equal(expected_result, result);
+}
+
+static void test_string_splice_large_start(void **state)
+{
+        const char *string = "Test";
+        ssize_t expected_result = -1;
+        char *destination = NULL;
+        ssize_t result = string_splice(string, &destination, 5, 10);
+
+        assert_null(destination);
+        assert_int_equal(expected_result, result);
+}
+
+static void test_string_splice_large_end(void **state)
+{
+        const char *string = "Test";
+        ssize_t expected_result = -1;
+        char *destination = NULL;
+        ssize_t result = string_splice(string, &destination, 0, 5);
+
+        assert_null(destination);
+        assert_int_equal(expected_result, result);
+}
+
+static void test_string_splice_mismatch_start_end(void **state)
+{
+        const char *string = "Test";
+        ssize_t expected_result = -1;
+        char *destination = NULL;
+        ssize_t result = string_splice(string, &destination, 4, 1);
+
+        assert_null(destination);
+        assert_int_equal(expected_result, result);
+}
+
+static void test_string_splice_single_char(void **state)
+{
+        const char *string = "T";
+        ssize_t expected_result = 1;
+        char *destination = NULL;
+        ssize_t result = string_splice(string, &destination, 0, 1);
+
+        assert_int_equal(expected_result, result);
+        assert_string_equal(string, destination);
+        assert_memory_not_equal(string, destination, sizeof(string));
+
+        free(destination);
+}
+
+static void test_string_splice_zero_start_end(void **state)
+{
+        const char *string = "Something";
+        const char *expected_string = "";
+        ssize_t expected_result = 0;
+        char *destination = NULL;
+        ssize_t result = string_splice(string, &destination, 0, 0);
+
+        assert_int_equal(expected_result, result);
+        assert_string_equal(expected_string, destination);
+
+        free(destination);
+}
+
 int main(void)
 {
         const struct CMUnitTest tests[] = {
@@ -275,6 +363,13 @@ int main(void)
                 cmocka_unit_test(test_string_get_delimiter_not_found),
                 cmocka_unit_test(test_string_get_delimiter_first_char),
                 cmocka_unit_test(test_string_get_delimiter_empty_source),
+                cmocka_unit_test(test_string_splice),
+                cmocka_unit_test(test_string_splice_null_string),
+                cmocka_unit_test(test_string_splice_large_start),
+                cmocka_unit_test(test_string_splice_large_end),
+                cmocka_unit_test(test_string_splice_mismatch_start_end),
+                cmocka_unit_test(test_string_splice_single_char),
+                cmocka_unit_test(test_string_splice_zero_start_end),
         };
 
         return cmocka_run_group_tests(tests, NULL, NULL);

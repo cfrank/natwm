@@ -194,9 +194,41 @@ ssize_t string_get_delimiter(const char *source, char delimiter,
 
         memcpy(*destination, source, (size_t)delimiter_index);
 
-        (*destination)[(size_t)delimiter_index] = '\0';
+        (*destination)[delimiter_index] = '\0';
 
         return delimiter_index;
+}
+
+/**
+ * Extract a portion of a string into a destination buffer using the supplied
+ * start and end indicies. If nothing is found or there is an error return -1
+ *
+ * If something is found, space is allocated for the resulting string and a null
+ * terminator is added. The caller must free the result.
+ *
+ * The strlen of the resulting string is returned
+ */
+ssize_t string_splice(const char *string, char **dest, ssize_t start,
+                      ssize_t end)
+{
+        if (string == NULL || end < start || start < 0
+            || end > (ssize_t)strlen(string)) {
+                return -1;
+        }
+
+        ssize_t result_size = end - start;
+
+        *dest = malloc((size_t)result_size + 1);
+
+        if (*dest == NULL) {
+                return -1;
+        }
+
+        memcpy(*dest, string + start, (size_t)result_size);
+
+        (*dest)[result_size] = '\0';
+
+        return result_size;
 }
 
 /**
