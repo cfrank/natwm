@@ -163,6 +163,8 @@ static void clear_list(struct list *list, bool destroy)
 void destroy_list(struct list *list)
 {
         clear_list(list, true);
+
+        free(list);
 }
 
 void empty_list(struct list *list)

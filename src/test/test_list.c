@@ -231,6 +231,7 @@ static void test_list_remove_head_node(void **state)
         assert_int_equal(1, list->size);
 
         list_remove(list, node);
+        destroy_node(node);
 
         assert_int_equal(0, list->size);
         assert_null(list->head);
@@ -250,6 +251,7 @@ static void test_list_remove_tail_node(void **state)
 
         // Get rid of the tail
         list_remove(list, tail_node);
+        destroy_node(tail_node);
 
         assert_int_equal(1, list->size);
 
@@ -273,6 +275,7 @@ static void test_list_remove_middle_node(void **state)
                 middle_node, list->head->next, sizeof(struct node *));
 
         list_remove(list, middle_node);
+        destroy_node(middle_node);
 
         // Removing the middle node should leave the head and tail the
         // same
@@ -300,15 +303,20 @@ static void test_list_empty_succeeds(void **state)
         int value = 10;
         struct list *list = *(struct list **)state;
 
-        list_insert(list, &value);
-        list_insert(list, &value);
-        list_insert(list, &value);
+        struct node *first = list_insert(list, &value);
+        struct node *second = list_insert(list, &value);
+        struct node *third = list_insert(list, &value);
 
         assert_int_equal(3, list->size);
 
         empty_list(list);
 
         assert_int_equal(0, list->size);
+        assert_true(list_is_empty(list));
+
+        destroy_node(first);
+        destroy_node(second);
+        destroy_node(third);
 }
 
 int main(void)
