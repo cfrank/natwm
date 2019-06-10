@@ -318,7 +318,6 @@ static void test_string_splice_single_char(void **state)
 
         assert_int_equal(expected_result, result);
         assert_string_equal(string, destination);
-        assert_memory_not_equal(string, destination, sizeof(string));
 
         free(destination);
 }
@@ -335,6 +334,66 @@ static void test_string_splice_zero_start_end(void **state)
         assert_string_equal(expected_string, destination);
 
         free(destination);
+}
+
+static void test_string_strip_surrounding_spaces(void **state)
+{
+        const char *source = "    Hello world!   ";
+        const char *expected_string = "Hello world!";
+        ssize_t expected_result = (ssize_t)strlen(expected_string);
+        char *destination = NULL;
+        ssize_t result = string_strip_surrounding_spaces(source, &destination);
+
+        assert_int_equal(expected_result, result);
+        assert_string_equal(expected_string, destination);
+
+        free(destination);
+}
+
+static void test_string_strip_surrounding_spaces_tabs(void **state)
+{
+        const char *source = "\tHello world!  \t";
+        const char *expected_string = "Hello world!";
+        ssize_t expected_result = (ssize_t)strlen(expected_string);
+        char *destination = NULL;
+        ssize_t result = string_strip_surrounding_spaces(source, &destination);
+
+        assert_int_equal(expected_result, result);
+        assert_string_equal(expected_string, destination);
+
+        free(destination);
+}
+
+static void test_string_strip_surrounding_spaces_no_spaces(void **state)
+{
+        const char *source = "Hello world!";
+        ssize_t expected_result = (ssize_t)strlen(source);
+        char *destination = NULL;
+        ssize_t result = string_strip_surrounding_spaces(source, &destination);
+
+        assert_int_equal(expected_result, result);
+        assert_string_equal(source, destination);
+
+        free(destination);
+}
+
+static void test_string_strip_surrounding_spaces_all_spaces(void **state)
+{
+        const char *source = " ";
+        ssize_t expected_result = -1;
+        char *destination = NULL;
+        ssize_t result = string_strip_surrounding_spaces(source, &destination);
+
+        assert_int_equal(expected_result, result);
+}
+
+static void test_string_strip_surrounding_spaces_null_string(void **state)
+{
+        ssize_t expected_result = -1;
+        char *destination = NULL;
+        ssize_t result = string_strip_surrounding_spaces(NULL, &destination);
+
+        assert_int_equal(expected_result, result);
 }
 
 int main(void)
@@ -370,6 +429,14 @@ int main(void)
                 cmocka_unit_test(test_string_splice_mismatch_start_end),
                 cmocka_unit_test(test_string_splice_single_char),
                 cmocka_unit_test(test_string_splice_zero_start_end),
+                cmocka_unit_test(test_string_strip_surrounding_spaces),
+                cmocka_unit_test(test_string_strip_surrounding_spaces_tabs),
+                cmocka_unit_test(
+                        test_string_strip_surrounding_spaces_no_spaces),
+                cmocka_unit_test(
+                        test_string_strip_surrounding_spaces_all_spaces),
+                cmocka_unit_test(
+                        test_string_strip_surrounding_spaces_null_string),
         };
 
         return cmocka_run_group_tests(tests, NULL, NULL);

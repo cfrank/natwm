@@ -232,6 +232,24 @@ ssize_t string_splice(const char *string, char **dest, ssize_t start,
 }
 
 /**
+ * Strip the surrounding spaces from a string. The first nonspace and last
+ * nonspace characters are found, the source string is then spliced and the
+ * resulting characters are allocated into the supplied dest buffer.
+ *
+ * If there is an error during any step in the process a -1 is returned and the
+ * dest remains unchanged. If there are no issues then the stripped string
+ * is placed in the dest and the resulting strlen is returned. The dest
+ * must be freed after use by the caller
+ */
+ssize_t string_strip_surrounding_spaces(const char *source, char **dest)
+{
+        ssize_t start = string_find_first_nonspace(source);
+        ssize_t end = string_find_last_nonspace(source);
+
+        return string_splice(source, dest, start, end + 1);
+}
+
+/**
  * Get size of a file
  *
  * return -1 if we can't find the size
