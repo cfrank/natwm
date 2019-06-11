@@ -17,7 +17,7 @@ struct argument_options {
 
 static void handle_connection_error(int error)
 {
-        const char *message;
+        const char *message = NULL;
 
         switch (error) {
         case XCB_CONN_CLOSED_EXT_NOTSUPPORTED:
@@ -102,7 +102,7 @@ static int install_signal_handlers(void)
 
 static int start_natwm(void)
 {
-        int screen_num;
+        int screen_num = 0;
 
         xcb_connection_t *connection = make_connection(&screen_num);
 
@@ -119,7 +119,7 @@ static int start_natwm(void)
 
 static struct argument_options *parse_arguments(int argc, char **argv)
 {
-        int opt;
+        int opt = 0;
         struct argument_options *arg_options
                 = malloc(sizeof(struct argument_options));
 

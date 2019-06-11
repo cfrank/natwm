@@ -145,7 +145,7 @@ bool list_is_empty(const struct list *list)
 static void clear_list(struct list *list, bool destroy)
 {
         struct node *node = list->head;
-        struct node *next;
+        struct node *next = NULL;
 
         while (node != NULL) {
                 next = node->next;

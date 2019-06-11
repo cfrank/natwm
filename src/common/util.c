@@ -37,7 +37,7 @@ ATTR_NONNULL char *alloc_string(const char *string)
  */
 int string_append(char **destination, const char *append)
 {
-        char *tmp;
+        char *tmp = NULL;
         size_t destination_size = strlen(*destination);
         size_t append_size = strlen(append);
         size_t result_size = destination_size + append_size;
@@ -66,7 +66,7 @@ int string_append(char **destination, const char *append)
  */
 int string_append_char(char **destination, char append)
 {
-        char *tmp;
+        char *tmp = NULL;
         size_t destination_size = strlen(*destination);
 
         tmp = realloc(*destination, destination_size + 2);
@@ -92,7 +92,7 @@ int string_append_char(char **destination, char append)
  */
 ssize_t string_find_char(const char *haystack, char needle)
 {
-        char ch;
+        char ch = '\0';
         ssize_t index = 0;
 
         if (haystack == NULL) {
@@ -122,8 +122,8 @@ ssize_t string_find_first_nonspace(const char *string)
                 return -1;
         }
 
+        char ch = '\0';
         ssize_t index = 0;
-        char ch;
 
         while ((ch = string[index]) != '\0' && isspace(ch)) {
                 ++index;

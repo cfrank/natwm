@@ -132,7 +132,7 @@ static int handle_variable_creation(struct parser_context *context)
                 return -1;
         }
 
-        char *name;
+        char *name = NULL;
         ssize_t name_length
                 = string_get_delimiter(variable_string, '=', &name, false);
 
@@ -145,7 +145,7 @@ static int handle_variable_creation(struct parser_context *context)
                 return -1;
         }
 
-        char *key;
+        char *key = NULL;
         ssize_t key_length = string_strip_surrounding_spaces(name, &key);
 
         if (key_length < 0) {
@@ -238,7 +238,7 @@ static struct config_value *create_string(const char *key, const char *string)
  */
 static FILE *open_config_file(const char *path)
 {
-        FILE *file;
+        FILE *file = NULL;
 
         // If the user supplies a path use that one
         if (path != NULL) {
@@ -330,7 +330,7 @@ static int read_file_into_buffer(FILE *file, char **buffer, size_t file_size)
 
 static int handle_file(struct parser_context *context)
 {
-        char c;
+        char c = '\0';
         while ((c = context->buffer[context->pos]) != '\0') {
                 switch (char_to_token(c)) {
                 case COMMENT_START:
@@ -371,7 +371,7 @@ static struct config_list *parse_file(FILE *file)
 
         size_t file_size = (size_t)ftell_result;
 
-        char *file_buffer;
+        char *file_buffer = NULL;
 
         if (read_file_into_buffer(file, &file_buffer, file_size) != 0) {
                 return NULL;

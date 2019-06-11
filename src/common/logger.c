@@ -4,7 +4,7 @@
 
 #include "logger.h"
 
-struct logger *natwm_logger;
+struct logger *natwm_logger = NULL;
 
 void initialize_logger(bool verbose)
 {
