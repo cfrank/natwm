@@ -145,7 +145,17 @@ static int handle_variable_creation(struct parser_context *context)
                 return -1;
         }
 
-        printf("Found variable name: %s\n", name);
+        char *key;
+        ssize_t key_length = string_strip_surrounding_spaces(name, &key);
+
+        if (key_length < 0) {
+                LOG_ERROR(natwm_logger,
+                          "Invalid variable declaration - Line: %zu Col: %zu",
+                          context->line_num,
+                          context->col_num);
+        }
+
+        printf("Found Key = '%s'\n", key);
 
         free(name);
 
