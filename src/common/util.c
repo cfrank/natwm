@@ -92,12 +92,12 @@ int string_append_char(char **destination, char append)
  */
 ssize_t string_find_char(const char *haystack, char needle)
 {
-        char ch = '\0';
-        ssize_t index = 0;
-
         if (haystack == NULL) {
                 return -1;
         }
+
+        char ch = '\0';
+        ssize_t index = 0;
 
         while ((ch = haystack[index]) != '\0' && ch != needle) {
                 ++index;
