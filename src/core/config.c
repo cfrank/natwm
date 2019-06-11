@@ -158,6 +158,7 @@ static int handle_variable_creation(struct parser_context *context)
         printf("Found Key = '%s'\n", key);
 
         free(name);
+        free(key);
 
         return 0;
 }
