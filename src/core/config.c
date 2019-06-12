@@ -92,6 +92,18 @@ static void increment_parser_context(struct parser_context *context)
 }
 
 /**
+ * Move the parser context forward a specified number of bytes
+ *
+ * This makes sure that the parser positioning stays intact
+ */
+static void move_parser_context(struct parser_context *context, size_t new_pos)
+{
+        for (size_t i = 0; i < new_pos; ++i) {
+                increment_parser_context(context);
+        }
+}
+
+/**
  * Consume the rest of a line in the configuration file.
  */
 static void consume_line(struct parser_context *context)
@@ -158,7 +170,8 @@ static int handle_variable_creation(struct parser_context *context)
         char *value_stripped = NULL;
         ssize_t value_length;
 
-        string_get_delimiter(value_string, '\n', &value, false);
+        ssize_t new_line_pos
+                = string_get_delimiter(value_string, '\n', &value, false);
 
         value_length = string_strip_surrounding_spaces(value, &value_stripped);
 
@@ -175,6 +188,8 @@ static int handle_variable_creation(struct parser_context *context)
 
         printf("Found key '%s'\n", key_stripped);
         printf("Found value '%s'\n", value_stripped);
+
+        move_parser_context(context, (size_t)new_line_pos + 1);
 
         free(key);
         free(key_stripped);
