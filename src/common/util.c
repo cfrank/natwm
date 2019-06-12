@@ -183,23 +183,10 @@ ssize_t string_get_delimiter(const char *string, char delimiter,
         }
 
         if (consume) {
-                // Include the delimiter as well
-                delimiter_index++;
+                ++delimiter_index;
         }
 
-        char *buffer = malloc((size_t)delimiter_index + 1);
-
-        if (buffer == NULL) {
-                return -1;
-        }
-
-        *destination = buffer;
-
-        memcpy(*destination, string, (size_t)delimiter_index);
-
-        (*destination)[delimiter_index] = '\0';
-
-        return delimiter_index;
+        return string_splice(string, destination, 0, delimiter_index);
 }
 
 /**
