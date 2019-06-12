@@ -2,6 +2,7 @@
 // Licensed under BSD-3-Clause
 // Refer to the license.txt file included in the root of the project
 
+#include <ctype.h>
 #include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,16 +13,215 @@
 #include <common/util.h>
 #include "config.h"
 
-/*
- * Holds the parser context
- */
 struct parser_context {
         const char *buffer;
         size_t pos;
         size_t line_num;
         size_t col_num;
-        struct config_pair **variables;
+        struct config_list *variables;
 };
+
+enum config_token_types {
+        ALPHA_CHAR,
+        COMMENT_START,
+        EQUAL,
+        NEW_LINE,
+        NUMERIC_CHAR,
+        QUOTE,
+        UNKNOWN,
+        VARIABLE_START,
+};
+
+static enum config_token_types char_to_token(char c);
+
+void destroy_config_list(struct config_list *list)
+{
+        for (size_t i = 0; i < list->length; ++i) {
+                free(list->values[i]);
+        }
+
+        free(list);
+}
+
+/**
+ * Initialize the parser context with the file buffer.
+ *
+ * This will be used to track the position of the parser in the file.
+ */
+static struct parser_context *initialize_parser_context(const char *buffer)
+{
+        struct parser_context *context = malloc(sizeof(struct parser_context));
+
+        if (context == NULL) {
+                return NULL;
+        }
+
+        context->buffer = buffer;
+        context->pos = 0;
+        context->line_num = 1;
+        context->col_num = 1;
+        context->variables = NULL;
+
+        return context;
+}
+
+static void destroy_parser_context(struct parser_context *context)
+{
+        if (context->variables != NULL) {
+                destroy_config_list(context->variables);
+        }
+
+        free(context);
+}
+
+/**
+ * Increment the parser context one step. If the current position of the
+ * context is a new line make sure to update the column and line numbers
+ * to represent the new location
+ */
+static void increment_parser_context(struct parser_context *context)
+{
+        if (context->buffer[context->pos] == '\n') {
+                ++context->line_num;
+                context->col_num = 1;
+        } else {
+                ++context->col_num;
+        }
+
+        ++context->pos;
+}
+
+/**
+ * Move the parser context forward a specified number of bytes
+ *
+ * This makes sure that the parser positioning stays intact
+ */
+static void move_parser_context(struct parser_context *context, size_t new_pos)
+{
+        for (size_t i = 0; i < new_pos; ++i) {
+                increment_parser_context(context);
+        }
+}
+
+/**
+ * Consume the rest of a line in the configuration file.
+ */
+static void consume_line(struct parser_context *context)
+{
+        while (context->buffer[context->pos] != '\n') {
+                increment_parser_context(context);
+        }
+}
+
+/**
+ * Handle the creation of a variable in the configuration
+ *
+ * When this function is called the context will be pointing to the
+ * start of a variable declaration in the form of
+ *
+ * $variable_name = <variable_value>
+ * ^
+ * |
+ * *-(parser->pos)
+ *
+ * Once the variable has been saved to the context, the context
+ * should also be updated to point to the '\n' of the current
+ * line, so that the next line can be consumed
+ */
+static int handle_variable_creation(struct parser_context *context)
+{
+        // Skip to the variable name
+        increment_parser_context(context);
+
+        const char *variable_string = context->buffer + context->pos;
+
+        if (char_to_token(variable_string[0]) != ALPHA_CHAR) {
+                LOG_ERROR(natwm_logger,
+                          "Invalid char found: '%c' - Line: %zu Col: %zu",
+                          variable_string[0],
+                          context->line_num,
+                          context->col_num);
+
+                return -1;
+        }
+
+        char *key = NULL;
+        char *key_stripped = NULL;
+        ssize_t equal_pos
+                = string_get_delimiter(variable_string, '=', &key, false);
+
+        if (string_strip_surrounding_spaces(key, &key_stripped) < 0) {
+                LOG_ERROR(natwm_logger,
+                          "Invalid variable declaration - Line: %zu Col: %zu",
+                          context->line_num,
+                          context->col_num);
+
+                // This may be NULL - if so nop
+                free(key);
+
+                return -1;
+        }
+
+        const char *value_string = variable_string + equal_pos + 1;
+        char *value = NULL;
+        char *value_stripped = NULL;
+        ssize_t variable_end_pos
+                = string_get_delimiter(value_string, '\n', &value, false);
+
+        if (string_strip_surrounding_spaces(value, &value_stripped) < 0) {
+                LOG_ERROR(natwm_logger,
+                          "Invalid variable value - Line: %zu Col: %zu",
+                          context->line_num,
+                          context->col_num);
+
+                free(key);
+                free(key_stripped);
+                free(value);
+
+                return -1;
+        }
+
+        printf("Found key '%s'\n", key_stripped);
+        printf("Found value '%s'\n", value_stripped);
+
+        move_parser_context(context, (size_t)variable_end_pos + 1);
+
+        free(key);
+        free(key_stripped);
+        free(value);
+        free(value_stripped);
+
+        return 0;
+}
+
+/**
+ * Take a char and return the corresponding token
+ */
+static enum config_token_types char_to_token(char c)
+{
+        switch (c) {
+        case '/':
+                return COMMENT_START;
+        case '=':
+                return EQUAL;
+        case '\n':
+                return NEW_LINE;
+        case '"':
+                return QUOTE;
+        case '$':
+                return VARIABLE_START;
+        default:
+                if (isdigit(c)) {
+                        return NUMERIC_CHAR;
+                }
+
+                if (isalpha(c)) {
+                        return ALPHA_CHAR;
+                }
+
+                return UNKNOWN;
+        }
+}
 
 /**
  * Handle creating number pairs
@@ -62,14 +262,14 @@ static struct config_value *create_string(const char *key, const char *string)
 /**
  * Open a configuration file
  *
- * This can either be supplied by the caller (through the first argument)
- * or we can use the default location.
+ * This can either be supplied by the caller (through the first
+ * argument) or we can use the default location.
  *
  * If neither open then we return null
  */
 static FILE *open_config_file(const char *path)
 {
-        FILE *file;
+        FILE *file = NULL;
 
         // If the user supplies a path use that one
         if (path != NULL) {
@@ -77,7 +277,8 @@ static FILE *open_config_file(const char *path)
 
                 if (file == NULL) {
                         LOG_ERROR(natwm_logger,
-                                  "Failed to find configuration file at %s",
+                                  "Failed to find configuration file "
+                                  "at %s",
                                   path);
 
                         return NULL;
@@ -128,13 +329,14 @@ release_config_path_and_error:
 }
 
 /**
- * Takes an uninitalized string and places the contents of a file into it
+ * Takes an uninitalized string and places the contents of a file into
+ * it
  *
- * The buffer is initialized with file_size + 1 bytes and must be freed by the
- * caller
+ * The buffer is initialized with file_size + 1 bytes and must be freed
+ * by the caller
  *
- * file_size bytes are read from file and placed in the buffer. The buffer is
- * then appended with a null terminator
+ * file_size bytes are read from file and placed in the buffer. The
+ * buffer is then appended with a null terminator
  */
 static int read_file_into_buffer(FILE *file, char **buffer, size_t file_size)
 {
@@ -148,7 +350,6 @@ static int read_file_into_buffer(FILE *file, char **buffer, size_t file_size)
 
         if (bytes_read != file_size) {
                 // Read the wrong amount of bytes
-
                 free(*buffer);
 
                 return -1;
@@ -159,12 +360,42 @@ static int read_file_into_buffer(FILE *file, char **buffer, size_t file_size)
         return 0;
 }
 
+static int handle_file(struct parser_context *context)
+{
+        char c = '\0';
+        while ((c = context->buffer[context->pos]) != '\0') {
+                switch (char_to_token(c)) {
+                case COMMENT_START:
+                        consume_line(context);
+                        break;
+                case VARIABLE_START:
+                        if (handle_variable_creation(context) != 0) {
+                                goto handle_error;
+                        };
+                        break;
+                default:
+                        break;
+                }
+
+                increment_parser_context(context);
+        }
+
+        printf("Read a total of %zu lines...\n", context->line_num);
+
+        return 0;
+
+handle_error:
+        LOG_ERROR(natwm_logger, "Error reading configuration file!");
+
+        return -1;
+}
+
 /**
  * Parse a configuration file and return the list of configuration pairs
  */
 static struct config_list *parse_file(FILE *file)
 {
-        int64_t ftell_result = get_file_size(file);
+        ssize_t ftell_result = get_file_size(file);
 
         if (ftell_result < 0) {
                 return NULL;
@@ -172,13 +403,22 @@ static struct config_list *parse_file(FILE *file)
 
         size_t file_size = (size_t)ftell_result;
 
-        char *file_buffer;
+        char *file_buffer = NULL;
 
         if (read_file_into_buffer(file, &file_buffer, file_size) != 0) {
                 return NULL;
         }
 
-        printf("%s\n", file_buffer);
+        struct parser_context *context = initialize_parser_context(file_buffer);
+
+        if (context == NULL) {
+                return NULL;
+        }
+
+        handle_file(context);
+
+        destroy_parser_context(context);
+        free(file_buffer);
 
         return NULL;
 }
@@ -186,18 +426,24 @@ static struct config_list *parse_file(FILE *file)
 /**
  * Initialize the configuration file.
  *
- * This will return the file configuration pairs which can be used to read the
- * configuration
+ * This will return the file configuration pairs which can be used to
+ * read the configuration
  */
-void initialize_config(const char *path)
+int initialize_config(const char *path)
 {
         FILE *config_file = open_config_file(path);
 
         if (config_file == NULL) {
-                return;
+                return -1;
         }
 
-        parse_file(config_file);
+        if (parse_file(config_file) == NULL) {
+                fclose(config_file);
+
+                return -1;
+        }
 
         fclose(config_file);
+
+        return 0;
 }

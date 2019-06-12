@@ -36,6 +36,7 @@ struct config_list {
         struct config_value **values;
 };
 
+void destroy_config_list(struct config_list *list);
 struct config_value *get_config_value(const struct config_list *list,
                                       const char *key);
-void initialize_config(const char *path);
+int initialize_config(const char *path);
