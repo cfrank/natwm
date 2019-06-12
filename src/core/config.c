@@ -134,9 +134,10 @@ static int handle_variable_creation(struct parser_context *context)
 
         char *key = NULL;
         char *key_stripped = NULL;
+        ssize_t equal_pos = 0;
         ssize_t key_length = 0;
 
-        string_get_delimiter(variable_string, '=', &key, false);
+        equal_pos = string_get_delimiter(variable_string, '=', &key, false);
 
         key_length = string_strip_surrounding_spaces(key, &key_stripped);
 
@@ -152,10 +153,33 @@ static int handle_variable_creation(struct parser_context *context)
                 return -1;
         }
 
-        printf("Found Key = '%s'\n", key_stripped);
+        const char *value_string = variable_string + equal_pos + 1;
+        char *value = NULL;
+        char *value_stripped = NULL;
+        ssize_t value_length;
+
+        string_get_delimiter(value_string, '\n', &value, false);
+
+        value_length = string_strip_surrounding_spaces(value, &value_stripped);
+
+        if (value_length < 0) {
+                LOG_ERROR(natwm_logger,
+                          "Invalid variable value - Line: %zu Col: %zu",
+                          context->line_num,
+                          context->col_num);
+
+                free(key);
+                free(key_stripped);
+                free(value);
+        }
+
+        printf("Found key '%s'\n", key_stripped);
+        printf("Found value '%s'\n", value_stripped);
 
         free(key);
         free(key_stripped);
+        free(value);
+        free(value_stripped);
 
         return 0;
 }
@@ -243,7 +267,8 @@ static FILE *open_config_file(const char *path)
 
                 if (file == NULL) {
                         LOG_ERROR(natwm_logger,
-                                  "Failed to find configuration file at %s",
+                                  "Failed to find configuration file "
+                                  "at %s",
                                   path);
 
                         return NULL;
