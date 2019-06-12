@@ -134,11 +134,11 @@ static int handle_variable_creation(struct parser_context *context)
 
         char *key = NULL;
         char *key_stripped = NULL;
+        ssize_t key_length = 0;
 
         string_get_delimiter(variable_string, '=', &key, false);
 
-        ssize_t key_length
-                = string_strip_surrounding_spaces(key, &key_stripped);
+        key_length = string_strip_surrounding_spaces(key, &key_stripped);
 
         if (key_length < 0) {
                 LOG_ERROR(natwm_logger,
