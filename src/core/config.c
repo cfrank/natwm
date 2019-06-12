@@ -146,14 +146,10 @@ static int handle_variable_creation(struct parser_context *context)
 
         char *key = NULL;
         char *key_stripped = NULL;
-        ssize_t equal_pos = 0;
-        ssize_t key_length = 0;
+        ssize_t equal_pos
+                = string_get_delimiter(variable_string, '=', &key, false);
 
-        equal_pos = string_get_delimiter(variable_string, '=', &key, false);
-
-        key_length = string_strip_surrounding_spaces(key, &key_stripped);
-
-        if (key_length < 0) {
+        if (string_strip_surrounding_spaces(key, &key_stripped) < 0) {
                 LOG_ERROR(natwm_logger,
                           "Invalid variable declaration - Line: %zu Col: %zu",
                           context->line_num,
@@ -168,14 +164,10 @@ static int handle_variable_creation(struct parser_context *context)
         const char *value_string = variable_string + equal_pos + 1;
         char *value = NULL;
         char *value_stripped = NULL;
-        ssize_t value_length;
-
-        ssize_t new_line_pos
+        ssize_t variable_end_pos
                 = string_get_delimiter(value_string, '\n', &value, false);
 
-        value_length = string_strip_surrounding_spaces(value, &value_stripped);
-
-        if (value_length < 0) {
+        if (string_strip_surrounding_spaces(value, &value_stripped) < 0) {
                 LOG_ERROR(natwm_logger,
                           "Invalid variable value - Line: %zu Col: %zu",
                           context->line_num,
@@ -184,12 +176,14 @@ static int handle_variable_creation(struct parser_context *context)
                 free(key);
                 free(key_stripped);
                 free(value);
+
+                return -1;
         }
 
         printf("Found key '%s'\n", key_stripped);
         printf("Found value '%s'\n", value_stripped);
 
-        move_parser_context(context, (size_t)new_line_pos + 1);
+        move_parser_context(context, (size_t)variable_end_pos + 1);
 
         free(key);
         free(key_stripped);
