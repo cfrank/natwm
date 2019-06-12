@@ -165,6 +165,9 @@ ssize_t string_find_last_nonspace(const char *string)
  * The caller must supply a uninitialized char pointer which will
  * contain the newly allocated string.
  *
+ * The resulting string will consist of all characters up to the delimiter
+ * character. If consume is true then the delimiter will also be included
+ *
  * The caller must free the result
  *
  * This function returns the strlen of the new string or -1 if there was
