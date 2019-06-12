@@ -141,6 +141,7 @@ static int handle_variable_creation(struct parser_context *context)
                           variable_string[0],
                           context->line_num,
                           context->col_num);
+
                 return -1;
         }
 

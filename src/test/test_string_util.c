@@ -198,12 +198,12 @@ static void test_string_find_last_nonspace_null_string(void **state)
 
 static void test_string_get_delimiter(void **state)
 {
-        const char *source = "Hello world! My name is computer";
+        const char *string = "Hello world! My name is computer";
         const char *expected_string = "Hello world!";
         ssize_t expected_result = (ssize_t)strlen(expected_string);
-        char *destination;
+        char *destination = NULL;
 
-        ssize_t result = string_get_delimiter(source, '!', &destination, true);
+        ssize_t result = string_get_delimiter(string, '!', &destination, true);
 
         assert_int_equal(expected_result, result);
         assert_string_equal(expected_string, destination);
@@ -213,23 +213,23 @@ static void test_string_get_delimiter(void **state)
 
 static void test_string_get_delimiter_not_found(void **state)
 {
-        const char *source = "Hello world!";
+        const char *string = "Hello world!";
         ssize_t expected_result = -1;
-        char *destination;
+        char *destination = NULL;
 
-        ssize_t result = string_get_delimiter(source, '$', &destination, true);
+        ssize_t result = string_get_delimiter(string, '$', &destination, true);
 
         assert_int_equal(expected_result, result);
 }
 
 static void test_string_get_delimiter_first_char(void **state)
 {
-        const char *source = "Hello world!";
+        const char *string = "Hello world!";
         const char *expected_string = "H";
         ssize_t expected_result = 1;
-        char *destination;
+        char *destination = NULL;
 
-        ssize_t result = string_get_delimiter(source, 'H', &destination, true);
+        ssize_t result = string_get_delimiter(string, 'H', &destination, true);
 
         assert_int_equal(expected_result, result);
         assert_string_equal(expected_string, destination);
@@ -238,26 +238,26 @@ static void test_string_get_delimiter_first_char(void **state)
         free(destination);
 }
 
-static void test_string_get_delimiter_empty_source(void **state)
+static void test_string_get_delimiter_empty_string(void **state)
 {
-        const char *source = "";
+        const char *string = "";
         ssize_t expected_result = -1;
-        char *destination;
+        char *destination = NULL;
 
-        ssize_t result = string_get_delimiter(source, '!', &destination, true);
+        ssize_t result = string_get_delimiter(string, '!', &destination, true);
 
         assert_int_equal(expected_result, result);
 }
 
 static void test_string_splice(void **state)
 {
-        const char *source = "Hello world!";
+        const char *string = "Hello world!";
         const char *expected_string = "world!";
         ssize_t expected_result = (ssize_t)strlen(expected_string);
         char *destination = NULL;
 
         ssize_t result = string_splice(
-                source, &destination, 6, (ssize_t)strlen(source));
+                string, &destination, 6, (ssize_t)strlen(string));
 
         assert_int_equal(expected_result, result);
         assert_string_equal(expected_string, destination);
@@ -338,11 +338,11 @@ static void test_string_splice_zero_start_end(void **state)
 
 static void test_string_strip_surrounding_spaces(void **state)
 {
-        const char *source = "    Hello world!   ";
+        const char *string = "    Hello world!   ";
         const char *expected_string = "Hello world!";
         ssize_t expected_result = (ssize_t)strlen(expected_string);
         char *destination = NULL;
-        ssize_t result = string_strip_surrounding_spaces(source, &destination);
+        ssize_t result = string_strip_surrounding_spaces(string, &destination);
 
         assert_int_equal(expected_result, result);
         assert_string_equal(expected_string, destination);
@@ -352,11 +352,11 @@ static void test_string_strip_surrounding_spaces(void **state)
 
 static void test_string_strip_surrounding_spaces_tabs(void **state)
 {
-        const char *source = "\tHello world!  \t";
+        const char *string = "\tHello world!  \t";
         const char *expected_string = "Hello world!";
         ssize_t expected_result = (ssize_t)strlen(expected_string);
         char *destination = NULL;
-        ssize_t result = string_strip_surrounding_spaces(source, &destination);
+        ssize_t result = string_strip_surrounding_spaces(string, &destination);
 
         assert_int_equal(expected_result, result);
         assert_string_equal(expected_string, destination);
@@ -366,23 +366,23 @@ static void test_string_strip_surrounding_spaces_tabs(void **state)
 
 static void test_string_strip_surrounding_spaces_no_spaces(void **state)
 {
-        const char *source = "Hello world!";
-        ssize_t expected_result = (ssize_t)strlen(source);
+        const char *string = "Hello world!";
+        ssize_t expected_result = (ssize_t)strlen(string);
         char *destination = NULL;
-        ssize_t result = string_strip_surrounding_spaces(source, &destination);
+        ssize_t result = string_strip_surrounding_spaces(string, &destination);
 
         assert_int_equal(expected_result, result);
-        assert_string_equal(source, destination);
+        assert_string_equal(string, destination);
 
         free(destination);
 }
 
 static void test_string_strip_surrounding_spaces_all_spaces(void **state)
 {
-        const char *source = " ";
+        const char *string = " ";
         ssize_t expected_result = -1;
         char *destination = NULL;
-        ssize_t result = string_strip_surrounding_spaces(source, &destination);
+        ssize_t result = string_strip_surrounding_spaces(string, &destination);
 
         assert_int_equal(expected_result, result);
 }
@@ -421,7 +421,7 @@ int main(void)
                 cmocka_unit_test(test_string_get_delimiter),
                 cmocka_unit_test(test_string_get_delimiter_not_found),
                 cmocka_unit_test(test_string_get_delimiter_first_char),
-                cmocka_unit_test(test_string_get_delimiter_empty_source),
+                cmocka_unit_test(test_string_get_delimiter_empty_string),
                 cmocka_unit_test(test_string_splice),
                 cmocka_unit_test(test_string_splice_null_string),
                 cmocka_unit_test(test_string_splice_large_start),

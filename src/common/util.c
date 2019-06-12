@@ -170,10 +170,10 @@ ssize_t string_find_last_nonspace(const char *string)
  * This function returns the strlen of the new string or -1 if there was
  * an error
  */
-ssize_t string_get_delimiter(const char *source, char delimiter,
+ssize_t string_get_delimiter(const char *string, char delimiter,
                              char **destination, bool consume)
 {
-        ssize_t delimiter_index = string_find_char(source, delimiter);
+        ssize_t delimiter_index = string_find_char(string, delimiter);
 
         if (delimiter_index < 0) {
                 return -1;
@@ -192,7 +192,7 @@ ssize_t string_get_delimiter(const char *source, char delimiter,
 
         *destination = buffer;
 
-        memcpy(*destination, source, (size_t)delimiter_index);
+        memcpy(*destination, string, (size_t)delimiter_index);
 
         (*destination)[delimiter_index] = '\0';
 
@@ -241,12 +241,12 @@ ssize_t string_splice(const char *string, char **dest, ssize_t start,
  * is placed in the dest and the resulting strlen is returned. The dest
  * must be freed after use by the caller
  */
-ssize_t string_strip_surrounding_spaces(const char *source, char **dest)
+ssize_t string_strip_surrounding_spaces(const char *string, char **dest)
 {
-        ssize_t start = string_find_first_nonspace(source);
-        ssize_t end = string_find_last_nonspace(source);
+        ssize_t start = string_find_first_nonspace(string);
+        ssize_t end = string_find_last_nonspace(string);
 
-        return string_splice(source, dest, start, end + 1);
+        return string_splice(string, dest, start, end + 1);
 }
 
 /**
