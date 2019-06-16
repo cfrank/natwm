@@ -3,10 +3,13 @@
 // Refer to the license.txt file included in the root of the project
 
 #include <ctype.h>
+#include <errno.h>
+#include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
+#include <common/logger.h>
 #include "constants.h"
 #include "util.h"
 
@@ -90,7 +93,7 @@ int string_append_char(char **destination, char append)
  *
  * Once the char has been found return the index position of it
  */
-ssize_t string_find_char(const char *haystack, char needle)
+ATTR_PURE ssize_t string_find_char(const char *haystack, char needle)
 {
         if (haystack == NULL) {
                 return -1;
@@ -116,7 +119,7 @@ ssize_t string_find_char(const char *haystack, char needle)
  *
  * If no non-whitespace characters are found in the supplied string return -1
  */
-ssize_t string_find_first_nonspace(const char *string)
+ATTR_PURE ssize_t string_find_first_nonspace(const char *string)
 {
         if (string == NULL) {
                 return -1;
@@ -143,7 +146,7 @@ ssize_t string_find_first_nonspace(const char *string)
  *
  * If no non-whitespace character is found in the supplied string return -1
  */
-ssize_t string_find_last_nonspace(const char *string)
+ATTR_PURE ssize_t string_find_last_nonspace(const char *string)
 {
         if (string == NULL) {
                 return -1;
@@ -187,6 +190,48 @@ ssize_t string_get_delimiter(const char *string, char delimiter,
         }
 
         return string_splice(string, destination, 0, delimiter_index);
+}
+
+/**
+ * Takes a string which correspondes to a base 10 number as well as a pointer
+ * to intmax_t. If the number can be transformed successfully the destination
+ * will point to the number and 0 is returned.
+ *
+ * If there is an error then -1 is returned and the destination is unchanged
+ */
+int string_to_number(const char *number_string, intmax_t *dest)
+{
+        char *endptr = NULL;
+
+        // Reset errno to 0 so we can test for ERANGE
+        errno = 0;
+
+        intmax_t result = strtoimax(number_string, &endptr, 10);
+
+        if (errno == ERANGE) {
+                switch (result) {
+                case INTMAX_MIN:
+                case INTMAX_MAX:
+                        return -1;
+                default:
+                        LOG_CRITICAL_LONG(
+                                natwm_logger,
+                                "Recieved invalid response when trying to "
+                                "convert string to number - Exiting...");
+                        exit(EXIT_FAILURE);
+                }
+        } else if (errno != 0) {
+                LOG_CRITICAL_LONG(natwm_logger,
+                                  "Recieved invalid response when trying to "
+                                  "convert string to number - Exiting...");
+                exit(EXIT_FAILURE);
+        } else if (*endptr != '\0') {
+                return -1;
+        }
+
+        *dest = result;
+
+        return 0;
 }
 
 /**

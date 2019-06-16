@@ -6,6 +6,7 @@
 #include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include <common/constants.h>
@@ -34,13 +35,47 @@ enum config_token_types {
 
 static enum config_token_types char_to_token(char c);
 
-void destroy_config_list(struct config_list *list)
+/**
+ * Handle creating number pairs
+ */
+static struct config_value *create_number(const char *key,
+                                          const char *number_string)
 {
-        for (size_t i = 0; i < list->length; ++i) {
-                free(list->values[i]);
+        struct config_value *value = malloc(sizeof(struct config_value));
+
+        if (value == NULL) {
+                return NULL;
         }
 
-        free(list);
+        intmax_t number = 0;
+
+        if (string_to_number(number_string, &number) != 0) {
+                return NULL;
+        }
+
+        value->key = key;
+        value->type = NUMBER;
+        value->data.number = number;
+
+        return value;
+}
+
+/**
+ * Handle creating string pairs
+ */
+static struct config_value *create_string(const char *key, char *string)
+{
+        struct config_value *value = malloc(sizeof(struct config_value));
+
+        if (value == NULL) {
+                return NULL;
+        }
+
+        value->key = key;
+        value->type = STRING;
+        value->data.string = string;
+
+        return value;
 }
 
 /**
@@ -114,6 +149,38 @@ static void consume_line(struct parser_context *context)
 }
 
 /**
+ * Once the variable has been parsed from the configuration file we need to
+ * create the config_list item that will be passed into the context
+ *
+ * The arguments supplied to this function are:
+ *
+ * Key -> The key string which should valid
+ *
+ * Value -> The value which needs to be parsed further to determine it's type
+ * and strip any additional characters
+ */
+static struct config_value *create_variable_from_strings(const char *key,
+                                                         const char *value)
+{
+        if (char_to_token(value[0] == QUOTE)) {
+                size_t value_len = strlen(value);
+                char *string_value = NULL;
+                string_splice(
+                        value, &string_value, 1, (ssize_t)(value_len - 1));
+
+                if (string_value == NULL) {
+                        return NULL;
+                }
+
+                return create_string(key, string_value);
+        }
+
+        // TODO: Handle double values
+
+        return create_number(key, value);
+}
+
+/**
  * Handle the creation of a variable in the configuration
  *
  * When this function is called the context will be pointing to the
@@ -128,7 +195,7 @@ static void consume_line(struct parser_context *context)
  * should also be updated to point to the '\n' of the current
  * line, so that the next line can be consumed
  */
-static int handle_variable_creation(struct parser_context *context)
+static int parse_variables_from_context(struct parser_context *context)
 {
         // Skip to the variable name
         increment_parser_context(context);
@@ -162,6 +229,8 @@ static int handle_variable_creation(struct parser_context *context)
                 return -1;
         }
 
+        move_parser_context(context, (size_t)equal_pos);
+
         const char *value_string = variable_string + equal_pos + 1;
         char *value = NULL;
         char *value_stripped = NULL;
@@ -181,15 +250,33 @@ static int handle_variable_creation(struct parser_context *context)
                 return -1;
         }
 
-        printf("Found key '%s'\n", key_stripped);
-        printf("Found value '%s'\n", value_stripped);
+        struct config_value *variable
+                = create_variable_from_strings(key, value_stripped);
 
-        move_parser_context(context, (size_t)variable_end_pos + 1);
+        if (variable == NULL) {
+                LOG_ERROR(natwm_logger,
+                          "Failed to save variable - Line %zu Col: %zu",
+                          context->line_num,
+                          context->col_num);
+                free(key);
+                free(key_stripped);
+                free(value);
+                free(value_stripped);
 
-        free(key);
-        free(key_stripped);
-        free(value);
-        free(value_stripped);
+                return -1;
+        }
+
+        printf("Found key %s\n", variable->key);
+        if (variable->type == NUMBER) {
+                printf("Found Number %jd\n", variable->data.number);
+        } else {
+                printf("Found String %s\n", variable->data.string);
+        }
+
+        move_parser_context(context,
+                            (size_t)(variable_end_pos - equal_pos + 1));
+
+        destroy_config_value(variable);
 
         return 0;
 }
@@ -221,42 +308,6 @@ static enum config_token_types char_to_token(char c)
 
                 return UNKNOWN;
         }
-}
-
-/**
- * Handle creating number pairs
- */
-static struct config_value *create_number(const char *key, int64_t number)
-{
-        struct config_value *value = malloc(sizeof(struct config_value));
-
-        if (value == NULL) {
-                return NULL;
-        }
-
-        value->key = key;
-        value->type = NUMBER;
-        value->data.number = number;
-
-        return value;
-}
-
-/**
- * Handle creating string pairs
- */
-static struct config_value *create_string(const char *key, const char *string)
-{
-        struct config_value *value = malloc(sizeof(struct config_value));
-
-        if (value == NULL) {
-                return NULL;
-        }
-
-        value->key = key;
-        value->type = STRING;
-        value->data.string = string;
-
-        return value;
 }
 
 /**
@@ -369,7 +420,7 @@ static int handle_file(struct parser_context *context)
                         consume_line(context);
                         break;
                 case VARIABLE_START:
-                        if (handle_variable_creation(context) != 0) {
+                        if (parse_variables_from_context(context) != 0) {
                                 goto handle_error;
                         };
                         break;
@@ -421,6 +472,27 @@ static struct config_list *parse_file(FILE *file)
         free(file_buffer);
 
         return NULL;
+}
+
+void destroy_config_list(struct config_list *list)
+{
+        for (size_t i = 0; i < list->length; ++i) {
+                destroy_config_value(list->values[i]);
+        }
+
+        free(list);
+}
+
+void destroy_config_value(struct config_value *value)
+{
+        if (value->type == NUMBER) {
+                free(value);
+                return;
+        }
+
+        // For strings we need to free the data as well
+        free(value->data.string);
+        free(value);
 }
 
 /**
