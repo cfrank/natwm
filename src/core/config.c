@@ -16,6 +16,7 @@
 
 struct parser_context {
         const char *buffer;
+        size_t buffer_size;
         size_t pos;
         size_t line_num;
         size_t col_num;
@@ -83,7 +84,8 @@ static struct config_value *create_string(const char *key, char *string)
  *
  * This will be used to track the position of the parser in the file.
  */
-static struct parser_context *initialize_parser_context(const char *buffer)
+static struct parser_context *initialize_parser_context(const char *buffer,
+                                                        size_t buffer_size)
 {
         struct parser_context *context = malloc(sizeof(struct parser_context));
 
@@ -92,6 +94,7 @@ static struct parser_context *initialize_parser_context(const char *buffer)
         }
 
         context->buffer = buffer;
+        context->buffer_size = buffer_size;
         context->pos = 0;
         context->line_num = 1;
         context->col_num = 1;
@@ -116,6 +119,10 @@ static void destroy_parser_context(struct parser_context *context)
  */
 static void increment_parser_context(struct parser_context *context)
 {
+        if (context->pos > context->buffer_size) {
+                return;
+        }
+
         if (context->buffer[context->pos] == '\n') {
                 ++context->line_num;
                 context->col_num = 1;
@@ -229,6 +236,7 @@ static int parse_variables_from_context(struct parser_context *context)
                 return -1;
         }
 
+        printf("%zd - EQUAL POS\n", equal_pos);
         move_parser_context(context, (size_t)equal_pos);
 
         const char *value_string = variable_string + equal_pos + 1;
@@ -273,10 +281,14 @@ static int parse_variables_from_context(struct parser_context *context)
                 printf("Found String %s\n", variable->data.string);
         }
 
-        move_parser_context(context,
-                            (size_t)(variable_end_pos - equal_pos + 1));
+        move_parser_context(context, (size_t)variable_end_pos);
 
         destroy_config_value(variable);
+
+        free(key);
+        free(key_stripped);
+        free(value);
+        free(value_stripped);
 
         return 0;
 }
@@ -460,7 +472,8 @@ static struct config_list *parse_file(FILE *file)
                 return NULL;
         }
 
-        struct parser_context *context = initialize_parser_context(file_buffer);
+        struct parser_context *context
+                = initialize_parser_context(file_buffer, file_size);
 
         if (context == NULL) {
                 return NULL;

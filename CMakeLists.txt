@@ -58,11 +58,11 @@ string(APPEND CMAKE_C_FLAGS_DEBUG " -g3"
 string(APPEND CMAKE_C_FLAGS_RELEASE " -O2"
     " -march=native"
     " -mtune=native"
+    " -fsanitize=address"
     " -ftree-vectorize")
 
 string(APPEND CMAKE_C_FLAGS " -Wall"
     " -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2"
-    " -fsanitize=address"
     " -Wextra -Wcast-align -Wcast-qual -Wpointer-arith"
     " -Waggregate-return -Wunreachable-code -Wfloat-equal"
     " -Wformat=2 -Wredundant-decls -Wundef"
@@ -73,7 +73,7 @@ string(APPEND CMAKE_C_FLAGS " -Wall"
 
 # Linker flags
 
-string(APPEND CMAKE_LINK_FLAGS " -fsanitize=address")
+string(APPEND CMAKE_LINK_FLAGS_RELEASE " -fsanitize=address")
 
 if(ENABLE_TESTING)
     include(CTest)
