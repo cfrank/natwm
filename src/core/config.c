@@ -236,7 +236,6 @@ static int parse_variables_from_context(struct parser_context *context)
                 return -1;
         }
 
-        printf("%zd - EQUAL POS\n", equal_pos);
         move_parser_context(context, (size_t)equal_pos);
 
         const char *value_string = variable_string + equal_pos + 1;
