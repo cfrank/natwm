@@ -5,10 +5,11 @@
 #pragma once
 
 #if defined __clang__ || defined __GNUC__
+#define ATTR_CONST __attribute__((__const__))
 #define ATTR_NONNULL __attribute__((__nonnull__))
 #define ATTR_PURE __attribute__((__pure__))
-#define ATTR_CONST __attribute__((__const__))
 #else
+#define ATTR_CONT
 #define ATTR_NONNULL
 #define ATTR_PURE
 #endif
