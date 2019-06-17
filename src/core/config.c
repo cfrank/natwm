@@ -169,7 +169,7 @@ static void consume_line(struct parser_context *context)
 static struct config_value *create_variable_from_strings(const char *key,
                                                          const char *value)
 {
-        if (char_to_token(value[0] == QUOTE)) {
+        if (char_to_token(value[0]) == QUOTE) {
                 size_t value_len = strlen(value);
                 char *string_value = NULL;
                 string_splice(
@@ -183,7 +183,6 @@ static struct config_value *create_variable_from_strings(const char *key,
         }
 
         // TODO: Handle double values
-
         return create_number(key, value);
 }
 
@@ -262,9 +261,8 @@ static int parse_variables_from_context(struct parser_context *context)
 
         if (variable == NULL) {
                 LOG_ERROR(natwm_logger,
-                          "Failed to save variable - Line %zu Col: %zu",
-                          context->line_num,
-                          context->col_num);
+                          "Failed to save variable - Line %zu",
+                          context->line_num);
                 free(key);
                 free(key_stripped);
                 free(value);
