@@ -173,7 +173,7 @@ static struct config_value *create_variable_from_strings(const char *key,
                 size_t value_len = strlen(value);
 
                 // Make sure the value ends with a closing quote
-                if (char_to_token(value[value_len]) != QUOTE) {
+                if (char_to_token(value[value_len - 1]) != QUOTE) {
                         LOG_ERROR(natwm_logger,
                                   "Missing closing quote for $%s",
                                   key);
