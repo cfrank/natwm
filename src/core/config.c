@@ -171,6 +171,15 @@ static struct config_value *create_variable_from_strings(const char *key,
 {
         if (char_to_token(value[0]) == QUOTE) {
                 size_t value_len = strlen(value);
+
+                // Make sure the value ends with a closing quote
+                if (char_to_token(value[value_len]) != QUOTE) {
+                        LOG_ERROR(natwm_logger,
+                                  "Missing closing quote for $%s",
+                                  key);
+                        return NULL;
+                }
+
                 char *string_value = NULL;
                 string_splice(
                         value, &string_value, 1, (ssize_t)(value_len - 1));
