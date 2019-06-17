@@ -208,24 +208,20 @@ int string_to_number(const char *number_string, intmax_t *dest)
 
         intmax_t result = strtoimax(number_string, &endptr, 10);
 
-        if (errno == ERANGE || endptr == number_string) {
+        if (errno == ERANGE || endptr == number_string || *endptr != '\0') {
                 return -1;
-        } else if (errno != 0) {
-                goto invalid_response;
-        } else if (*endptr != '\0') {
-                return -1;
+        }
+
+        if (errno != 0) {
+                LOG_CRITICAL_LONG(natwm_logger,
+                                  "Unhandlable input recieved - Exiting...");
+
+                exit(EXIT_FAILURE);
         }
 
         *dest = result;
 
         return 0;
-
-invalid_response:
-        LOG_CRITICAL_LONG(natwm_logger,
-                          "Recieved invalid response when trying to convert "
-                          "string to number - Exiting...");
-
-        exit(EXIT_FAILURE);
 }
 
 /**
