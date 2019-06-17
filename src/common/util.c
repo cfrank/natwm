@@ -208,14 +208,8 @@ int string_to_number(const char *number_string, intmax_t *dest)
 
         intmax_t result = strtoimax(number_string, &endptr, 10);
 
-        if (errno == ERANGE) {
-                switch (result) {
-                case INTMAX_MIN:
-                case INTMAX_MAX:
-                        return -1;
-                default:
-                        goto invalid_response;
-                }
+        if (errno == ERANGE || endptr == number_string) {
+                return -1;
         } else if (errno != 0) {
                 goto invalid_response;
         } else if (*endptr != '\0') {
