@@ -23,8 +23,9 @@ struct config_value {
         const char *key;
         enum config_data_types type;
         union {
-                int64_t number;
-                const char *string;
+                intmax_t number;
+                // Stack allocated - must be free'd
+                char *string;
         } data;
 };
 
@@ -32,11 +33,12 @@ struct config_value {
  * Holds all the configuration values
  */
 struct config_list {
-        uint32_t length;
+        size_t length;
         struct config_value **values;
 };
 
 void destroy_config_list(struct config_list *list);
+void destroy_config_value(struct config_value *value);
 struct config_value *get_config_value(const struct config_list *list,
                                       const char *key);
 int initialize_config(const char *path);

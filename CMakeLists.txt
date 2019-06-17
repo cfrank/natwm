@@ -58,10 +58,11 @@ string(APPEND CMAKE_C_FLAGS_DEBUG " -g3"
 string(APPEND CMAKE_C_FLAGS_RELEASE " -O2"
     " -march=native"
     " -mtune=native"
+    " -fsanitize=address"
     " -ftree-vectorize")
 
 string(APPEND CMAKE_C_FLAGS " -Wall"
-    " -D_FORTIFY_SOURCE=2"
+    " -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2"
     " -Wextra -Wcast-align -Wcast-qual -Wpointer-arith"
     " -Waggregate-return -Wunreachable-code -Wfloat-equal"
     " -Wformat=2 -Wredundant-decls -Wundef"
@@ -69,6 +70,10 @@ string(APPEND CMAKE_C_FLAGS " -Wall"
     " -Wstrict-aliasing=2 -Wstrict-overflow=5 -Wconversion"
     " -Wno-unused-parameter"
     " -pedantic")
+
+# Linker flags
+
+string(APPEND CMAKE_LINK_FLAGS_RELEASE " -fsanitize=address")
 
 if(ENABLE_TESTING)
     include(CTest)

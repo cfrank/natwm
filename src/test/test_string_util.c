@@ -249,6 +249,91 @@ static void test_string_get_delimiter_empty_string(void **state)
         assert_int_equal(expected_result, result);
 }
 
+static void test_string_to_number(void **state)
+{
+        const char *string = "1520";
+        intmax_t expected_number = 1520;
+        intmax_t destination = 0;
+
+        int result = string_to_number(string, &destination);
+
+        assert_int_equal(0, result);
+        assert_int_equal(expected_number, destination);
+}
+
+static void test_string_to_number_negative(void **state)
+{
+        const char *string = "-3455";
+        intmax_t expected_number = -3455;
+        intmax_t destination = 0;
+
+        int result = string_to_number(string, &destination);
+
+        assert_int_equal(0, result);
+        assert_int_equal(expected_number, destination);
+}
+
+static void test_string_to_number_invalid_char(void **state)
+{
+        const char *string = "123abc";
+        int expected_result = -1;
+        intmax_t destination = 0;
+
+        int result = string_to_number(string, &destination);
+
+        assert_int_equal(expected_result, result);
+        assert_int_equal(0, destination);
+}
+
+static void test_string_to_number_empty(void **state)
+{
+        const char *string = "";
+        int expected_result = -1;
+        intmax_t destination = 0;
+
+        int result = string_to_number(string, &destination);
+
+        assert_int_equal(expected_result, result);
+        assert_int_equal(0, destination);
+}
+
+static void test_string_to_number_zero(void **state)
+{
+        const char *string = "0";
+        int expected_result = 0;
+        intmax_t expected_number = 0;
+        intmax_t destination = 0;
+
+        int result = string_to_number(string, &destination);
+
+        assert_int_equal(expected_result, result);
+        assert_int_equal(expected_number, destination);
+}
+
+static void test_string_to_number_single_char(void **state)
+{
+        const char *string = "e";
+        int expected_result = -1;
+        intmax_t destination = 0;
+
+        int result = string_to_number(string, &destination);
+
+        assert_int_equal(expected_result, result);
+        assert_int_equal(0, destination);
+}
+
+static void test_string_to_number_double(void **state)
+{
+        const char *string = "55.5";
+        int expected_result = -1;
+        intmax_t destination = 0;
+
+        int result = string_to_number(string, &destination);
+
+        assert_int_equal(expected_result, result);
+        assert_int_equal(0, destination);
+}
+
 static void test_string_splice(void **state)
 {
         const char *string = "Hello world!";
@@ -422,6 +507,13 @@ int main(void)
                 cmocka_unit_test(test_string_get_delimiter_not_found),
                 cmocka_unit_test(test_string_get_delimiter_first_char),
                 cmocka_unit_test(test_string_get_delimiter_empty_string),
+                cmocka_unit_test(test_string_to_number),
+                cmocka_unit_test(test_string_to_number_negative),
+                cmocka_unit_test(test_string_to_number_invalid_char),
+                cmocka_unit_test(test_string_to_number_empty),
+                cmocka_unit_test(test_string_to_number_zero),
+                cmocka_unit_test(test_string_to_number_single_char),
+                cmocka_unit_test(test_string_to_number_double),
                 cmocka_unit_test(test_string_splice),
                 cmocka_unit_test(test_string_splice_null_string),
                 cmocka_unit_test(test_string_splice_large_start),
