@@ -214,17 +214,10 @@ int string_to_number(const char *number_string, intmax_t *dest)
                 case INTMAX_MAX:
                         return -1;
                 default:
-                        LOG_CRITICAL_LONG(
-                                natwm_logger,
-                                "Recieved invalid response when trying to "
-                                "convert string to number - Exiting...");
-                        exit(EXIT_FAILURE);
+                        goto invalid_response;
                 }
         } else if (errno != 0) {
-                LOG_CRITICAL_LONG(natwm_logger,
-                                  "Recieved invalid response when trying to "
-                                  "convert string to number - Exiting...");
-                exit(EXIT_FAILURE);
+                goto invalid_response;
         } else if (*endptr != '\0') {
                 return -1;
         }
@@ -232,6 +225,13 @@ int string_to_number(const char *number_string, intmax_t *dest)
         *dest = result;
 
         return 0;
+
+invalid_response:
+        LOG_CRITICAL_LONG(natwm_logger,
+                          "Recieved invalid response when trying to convert "
+                          "string to number - Exiting...");
+
+        exit(EXIT_FAILURE);
 }
 
 /**

@@ -495,13 +495,11 @@ void destroy_config_list(struct config_list *list)
 
 void destroy_config_value(struct config_value *value)
 {
-        if (value->type == NUMBER) {
-                free(value);
-                return;
+        if (value->type == STRING) {
+                // For strings we need to free the data as well
+                free(value->data.string);
         }
 
-        // For strings we need to free the data as well
-        free(value->data.string);
         free(value);
 }
 
