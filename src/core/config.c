@@ -34,11 +34,32 @@ enum config_token_types {
         VARIABLE_START,
 };
 
-static enum config_token_types char_to_token(char c);
+static enum config_token_types char_to_token(char c)
+{
+        switch (c) {
+        case '/':
+                return COMMENT_START;
+        case '=':
+                return EQUAL;
+        case '\n':
+                return NEW_LINE;
+        case '"':
+                return QUOTE;
+        case '$':
+                return VARIABLE_START;
+        default:
+                if (isdigit(c)) {
+                        return NUMERIC_CHAR;
+                }
 
-/**
- * Handle creating number pairs
- */
+                if (isalpha(c)) {
+                        return ALPHA_CHAR;
+                }
+
+                return UNKNOWN;
+        }
+}
+
 static struct config_value *create_number(const char *key,
                                           const char *number_string)
 {
@@ -61,9 +82,6 @@ static struct config_value *create_number(const char *key,
         return value;
 }
 
-/**
- * Handle creating string pairs
- */
 static struct config_value *create_string(const char *key, char *string)
 {
         struct config_value *value = malloc(sizeof(struct config_value));
@@ -300,35 +318,6 @@ static int parse_variables_from_context(struct parser_context *context)
 }
 
 /**
- * Take a char and return the corresponding token
- */
-static enum config_token_types char_to_token(char c)
-{
-        switch (c) {
-        case '/':
-                return COMMENT_START;
-        case '=':
-                return EQUAL;
-        case '\n':
-                return NEW_LINE;
-        case '"':
-                return QUOTE;
-        case '$':
-                return VARIABLE_START;
-        default:
-                if (isdigit(c)) {
-                        return NUMERIC_CHAR;
-                }
-
-                if (isalpha(c)) {
-                        return ALPHA_CHAR;
-                }
-
-                return UNKNOWN;
-        }
-}
-
-/**
  * Open a configuration file
  *
  * This can either be supplied by the caller (through the first
@@ -346,8 +335,7 @@ static FILE *open_config_file(const char *path)
 
                 if (file == NULL) {
                         LOG_ERROR(natwm_logger,
-                                  "Failed to find configuration file "
-                                  "at %s",
+                                  "Failed to find configuration file at %s",
                                   path);
 
                         return NULL;

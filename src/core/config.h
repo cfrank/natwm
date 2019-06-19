@@ -24,7 +24,7 @@ struct config_value {
         enum config_data_types type;
         union {
                 intmax_t number;
-                // Stack allocated - must be free'd
+                // Heap allocated - must be free'd
                 char *string;
         } data;
 };
