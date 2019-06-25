@@ -184,6 +184,12 @@ static struct parser_context *initialize_parser_context(const char *buffer,
         context->col_num = 1;
         context->variables = create_list();
 
+        if (context->variables == NULL) {
+                free(context);
+
+                return NULL;
+        }
+
         return context;
 }
 
