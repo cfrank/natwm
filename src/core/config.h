@@ -34,6 +34,7 @@ struct config_value {
  */
 struct config_list {
         size_t length;
+        size_t size;
         struct config_value **values;
 };
 
