@@ -14,6 +14,8 @@
 #include <common/util.h>
 #include "config.h"
 
+#define DEFAULT_LIST_SIZE 10
+
 struct parser_context {
         const char *buffer;
         size_t buffer_size;
@@ -34,11 +36,32 @@ enum config_token_types {
         VARIABLE_START,
 };
 
-static enum config_token_types char_to_token(char c);
+static enum config_token_types char_to_token(char c)
+{
+        switch (c) {
+        case '/':
+                return COMMENT_START;
+        case '=':
+                return EQUAL;
+        case '\n':
+                return NEW_LINE;
+        case '"':
+                return QUOTE;
+        case '$':
+                return VARIABLE_START;
+        default:
+                if (isdigit(c)) {
+                        return NUMERIC_CHAR;
+                }
 
-/**
- * Handle creating number pairs
- */
+                if (isalpha(c)) {
+                        return ALPHA_CHAR;
+                }
+
+                return UNKNOWN;
+        }
+}
+
 static struct config_value *create_number(const char *key,
                                           const char *number_string)
 {
@@ -61,9 +84,6 @@ static struct config_value *create_number(const char *key,
         return value;
 }
 
-/**
- * Handle creating string pairs
- */
 static struct config_value *create_string(const char *key, char *string)
 {
         struct config_value *value = malloc(sizeof(struct config_value));
@@ -77,6 +97,70 @@ static struct config_value *create_string(const char *key, char *string)
         value->data.string = string;
 
         return value;
+}
+
+static struct config_list *create_list(void)
+{
+        struct config_list *list = malloc(sizeof(struct config_list));
+
+        if (list == NULL) {
+                return NULL;
+        }
+
+        list->length = 0;
+        list->size = DEFAULT_LIST_SIZE;
+        list->values = malloc(sizeof(struct config_value) * DEFAULT_LIST_SIZE);
+
+        if (list->values == NULL) {
+                free(list);
+
+                return NULL;
+        }
+
+        return list;
+}
+
+/**
+ * Double the size of the list so that it can store more items
+ *
+ * If we are able to grow the list then the resized list is placed into the
+ * pointer passed by the caller and 0 is returned
+ *
+ * Otherwise -1 is returned and the caller is required to free the list
+ * to avoid a leak
+ */
+static int list_grow(struct config_list **list)
+{
+        size_t new_size = (sizeof(struct config_list) * ((*list)->size * 2));
+        struct config_list *new_list = realloc(list, new_size);
+
+        if (new_list == NULL) {
+                // Realloc failed caller will need to release old list
+                return -1;
+        }
+
+        *list = new_list;
+
+        return 0;
+}
+
+static int list_insert(struct config_list *list, struct config_value *value)
+{
+        if (list->length == list->size) {
+                // Need to grow list
+                if (list_grow(&list) < 0) {
+                        // Could not grow list
+                        free(list);
+
+                        return -1;
+                }
+        }
+
+        // List should be able to hold new items
+        list->values[list->length] = value;
+        ++list->length;
+
+        return 0;
 }
 
 /**
@@ -98,7 +182,13 @@ static struct parser_context *initialize_parser_context(const char *buffer,
         context->pos = 0;
         context->line_num = 1;
         context->col_num = 1;
-        context->variables = NULL;
+        context->variables = create_list();
+
+        if (context->variables == NULL) {
+                free(context);
+
+                return NULL;
+        }
 
         return context;
 }
@@ -280,16 +370,9 @@ static int parse_variables_from_context(struct parser_context *context)
                 return -1;
         }
 
-        printf("Found key %s\n", variable->key);
-        if (variable->type == NUMBER) {
-                printf("Found Number %jd\n", variable->data.number);
-        } else {
-                printf("Found String %s\n", variable->data.string);
-        }
+        list_insert(context->variables, variable);
 
         move_parser_context(context, (size_t)variable_end_pos);
-
-        destroy_config_value(variable);
 
         free(key);
         free(key_stripped);
@@ -297,35 +380,6 @@ static int parse_variables_from_context(struct parser_context *context)
         free(value_stripped);
 
         return 0;
-}
-
-/**
- * Take a char and return the corresponding token
- */
-static enum config_token_types char_to_token(char c)
-{
-        switch (c) {
-        case '/':
-                return COMMENT_START;
-        case '=':
-                return EQUAL;
-        case '\n':
-                return NEW_LINE;
-        case '"':
-                return QUOTE;
-        case '$':
-                return VARIABLE_START;
-        default:
-                if (isdigit(c)) {
-                        return NUMERIC_CHAR;
-                }
-
-                if (isalpha(c)) {
-                        return ALPHA_CHAR;
-                }
-
-                return UNKNOWN;
-        }
 }
 
 /**
@@ -346,8 +400,7 @@ static FILE *open_config_file(const char *path)
 
                 if (file == NULL) {
                         LOG_ERROR(natwm_logger,
-                                  "Failed to find configuration file "
-                                  "at %s",
+                                  "Failed to find configuration file at %s",
                                   path);
 
                         return NULL;
@@ -499,6 +552,7 @@ void destroy_config_list(struct config_list *list)
                 destroy_config_value(list->values[i]);
         }
 
+        free(list->values);
         free(list);
 }
 
