@@ -62,7 +62,7 @@ static enum config_token_types char_to_token(char c)
         }
 }
 
-static struct config_value *create_number(char *key, char *number_string)
+static struct config_value *create_number(char *key, const char *number_string)
 {
         struct config_value *value = malloc(sizeof(struct config_value));
 
