@@ -163,6 +163,17 @@ static int list_insert(struct config_list *list, struct config_value *value)
         return 0;
 }
 
+static struct config_value *list_find(struct config_list *list, const char *key)
+{
+        for (size_t i = 0; i < list->length; ++i) {
+                if (strcmp(key, list->values[i]->key) == 0) {
+                        return list->values[i];
+                }
+        }
+
+        return NULL;
+}
+
 /**
  * Initialize the parser context with the file buffer.
  *
@@ -356,7 +367,7 @@ static int parse_variables_from_context(struct parser_context *context)
         }
 
         struct config_value *variable
-                = create_variable_from_strings(key, value_stripped);
+                = create_variable_from_strings(key_stripped, value_stripped);
 
         if (variable == NULL) {
                 LOG_ERROR(natwm_logger,
@@ -374,10 +385,16 @@ static int parse_variables_from_context(struct parser_context *context)
 
         move_parser_context(context, (size_t)variable_end_pos);
 
+        struct config_value *val = list_find(context->variables, key_stripped);
+
+        if (val != NULL) {
+                printf("Found Key: '%s'\n", val->key);
+        } else {
+                printf("Val is NULL\n");
+        }
+
         free(key);
-        free(key_stripped);
         free(value);
-        free(value_stripped);
 
         return 0;
 }
@@ -400,7 +417,8 @@ static FILE *open_config_file(const char *path)
 
                 if (file == NULL) {
                         LOG_ERROR(natwm_logger,
-                                  "Failed to find configuration file at %s",
+                                  "Failed to find configuration file "
+                                  "at %s",
                                   path);
 
                         return NULL;
@@ -563,6 +581,7 @@ void destroy_config_value(struct config_value *value)
                 free(value->data.string);
         }
 
+        free(value->key);
         free(value);
 }
 
