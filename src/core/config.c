@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include <unistd.h>
 
 #include <common/constants.h>
@@ -62,8 +63,7 @@ static enum config_token_types char_to_token(char c)
         }
 }
 
-static struct config_value *create_number(const char *key,
-                                          const char *number_string)
+static struct config_value *create_number(char *key, char *number_string)
 {
         struct config_value *value = malloc(sizeof(struct config_value));
 
@@ -84,7 +84,7 @@ static struct config_value *create_number(const char *key,
         return value;
 }
 
-static struct config_value *create_string(const char *key, char *string)
+static struct config_value *create_string(char *key, char *string)
 {
         struct config_value *value = malloc(sizeof(struct config_value));
 
@@ -267,8 +267,7 @@ static void consume_line(struct parser_context *context)
  * Value -> The value which needs to be parsed further to determine it's type
  * and strip any additional characters
  */
-static struct config_value *create_variable_from_strings(const char *key,
-                                                         const char *value)
+static struct config_value *create_variable_from_strings(char *key, char *value)
 {
         if (char_to_token(value[0]) == QUOTE) {
                 size_t value_len = strlen(value);
@@ -395,6 +394,7 @@ static int parse_variables_from_context(struct parser_context *context)
 
         free(key);
         free(value);
+        free(value_stripped);
 
         return 0;
 }

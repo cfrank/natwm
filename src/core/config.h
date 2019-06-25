@@ -20,7 +20,7 @@ enum config_data_types {
  * Handle key value pairs
  */
 struct config_value {
-        const char *key;
+        char *key;
         enum config_data_types type;
         union {
                 intmax_t number;
