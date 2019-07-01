@@ -62,88 +62,6 @@ static enum config_token_types char_to_token(char c)
         }
 }
 
-/**
- * Initialize the parser context with the file buffer.
- *
- * This will be used to track the position of the parser in the file.
- */
-static struct parser_context *initialize_parser_context(const char *buffer,
-                                                        size_t buffer_size)
-{
-        struct parser_context *context = malloc(sizeof(struct parser_context));
-
-        if (context == NULL) {
-                return NULL;
-        }
-
-        context->buffer = buffer;
-        context->buffer_size = buffer_size;
-        context->pos = 0;
-        context->line_num = 1;
-        context->col_num = 1;
-        context->variables = create_list();
-
-        if (context->variables == NULL) {
-                free(context);
-
-                return NULL;
-        }
-
-        return context;
-}
-
-static void destroy_parser_context(struct parser_context *context)
-{
-        if (context->variables != NULL) {
-                destroy_config_list(context->variables);
-        }
-
-        free(context);
-}
-
-/**
- * Increment the parser context one step. If the current position of the
- * context is a new line make sure to update the column and line numbers
- * to represent the new location
- */
-static void increment_parser_context(struct parser_context *context)
-{
-        if (context->pos > context->buffer_size) {
-                return;
-        }
-
-        if (context->buffer[context->pos] == '\n') {
-                ++context->line_num;
-                context->col_num = 1;
-        } else {
-                ++context->col_num;
-        }
-
-        ++context->pos;
-}
-
-/**
- * Move the parser context forward a specified number of bytes
- *
- * This makes sure that the parser positioning stays intact
- */
-static void move_parser_context(struct parser_context *context, size_t new_pos)
-{
-        for (size_t i = 0; i < new_pos; ++i) {
-                increment_parser_context(context);
-        }
-}
-
-/**
- * Consume the rest of a line in the configuration file.
- */
-static void consume_line(struct parser_context *context)
-{
-        while (context->buffer[context->pos] != '\n') {
-                increment_parser_context(context);
-        }
-}
-
 static struct config_list *create_list(void)
 {
         struct config_list *list = malloc(sizeof(struct config_list));
@@ -253,6 +171,88 @@ static struct config_value *create_string(char *key, char *string)
         value->data.string = string;
 
         return value;
+}
+
+/**
+ * Initialize the parser context with the file buffer.
+ *
+ * This will be used to track the position of the parser in the file.
+ */
+static struct parser_context *initialize_parser_context(const char *buffer,
+                                                        size_t buffer_size)
+{
+        struct parser_context *context = malloc(sizeof(struct parser_context));
+
+        if (context == NULL) {
+                return NULL;
+        }
+
+        context->buffer = buffer;
+        context->buffer_size = buffer_size;
+        context->pos = 0;
+        context->line_num = 1;
+        context->col_num = 1;
+        context->variables = create_list();
+
+        if (context->variables == NULL) {
+                free(context);
+
+                return NULL;
+        }
+
+        return context;
+}
+
+static void destroy_parser_context(struct parser_context *context)
+{
+        if (context->variables != NULL) {
+                destroy_config_list(context->variables);
+        }
+
+        free(context);
+}
+
+/**
+ * Increment the parser context one step. If the current position of the
+ * context is a new line make sure to update the column and line numbers
+ * to represent the new location
+ */
+static void increment_parser_context(struct parser_context *context)
+{
+        if (context->pos > context->buffer_size) {
+                return;
+        }
+
+        if (context->buffer[context->pos] == '\n') {
+                ++context->line_num;
+                context->col_num = 1;
+        } else {
+                ++context->col_num;
+        }
+
+        ++context->pos;
+}
+
+/**
+ * Move the parser context forward a specified number of bytes
+ *
+ * This makes sure that the parser positioning stays intact
+ */
+static void move_parser_context(struct parser_context *context, size_t new_pos)
+{
+        for (size_t i = 0; i < new_pos; ++i) {
+                increment_parser_context(context);
+        }
+}
+
+/**
+ * Consume the rest of a line in the configuration file.
+ */
+static void consume_line(struct parser_context *context)
+{
+        while (context->buffer[context->pos] != '\n') {
+                increment_parser_context(context);
+        }
 }
 
 /**
