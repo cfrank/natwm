@@ -62,117 +62,6 @@ static enum config_token_types char_to_token(char c)
         }
 }
 
-static struct config_value *create_number(char *key, const char *number_string)
-{
-        struct config_value *value = malloc(sizeof(struct config_value));
-
-        if (value == NULL) {
-                return NULL;
-        }
-
-        intmax_t number = 0;
-
-        if (string_to_number(number_string, &number) != 0) {
-                return NULL;
-        }
-
-        value->key = key;
-        value->type = NUMBER;
-        value->data.number = number;
-
-        return value;
-}
-
-static struct config_value *create_string(char *key, char *string)
-{
-        struct config_value *value = malloc(sizeof(struct config_value));
-
-        if (value == NULL) {
-                return NULL;
-        }
-
-        value->key = key;
-        value->type = STRING;
-        value->data.string = string;
-
-        return value;
-}
-
-static struct config_list *create_list(void)
-{
-        struct config_list *list = malloc(sizeof(struct config_list));
-
-        if (list == NULL) {
-                return NULL;
-        }
-
-        list->length = 0;
-        list->size = DEFAULT_LIST_SIZE;
-        list->values = malloc(sizeof(struct config_value) * DEFAULT_LIST_SIZE);
-
-        if (list->values == NULL) {
-                free(list);
-
-                return NULL;
-        }
-
-        return list;
-}
-
-/**
- * Double the size of the list so that it can store more items
- *
- * If we are able to grow the list then the resized list is placed into the
- * pointer passed by the caller and 0 is returned
- *
- * Otherwise -1 is returned and the caller is required to free the list
- * to avoid a leak
- */
-static int list_grow(struct config_list **list)
-{
-        size_t new_size = (sizeof(struct config_list) * ((*list)->size * 2));
-        struct config_list *new_list = realloc(list, new_size);
-
-        if (new_list == NULL) {
-                // Realloc failed caller will need to release old list
-                return -1;
-        }
-
-        *list = new_list;
-
-        return 0;
-}
-
-static int list_insert(struct config_list *list, struct config_value *value)
-{
-        if (list->length == list->size) {
-                // Need to grow list
-                if (list_grow(&list) < 0) {
-                        // Could not grow list
-                        free(list);
-
-                        return -1;
-                }
-        }
-
-        // List should be able to hold new items
-        list->values[list->length] = value;
-        ++list->length;
-
-        return 0;
-}
-
-static struct config_value *list_find(struct config_list *list, const char *key)
-{
-        for (size_t i = 0; i < list->length; ++i) {
-                if (strcmp(key, list->values[i]->key) == 0) {
-                        return list->values[i];
-                }
-        }
-
-        return NULL;
-}
-
 /**
  * Initialize the parser context with the file buffer.
  *
@@ -253,6 +142,117 @@ static void consume_line(struct parser_context *context)
         while (context->buffer[context->pos] != '\n') {
                 increment_parser_context(context);
         }
+}
+
+static struct config_list *create_list(void)
+{
+        struct config_list *list = malloc(sizeof(struct config_list));
+
+        if (list == NULL) {
+                return NULL;
+        }
+
+        list->length = 0;
+        list->size = DEFAULT_LIST_SIZE;
+        list->values = malloc(sizeof(struct config_value) * DEFAULT_LIST_SIZE);
+
+        if (list->values == NULL) {
+                free(list);
+
+                return NULL;
+        }
+
+        return list;
+}
+
+/**
+ * Double the size of the list so that it can store more items
+ *
+ * If we are able to grow the list then the resized list is placed into the
+ * pointer passed by the caller and 0 is returned
+ *
+ * Otherwise -1 is returned and the caller is required to free the list
+ * to avoid a leak
+ */
+static int list_grow(struct config_list **list)
+{
+        size_t new_size = (sizeof(struct config_list) * ((*list)->size * 2));
+        struct config_list *new_list = realloc(list, new_size);
+
+        if (new_list == NULL) {
+                // Realloc failed caller will need to release old list
+                return -1;
+        }
+
+        *list = new_list;
+
+        return 0;
+}
+
+static int list_insert(struct config_list *list, struct config_value *value)
+{
+        if (list->length == list->size) {
+                // Need to grow list
+                if (list_grow(&list) < 0) {
+                        // Could not grow list
+                        free(list);
+
+                        return -1;
+                }
+        }
+
+        // List should be able to hold new items
+        list->values[list->length] = value;
+        ++list->length;
+
+        return 0;
+}
+
+static struct config_value *list_find(struct config_list *list, const char *key)
+{
+        for (size_t i = 0; i < list->length; ++i) {
+                if (strcmp(key, list->values[i]->key) == 0) {
+                        return list->values[i];
+                }
+        }
+
+        return NULL;
+}
+
+static struct config_value *create_number(char *key, const char *number_string)
+{
+        struct config_value *value = malloc(sizeof(struct config_value));
+
+        if (value == NULL) {
+                return NULL;
+        }
+
+        intmax_t number = 0;
+
+        if (string_to_number(number_string, &number) != 0) {
+                return NULL;
+        }
+
+        value->key = key;
+        value->type = NUMBER;
+        value->data.number = number;
+
+        return value;
+}
+
+static struct config_value *create_string(char *key, char *string)
+{
+        struct config_value *value = malloc(sizeof(struct config_value));
+
+        if (value == NULL) {
+                return NULL;
+        }
+
+        value->key = key;
+        value->type = STRING;
+        value->data.string = string;
+
+        return value;
 }
 
 /**
@@ -563,27 +563,6 @@ static struct config_list *parse_file(FILE *file)
         return NULL;
 }
 
-void destroy_config_list(struct config_list *list)
-{
-        for (size_t i = 0; i < list->length; ++i) {
-                destroy_config_value(list->values[i]);
-        }
-
-        free(list->values);
-        free(list);
-}
-
-void destroy_config_value(struct config_value *value)
-{
-        if (value->type == STRING) {
-                // For strings we need to free the data as well
-                free(value->data.string);
-        }
-
-        free(value->key);
-        free(value);
-}
-
 /**
  * Initialize the configuration file.
  *
@@ -607,4 +586,25 @@ int initialize_config(const char *path)
         fclose(config_file);
 
         return 0;
+}
+
+void destroy_config_list(struct config_list *list)
+{
+        for (size_t i = 0; i < list->length; ++i) {
+                destroy_config_value(list->values[i]);
+        }
+
+        free(list->values);
+        free(list);
+}
+
+void destroy_config_value(struct config_value *value)
+{
+        if (value->type == STRING) {
+                // For strings we need to free the data as well
+                free(value->data.string);
+        }
+
+        free(value->key);
+        free(value);
 }
