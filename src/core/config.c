@@ -313,7 +313,6 @@ static struct config_value *value_from_variable(char *key,
                         return NULL;
                 }
 
-                printf("Copying %s now\n", variable->data.string);
                 memcpy(string, variable->data.string, length + 1);
 
                 return create_string(key, string);
@@ -496,7 +495,6 @@ static int parse_context_variable(struct parser_context *context)
 
         if (val != NULL) {
                 printf("Found Key: '%s'\n", val->key);
-                printf("Found Value: '%s'\n", val->data.string);
         } else {
                 printf("Val is NULL\n");
         }
@@ -531,8 +529,6 @@ static int parse_context_config_item(struct parser_context *context,
         if (item == NULL) {
                 return -1;
         }
-
-        printf("About to insert key %s\n", item->key);
 
         if (list_insert(*list, item) != 0) {
                 return -1;
@@ -664,7 +660,6 @@ static struct config_list *handle_file(struct parser_context *context)
                         };
                         break;
                 case ALPHA_CHAR:
-                        printf("Hitting char '%c'\n", c);
                         if (parse_context_config_item(context, &list) != 0) {
                                 goto handle_error;
                         };
