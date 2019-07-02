@@ -289,6 +289,8 @@ static struct config_value *create_value_from_strings(char *key, char *value)
         intmax_t number = 0;
 
         if (string_to_number(value, &number) != 0) {
+                LOG_ERROR(natwm_logger, "Invalid number '%s' found", value);
+
                 return NULL;
         }
 
@@ -319,6 +321,36 @@ static struct config_value *value_from_variable(char *key,
         }
 
         return create_number(key, variable->data.number);
+}
+
+static struct config_value *resolve_variable(struct parser_context *context,
+                                             const char *variable_key,
+                                             char *new_key)
+{
+        struct config_value *variable
+                = list_find(context->variables, variable_key);
+
+        if (variable == NULL) {
+                LOG_ERROR(natwm_logger,
+                          "'%s' is not defined - Line: %zu",
+                          variable_key,
+                          context->line_num);
+
+                return NULL;
+        }
+
+        struct config_value *new = value_from_variable(new_key, variable);
+
+        if (new == NULL) {
+                LOG_ERROR(natwm_logger,
+                          "Failed to resolve variable '%s' - Line: %zu",
+                          variable_key,
+                          context->line_num);
+
+                return NULL;
+        }
+
+        return new;
 }
 
 /**
@@ -395,49 +427,21 @@ static struct config_value *handle_context_value(struct parser_context *context)
                 return NULL;
         }
 
+        struct config_value *ret = NULL;
+
         if (char_to_token(value_stripped[0]) == VARIABLE_START) {
-                printf("VALUE -> '%s'\n", value_stripped + 1);
-                struct config_value *variable
-                        = list_find(context->variables, value_stripped + 1);
-
-                if (variable == NULL) {
-                        LOG_ERROR(natwm_logger,
-                                  "%s is not defined - Line: %zu",
-                                  value_stripped,
-                                  context->line_num);
-                        free(key);
-                        free(key_stripped);
-                        free(value);
-                        free(value_stripped);
-
-                        return NULL;
-                }
-
-                struct config_value *ret
-                        = value_from_variable(key_stripped, variable);
-
-                if (ret == NULL) {
-                        LOG_ERROR(natwm_logger,
-                                  "Failed to save %s",
-                                  key_stripped);
-
-                        destroy_config_value(variable);
-
-                        goto free_and_error;
-                }
-
-                free(key);
-                free(value);
-                free(value_stripped);
-
-                return ret;
+                ret = resolve_variable(
+                        context, value_stripped + 1, key_stripped);
+        } else {
+                ret = create_value_from_strings(key_stripped, value_stripped);
         }
 
-        struct config_value *ret
-                = create_value_from_strings(key_stripped, value_stripped);
-
         if (ret == NULL) {
-                LOG_ERROR(natwm_logger, "Failed to save %s", key_stripped);
+                LOG_ERROR(natwm_logger,
+                          "Failed to save '%s' - Line %zu Col: %zu",
+                          key_stripped,
+                          context->line_num,
+                          context->col_num);
 
                 goto free_and_error;
         }
@@ -478,7 +482,7 @@ free_and_error:
  */
 static int parse_context_variable(struct parser_context *context)
 {
-        // Skip to the variable name
+        // Skip VARIABLE_START
         increment_parser_context(context);
 
         struct config_value *variable = handle_context_value(context);
@@ -493,6 +497,7 @@ static int parse_context_variable(struct parser_context *context)
 
         if (val != NULL) {
                 printf("Found Key: '%s'\n", val->key);
+                printf("Found Value: '%s'\n", val->data.string);
         } else {
                 printf("Val is NULL\n");
         }
@@ -518,8 +523,7 @@ static FILE *open_config_file(const char *path)
 
                 if (file == NULL) {
                         LOG_ERROR(natwm_logger,
-                                  "Failed to find configuration file "
-                                  "at %s",
+                                  "Failed to find configuration file at %s",
                                   path);
 
                         return NULL;
