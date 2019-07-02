@@ -266,7 +266,7 @@ static void consume_line(struct parser_context *context)
  * Value -> The value which needs to be parsed further to determine it's type
  * and strip any additional characters
  */
-static struct config_value *create_variable_from_strings(char *key, char *value)
+static struct config_value *create_value_from_strings(char *key, char *value)
 {
         if (char_to_token(value[0]) == QUOTE) {
                 size_t value_len = strlen(value);
@@ -295,6 +295,102 @@ static struct config_value *create_variable_from_strings(char *key, char *value)
 }
 
 /**
+ * Handle creating a config_value from a string
+ *
+ * The context will be pointing to the beginning of a line containing a config
+ * value in the format:
+ *
+ * config_key = config_value
+ *
+ * It is required that the first character pointed to by the context is a
+ * ALPHA_CHAR
+ *
+ * After that the key is determined by parsing until a EQUAL char is found. The
+ * key is then stripped of surrounding spaces and the result is the final key.
+ *
+ * The value is then determincontext_variableNEW_LINE char is found. The
+ * value is then also stripped of surrounding spaces and the result is the
+ * final value.
+ *
+ * These are used to create the returned config_value. If there is an error
+ * while parsing then NULL is returned and no memory is left allocated
+ */
+static struct config_value *handle_context_value(struct parser_context *context)
+{
+        const char *start = context->buffer + context->pos;
+
+        if (char_to_token(start[0]) != ALPHA_CHAR) {
+                LOG_ERROR(natwm_logger,
+                          "Invalid Value: '%c' - Line: %zu Col: %zu",
+                          start[0],
+                          context->line_num,
+                          context->col_num);
+
+                return NULL;
+        }
+
+        char *key = NULL;
+        char *key_stripped = NULL;
+        ssize_t equal_pos = string_get_delimiter(start, '=', &key, false);
+
+        if (string_strip_surrounding_spaces(key, &key_stripped) < 0) {
+                LOG_ERROR(natwm_logger,
+                          "Invalid value key - Line: %zu Col: %zu",
+                          context->line_num,
+                          context->col_num);
+
+                // Since we didn't check for the success of get_delim
+                // this could be NULL - free anyway
+                free(key);
+
+                return NULL;
+        }
+
+        move_parser_context(context, (size_t)equal_pos);
+
+        const char *value_start = context->buffer + context->pos + 1;
+        char *value = NULL;
+        char *value_stripped = NULL;
+        ssize_t end_pos
+                = string_get_delimiter(value_start, '\n', &value, false);
+
+        if (string_strip_surrounding_spaces(value, &value_stripped) < 0) {
+                LOG_ERROR(natwm_logger,
+                          "Invalid value - Line: %zu Col: %zu",
+                          context->line_num,
+                          context->col_num);
+
+                free(value);
+
+                return NULL;
+        }
+
+        struct config_value *ret
+                = create_value_from_strings(key_stripped, value_stripped);
+
+        if (ret == NULL) {
+                LOG_ERROR(natwm_logger, "Failed to save %s", key_stripped);
+
+                free(key);
+                free(key_stripped);
+                free(value);
+                free(value_stripped);
+
+                return NULL;
+        }
+
+        // Update context
+        move_parser_context(context, (size_t)end_pos);
+
+        // Free everything that contained in the value
+        free(key);
+        free(value);
+        free(value_stripped);
+
+        return ret;
+}
+
+/**
  * Handle the creation of a variable in the configuration
  *
  * When this function is called the context will be pointing to the
@@ -309,91 +405,26 @@ static struct config_value *create_variable_from_strings(char *key, char *value)
  * should also be updated to point to the '\n' of the current
  * line, so that the next line can be consumed
  */
-static int parse_variables_from_context(struct parser_context *context)
+static int parse_context_variable(struct parser_context *context)
 {
         // Skip to the variable name
         increment_parser_context(context);
 
-        const char *variable_string = context->buffer + context->pos;
-
-        if (char_to_token(variable_string[0]) != ALPHA_CHAR) {
-                LOG_ERROR(natwm_logger,
-                          "Invalid char found: '%c' - Line: %zu Col: %zu",
-                          variable_string[0],
-                          context->line_num,
-                          context->col_num);
-
-                return -1;
-        }
-
-        char *key = NULL;
-        char *key_stripped = NULL;
-        ssize_t equal_pos
-                = string_get_delimiter(variable_string, '=', &key, false);
-
-        if (string_strip_surrounding_spaces(key, &key_stripped) < 0) {
-                LOG_ERROR(natwm_logger,
-                          "Invalid variable declaration - Line: %zu Col: %zu",
-                          context->line_num,
-                          context->col_num);
-
-                // This may be NULL - if so nop
-                free(key);
-
-                return -1;
-        }
-
-        move_parser_context(context, (size_t)equal_pos);
-
-        const char *value_string = variable_string + equal_pos + 1;
-        char *value = NULL;
-        char *value_stripped = NULL;
-        ssize_t variable_end_pos
-                = string_get_delimiter(value_string, '\n', &value, false);
-
-        if (string_strip_surrounding_spaces(value, &value_stripped) < 0) {
-                LOG_ERROR(natwm_logger,
-                          "Invalid variable value - Line: %zu Col: %zu",
-                          context->line_num,
-                          context->col_num);
-
-                free(key);
-                free(key_stripped);
-                free(value);
-
-                return -1;
-        }
-
-        struct config_value *variable
-                = create_variable_from_strings(key_stripped, value_stripped);
+        struct config_value *variable = handle_context_value(context);
 
         if (variable == NULL) {
-                LOG_ERROR(natwm_logger,
-                          "Failed to save variable - Line %zu",
-                          context->line_num);
-                free(key);
-                free(key_stripped);
-                free(value);
-                free(value_stripped);
-
                 return -1;
         }
 
         list_insert(context->variables, variable);
 
-        move_parser_context(context, (size_t)variable_end_pos);
-
-        struct config_value *val = list_find(context->variables, key_stripped);
+        struct config_value *val = list_find(context->variables, variable->key);
 
         if (val != NULL) {
                 printf("Found Key: '%s'\n", val->key);
         } else {
                 printf("Val is NULL\n");
         }
-
-        free(key);
-        free(value);
-        free(value_stripped);
 
         return 0;
 }
@@ -508,7 +539,7 @@ static int handle_file(struct parser_context *context)
                         consume_line(context);
                         break;
                 case VARIABLE_START:
-                        if (parse_variables_from_context(context) != 0) {
+                        if (parse_context_variable(context) != 0) {
                                 goto handle_error;
                         };
                         break;
