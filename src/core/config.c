@@ -137,17 +137,11 @@ static struct config_value *list_find(struct config_list *list, const char *key)
         return NULL;
 }
 
-static struct config_value *create_number(char *key, const char *number_string)
+static struct config_value *create_number(char *key, intmax_t number)
 {
         struct config_value *value = malloc(sizeof(struct config_value));
 
         if (value == NULL) {
-                return NULL;
-        }
-
-        intmax_t number = 0;
-
-        if (string_to_number(number_string, &number) != 0) {
                 return NULL;
         }
 
@@ -291,7 +285,40 @@ static struct config_value *create_value_from_strings(char *key, char *value)
         }
 
         // TODO: Handle double values
-        return create_number(key, value);
+
+        intmax_t number = 0;
+
+        if (string_to_number(value, &number) != 0) {
+                return NULL;
+        }
+
+        return create_number(key, number);
+}
+
+static struct config_value *value_from_variable(char *key,
+                                                struct config_value *variable)
+{
+        if (variable->type == STRING) {
+                // Copy variable
+                if (variable->data.string == NULL) {
+                        return NULL;
+                }
+
+                size_t length = strlen(variable->data.string);
+                char *string = malloc(strlen(variable->data.string) + 1);
+
+                if (string == NULL) {
+                        return NULL;
+                }
+
+                memcpy(string, variable->data.string, length);
+
+                string[length] = '\0';
+
+                return create_string(key, string);
+        }
+
+        return create_number(key, variable->data.number);
 }
 
 /**
@@ -309,8 +336,11 @@ static struct config_value *create_value_from_strings(char *key, char *value)
  * key is then stripped of surrounding spaces and the result is the final key.
  *
  * The value is then determincontext_variableNEW_LINE char is found. The
- * value is then also stripped of surrounding spaces and the result is the
- * final value.
+ * value is then also stripped of surrounding spaces.
+ *
+ * If the value starts with VARIABLE_START then then a lookup is performed
+ * in the existing variables. If something is found then the value is replaced
+ * by what was found - otherwise -1 is returned
  *
  * These are used to create the returned config_value. If there is an error
  * while parsing then NULL is returned and no memory is left allocated
@@ -365,29 +395,70 @@ static struct config_value *handle_context_value(struct parser_context *context)
                 return NULL;
         }
 
+        if (char_to_token(value_stripped[0]) == VARIABLE_START) {
+                printf("VALUE -> '%s'\n", value_stripped + 1);
+                struct config_value *variable
+                        = list_find(context->variables, value_stripped + 1);
+
+                if (variable == NULL) {
+                        LOG_ERROR(natwm_logger,
+                                  "%s is not defined - Line: %zu",
+                                  value_stripped,
+                                  context->line_num);
+                        free(key);
+                        free(key_stripped);
+                        free(value);
+                        free(value_stripped);
+
+                        return NULL;
+                }
+
+                struct config_value *ret
+                        = value_from_variable(key_stripped, variable);
+
+                if (ret == NULL) {
+                        LOG_ERROR(natwm_logger,
+                                  "Failed to save %s",
+                                  key_stripped);
+
+                        destroy_config_value(variable);
+
+                        goto free_and_error;
+                }
+
+                free(key);
+                free(value);
+                free(value_stripped);
+
+                return ret;
+        }
+
         struct config_value *ret
                 = create_value_from_strings(key_stripped, value_stripped);
 
         if (ret == NULL) {
                 LOG_ERROR(natwm_logger, "Failed to save %s", key_stripped);
 
-                free(key);
-                free(key_stripped);
-                free(value);
-                free(value_stripped);
-
-                return NULL;
+                goto free_and_error;
         }
 
         // Update context
         move_parser_context(context, (size_t)end_pos);
 
-        // Free everything that contained in the value
+        // Free everything not contained in the value
         free(key);
         free(value);
         free(value_stripped);
 
         return ret;
+
+free_and_error:
+        free(key);
+        free(key_stripped);
+        free(value);
+        free(value_stripped);
+
+        return NULL;
 }
 
 /**
