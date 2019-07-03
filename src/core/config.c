@@ -714,6 +714,27 @@ static struct config_list *parse_file(FILE *file)
         return ret;
 }
 
+void destroy_config_list(struct config_list *list)
+{
+        for (size_t i = 0; i < list->length; ++i) {
+                destroy_config_value(list->values[i]);
+        }
+
+        free(list->values);
+        free(list);
+}
+
+void destroy_config_value(struct config_value *value)
+{
+        if (value->type == STRING) {
+                // For strings we need to free the data as well
+                free(value->data.string);
+        }
+
+        free(value->key);
+        free(value);
+}
+
 /**
  * Initialize the configuration file.
  *
@@ -740,25 +761,4 @@ int initialize_config(const char *path)
         fclose(config_file);
 
         return 0;
-}
-
-void destroy_config_list(struct config_list *list)
-{
-        for (size_t i = 0; i < list->length; ++i) {
-                destroy_config_value(list->values[i]);
-        }
-
-        free(list->values);
-        free(list);
-}
-
-void destroy_config_value(struct config_value *value)
-{
-        if (value->type == STRING) {
-                // For strings we need to free the data as well
-                free(value->data.string);
-        }
-
-        free(value->key);
-        free(value);
 }
