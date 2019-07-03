@@ -262,39 +262,39 @@ static void consume_line(struct parser_context *context)
  */
 static struct config_value *create_value_from_strings(char *key, char *value)
 {
-        if (char_to_token(value[0]) == QUOTE) {
-                size_t value_len = strlen(value);
+        // Handle creating numbers
+        if (char_to_token(value[0]) != QUOTE) {
+                // TODO: Handle double values
+                intmax_t number = 0;
 
-                // Make sure the value ends with a closing quote
-                if (char_to_token(value[value_len - 1]) != QUOTE) {
+                if (string_to_number(value, &number) != 0) {
                         LOG_ERROR(natwm_logger,
-                                  "Missing closing quote for $%s",
-                                  key);
+                                  "Invalid number '%s' found",
+                                  value);
+
                         return NULL;
                 }
 
-                char *string_value = NULL;
-                string_splice(
-                        value, &string_value, 1, (ssize_t)(value_len - 1));
-
-                if (string_value == NULL) {
-                        return NULL;
-                }
-
-                return create_string(key, string_value);
+                return create_number(key, number);
         }
 
-        // TODO: Handle double values
+        size_t value_len = strlen(value);
 
-        intmax_t number = 0;
-
-        if (string_to_number(value, &number) != 0) {
-                LOG_ERROR(natwm_logger, "Invalid number '%s' found", value);
-
+        // Make sure the value ends with a closing quote
+        if (char_to_token(value[value_len - 1]) != QUOTE) {
+                LOG_ERROR(natwm_logger, "Missing closing quote for $%s", key);
                 return NULL;
         }
 
-        return create_number(key, number);
+        char *string_value = NULL;
+
+        string_splice(value, &string_value, 1, (ssize_t)(value_len - 1));
+
+        if (string_value == NULL) {
+                return NULL;
+        }
+
+        return create_string(key, string_value);
 }
 
 static struct config_value *value_from_variable(char *key,
