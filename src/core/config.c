@@ -300,25 +300,26 @@ static struct config_value *create_value_from_strings(char *key, char *value)
 static struct config_value *value_from_variable(char *key,
                                                 struct config_value *variable)
 {
-        if (variable->type == STRING) {
-                // Copy variable
-                if (variable->data.string == NULL) {
-                        return NULL;
-                }
-
-                size_t length = strlen(variable->data.string);
-                char *string = malloc(strlen(variable->data.string) + 1);
-
-                if (string == NULL) {
-                        return NULL;
-                }
-
-                memcpy(string, variable->data.string, length + 1);
-
-                return create_string(key, string);
+        if (variable->type == NUMBER) {
+                return create_number(key, variable->data.number);
         }
 
-        return create_number(key, variable->data.number);
+        // Copy variable
+        if (variable->data.string == NULL) {
+                return NULL;
+        }
+
+        size_t length = strlen(variable->data.string);
+
+        char *string = malloc(length + 1);
+
+        if (string == NULL) {
+                return NULL;
+        }
+
+        memcpy(string, variable->data.string, length + 1);
+
+        return create_string(key, string);
 }
 
 static struct config_value *resolve_variable(struct parser_context *context,
@@ -377,12 +378,12 @@ static struct config_value *resolve_variable(struct parser_context *context,
  */
 static struct config_value *handle_context_value(struct parser_context *context)
 {
-        const char *start = context->buffer + context->pos;
+        const char *string = context->buffer + context->pos;
 
-        if (char_to_token(start[0]) != ALPHA_CHAR) {
+        if (char_to_token(string[0]) != ALPHA_CHAR) {
                 LOG_ERROR(natwm_logger,
                           "Invalid Value: '%c' - Line: %zu Col: %zu",
-                          start[0],
+                          string[0],
                           context->line_num,
                           context->col_num);
 
@@ -391,7 +392,7 @@ static struct config_value *handle_context_value(struct parser_context *context)
 
         char *key = NULL;
         char *key_stripped = NULL;
-        ssize_t equal_pos = string_get_delimiter(start, '=', &key, false);
+        ssize_t equal_pos = string_get_delimiter(string, '=', &key, false);
 
         if (string_strip_surrounding_spaces(key, &key_stripped) < 0) {
                 LOG_ERROR(natwm_logger,
@@ -408,6 +409,7 @@ static struct config_value *handle_context_value(struct parser_context *context)
 
         move_parser_context(context, (size_t)equal_pos);
 
+        // Skip EQUAL char
         const char *value_start = context->buffer + context->pos + 1;
         char *value = NULL;
         char *value_stripped = NULL;
@@ -520,13 +522,9 @@ static int parse_context_variable(struct parser_context *context)
 static int parse_context_config_item(struct parser_context *context,
                                      struct config_list **list)
 {
-        if (*list == NULL) {
-                return -1;
-        }
-
         struct config_value *item = handle_context_value(context);
 
-        if (item == NULL) {
+        if (item == NULL || *list == NULL) {
                 return -1;
         }
 
@@ -657,12 +655,12 @@ static struct config_list *handle_file(struct parser_context *context)
                 case VARIABLE_START:
                         if (parse_context_variable(context) != 0) {
                                 goto handle_error;
-                        };
+                        }
                         break;
                 case ALPHA_CHAR:
                         if (parse_context_config_item(context, &list) != 0) {
                                 goto handle_error;
-                        };
+                        }
                 default:
                         break;
                 }
