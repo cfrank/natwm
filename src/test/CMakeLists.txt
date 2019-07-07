@@ -8,6 +8,17 @@ add_natwm_test(test_string_util
 )
 
 # Core
+# Core/Config
+add_natwm_test(test_config
+    SOURCES test_config.c
+    LINK_LIBRARIES
+        ${CMOCKA_SHARED_LIBRARY}
+        common
+        core
+    TEST_NAME ConfigTest
+)
+
+# Core/List
 add_natwm_test(test_list
     SOURCES test_list.c
     LINK_LIBRARIES

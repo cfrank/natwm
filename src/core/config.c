@@ -126,17 +126,6 @@ static int list_insert(struct config_list *list, struct config_value *value)
         return 0;
 }
 
-static struct config_value *list_find(struct config_list *list, const char *key)
-{
-        for (size_t i = 0; i < list->length; ++i) {
-                if (strcmp(key, list->values[i]->key) == 0) {
-                        return list->values[i];
-                }
-        }
-
-        return NULL;
-}
-
 static struct config_value *create_number(char *key, intmax_t number)
 {
         struct config_value *value = malloc(sizeof(struct config_value));
@@ -327,7 +316,7 @@ static struct config_value *resolve_variable(struct parser_context *context,
                                              char *new_key)
 {
         struct config_value *variable
-                = list_find(context->variables, variable_key);
+                = config_list_find(context->variables, variable_key);
 
         if (variable == NULL) {
                 LOG_ERROR(natwm_logger,
@@ -492,14 +481,6 @@ static int parse_context_variable(struct parser_context *context)
         }
 
         list_insert(context->variables, variable);
-
-        struct config_value *val = list_find(context->variables, variable->key);
-
-        if (val != NULL) {
-                printf("Found Key: '%s'\n", val->key);
-        } else {
-                printf("Val is NULL\n");
-        }
 
         return 0;
 }
@@ -668,14 +649,23 @@ static struct config_list *read_context(struct parser_context *context)
                 increment_parser_context(context);
         }
 
-        printf("Read a total of %zu lines...\n", context->line_num);
-
         return list;
 
 handle_error:
         LOG_ERROR(natwm_logger, "Error reading configuration file!");
 
         destroy_config_list(list);
+
+        return NULL;
+}
+
+struct config_value *config_list_find(struct config_list *list, const char *key)
+{
+        for (size_t i = 0; i < list->length; ++i) {
+                if (strcmp(key, list->values[i]->key) == 0) {
+                        return list->values[i];
+                }
+        }
 
         return NULL;
 }
