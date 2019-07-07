@@ -746,9 +746,10 @@ struct config_list *initialize_config_path(const char *path)
                 goto close_file_and_error;
         }
 
+        size_t file_size = (size_t)ftell_result;
         char *file_buffer = NULL;
 
-        if (read_file_into_buffer(file, &file_buffer, (size_t)file_size) != 0) {
+        if (read_file_into_buffer(file, &file_buffer, file_size) != 0) {
                 goto close_file_and_error;
         }
 
