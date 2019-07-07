@@ -635,7 +635,7 @@ static int read_file_into_buffer(FILE *file, char **buffer, size_t file_size)
         return 0;
 }
 
-static struct config_list *handle_file(struct parser_context *context)
+static struct config_list *read_context(struct parser_context *context)
 {
         struct config_list *list = create_list();
 
@@ -680,40 +680,6 @@ handle_error:
         return NULL;
 }
 
-/**
- * Parse a configuration file and return the list of configuration pairs
- */
-static struct config_list *parse_file(FILE *file)
-{
-        ssize_t ftell_result = get_file_size(file);
-
-        if (ftell_result < 0) {
-                return NULL;
-        }
-
-        size_t file_size = (size_t)ftell_result;
-
-        char *file_buffer = NULL;
-
-        if (read_file_into_buffer(file, &file_buffer, file_size) != 0) {
-                return NULL;
-        }
-
-        struct parser_context *context
-                = initialize_parser_context(file_buffer, file_size);
-
-        if (context == NULL) {
-                return NULL;
-        }
-
-        struct config_list *ret = handle_file(context);
-
-        destroy_parser_context(context);
-        free(file_buffer);
-
-        return ret;
-}
-
 void destroy_config_list(struct config_list *list)
 {
         for (size_t i = 0; i < list->length; ++i) {
@@ -736,29 +702,74 @@ void destroy_config_value(struct config_value *value)
 }
 
 /**
+ * Initialize the configuration file using a string
+ *
+ * Takes a string buffer and uses it to return the key value pairs
+ * of the config
+ */
+struct config_list *initialize_config_string(const char *config,
+                                             size_t config_size)
+{
+        struct parser_context *context
+                = initialize_parser_context(config, config_size);
+
+        if (context == NULL) {
+                return NULL;
+        }
+
+        struct config_list *list = read_context(context);
+
+        destroy_parser_context(context);
+
+        // May be NULL
+        return list;
+}
+
+/**
  * Initialize the configuration file.
  *
- * This will return the file configuration pairs which can be used to
- * read the configuration
+ * Takes a path to a configuration file, opens it, reads the contents
+ * into a buffer and uses it to return the key value pairs of the config
+ * file
  */
-int initialize_config(const char *path)
+struct config_list *initialize_config_path(const char *path)
 {
-        FILE *config_file = open_config_file(path);
+        FILE *file = open_config_file(path);
 
-        if (config_file == NULL) {
-                return -1;
+        if (file == NULL) {
+                return NULL;
         }
 
-        struct config_list *config = parse_file(config_file);
+        ssize_t ftell_result = get_file_size(file);
 
-        if (config == NULL) {
-                fclose(config_file);
-
-                return -1;
+        if (ftell_result < 0) {
+                goto close_file_and_error;
         }
 
-        destroy_config_list(config);
-        fclose(config_file);
+        size_t file_size = (size_t)ftell_result;
+        char *file_buffer = NULL;
 
-        return 0;
+        if (read_file_into_buffer(file, &file_buffer, file_size) != 0) {
+                goto close_file_and_error;
+        }
+
+        struct config_list *list
+                = initialize_config_string(file_buffer, file_size);
+
+        if (list == NULL) {
+                free(file_buffer);
+
+                goto close_file_and_error;
+        }
+
+        free(file_buffer);
+        destroy_config_list(list);
+        fclose(file);
+
+        return list;
+
+close_file_and_error:
+        fclose(file);
+
+        return NULL;
 }
