@@ -412,9 +412,7 @@ static struct config_value *handle_context_value(struct parser_context *context)
                           context->line_num,
                           context->col_num);
 
-                free(value);
-
-                return NULL;
+                goto free_and_error;
         }
 
         struct config_value *ret = NULL;
