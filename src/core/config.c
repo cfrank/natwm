@@ -233,7 +233,8 @@ static void move_parser_context(struct parser_context *context, size_t new_pos)
  */
 static void consume_line(struct parser_context *context)
 {
-        while (context->buffer[context->pos] != '\n') {
+        char c = '\0';
+        while ((c = context->buffer[context->pos]) != '\n' && c != '\0') {
                 increment_parser_context(context);
         }
 }
