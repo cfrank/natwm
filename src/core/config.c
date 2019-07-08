@@ -126,17 +126,6 @@ static int list_insert(struct config_list *list, struct config_value *value)
         return 0;
 }
 
-static struct config_value *list_find(struct config_list *list, const char *key)
-{
-        for (size_t i = 0; i < list->length; ++i) {
-                if (strcmp(key, list->values[i]->key) == 0) {
-                        return list->values[i];
-                }
-        }
-
-        return NULL;
-}
-
 static struct config_value *create_number(char *key, intmax_t number)
 {
         struct config_value *value = malloc(sizeof(struct config_value));
@@ -244,7 +233,8 @@ static void move_parser_context(struct parser_context *context, size_t new_pos)
  */
 static void consume_line(struct parser_context *context)
 {
-        while (context->buffer[context->pos] != '\n') {
+        char c = '\0';
+        while ((c = context->buffer[context->pos]) != '\n' && c != '\0') {
                 increment_parser_context(context);
         }
 }
@@ -327,7 +317,7 @@ static struct config_value *resolve_variable(struct parser_context *context,
                                              char *new_key)
 {
         struct config_value *variable
-                = list_find(context->variables, variable_key);
+                = config_list_find(context->variables, variable_key);
 
         if (variable == NULL) {
                 LOG_ERROR(natwm_logger,
@@ -422,9 +412,7 @@ static struct config_value *handle_context_value(struct parser_context *context)
                           context->line_num,
                           context->col_num);
 
-                free(value);
-
-                return NULL;
+                goto free_and_error;
         }
 
         struct config_value *ret = NULL;
@@ -492,14 +480,6 @@ static int parse_context_variable(struct parser_context *context)
         }
 
         list_insert(context->variables, variable);
-
-        struct config_value *val = list_find(context->variables, variable->key);
-
-        if (val != NULL) {
-                printf("Found Key: '%s'\n", val->key);
-        } else {
-                printf("Val is NULL\n");
-        }
 
         return 0;
 }
@@ -635,7 +615,7 @@ static int read_file_into_buffer(FILE *file, char **buffer, size_t file_size)
         return 0;
 }
 
-static struct config_list *handle_file(struct parser_context *context)
+static struct config_list *read_context(struct parser_context *context)
 {
         struct config_list *list = create_list();
 
@@ -668,8 +648,6 @@ static struct config_list *handle_file(struct parser_context *context)
                 increment_parser_context(context);
         }
 
-        printf("Read a total of %zu lines...\n", context->line_num);
-
         return list;
 
 handle_error:
@@ -680,38 +658,15 @@ handle_error:
         return NULL;
 }
 
-/**
- * Parse a configuration file and return the list of configuration pairs
- */
-static struct config_list *parse_file(FILE *file)
+struct config_value *config_list_find(struct config_list *list, const char *key)
 {
-        ssize_t ftell_result = get_file_size(file);
-
-        if (ftell_result < 0) {
-                return NULL;
+        for (size_t i = 0; i < list->length; ++i) {
+                if (strcmp(key, list->values[i]->key) == 0) {
+                        return list->values[i];
+                }
         }
 
-        size_t file_size = (size_t)ftell_result;
-
-        char *file_buffer = NULL;
-
-        if (read_file_into_buffer(file, &file_buffer, file_size) != 0) {
-                return NULL;
-        }
-
-        struct parser_context *context
-                = initialize_parser_context(file_buffer, file_size);
-
-        if (context == NULL) {
-                return NULL;
-        }
-
-        struct config_list *ret = handle_file(context);
-
-        destroy_parser_context(context);
-        free(file_buffer);
-
-        return ret;
+        return NULL;
 }
 
 void destroy_config_list(struct config_list *list)
@@ -736,29 +691,74 @@ void destroy_config_value(struct config_value *value)
 }
 
 /**
+ * Initialize the configuration file using a string
+ *
+ * Takes a string buffer and uses it to return the key value pairs
+ * of the config
+ */
+struct config_list *initialize_config_string(const char *config,
+                                             size_t config_size)
+{
+        struct parser_context *context
+                = initialize_parser_context(config, config_size);
+
+        if (context == NULL) {
+                return NULL;
+        }
+
+        struct config_list *list = read_context(context);
+
+        destroy_parser_context(context);
+
+        // May be NULL
+        return list;
+}
+
+/**
  * Initialize the configuration file.
  *
- * This will return the file configuration pairs which can be used to
- * read the configuration
+ * Takes a path to a configuration file, opens it, reads the contents
+ * into a buffer and uses it to return the key value pairs of the config
+ * file
  */
-int initialize_config(const char *path)
+struct config_list *initialize_config_path(const char *path)
 {
-        FILE *config_file = open_config_file(path);
+        FILE *file = open_config_file(path);
 
-        if (config_file == NULL) {
-                return -1;
+        if (file == NULL) {
+                return NULL;
         }
 
-        struct config_list *config = parse_file(config_file);
+        ssize_t ftell_result = get_file_size(file);
 
-        if (config == NULL) {
-                fclose(config_file);
-
-                return -1;
+        if (ftell_result < 0) {
+                goto close_file_and_error;
         }
 
-        destroy_config_list(config);
-        fclose(config_file);
+        size_t file_size = (size_t)ftell_result;
+        char *file_buffer = NULL;
 
-        return 0;
+        if (read_file_into_buffer(file, &file_buffer, file_size) != 0) {
+                goto close_file_and_error;
+        }
+
+        struct config_list *list
+                = initialize_config_string(file_buffer, file_size);
+
+        if (list == NULL) {
+                free(file_buffer);
+
+                goto close_file_and_error;
+        }
+
+        free(file_buffer);
+        destroy_config_list(list);
+        fclose(file);
+
+        return list;
+
+close_file_and_error:
+        fclose(file);
+
+        return NULL;
 }

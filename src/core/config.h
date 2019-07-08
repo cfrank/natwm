@@ -40,7 +40,11 @@ struct config_list {
 
 struct config_value *get_config_value(const struct config_list *list,
                                       const char *key);
+struct config_value *config_list_find(struct config_list *list,
+                                      const char *key);
 void destroy_config_list(struct config_list *list);
 void destroy_config_value(struct config_value *value);
 
-int initialize_config(const char *path);
+struct config_list *initialize_config_string(const char *config,
+                                             size_t config_size);
+struct config_list *initialize_config_path(const char *path);
