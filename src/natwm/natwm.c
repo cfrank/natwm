@@ -15,6 +15,15 @@ struct argument_options {
         bool verbose;
 };
 
+enum state {
+        STOPPED = 1 << 0,
+        RUNNING = 1 << 1,
+        RELOAD = 1 << 2,
+        NEEDS_RELOAD = RUNNING | RELOAD,
+};
+
+static enum state program_state = STOPPED;
+
 static void handle_connection_error(int error)
 {
         const char *message = NULL;
@@ -64,16 +73,13 @@ static xcb_connection_t *make_connection(int *screen_num)
 static void signal_handler(int signum)
 {
         if (signum == SIGHUP) {
-                LOG_INFO(natwm_logger, "Restarting natwm...");
-                // TODO: Reload WM
+                // Perform a reload
+                program_state = NEEDS_RELOAD;
 
                 return;
         }
 
-        // TODO: Handle gracefully closing WM
-        LOG_CRITICAL(natwm_logger, "Terminating natwm...");
-
-        return;
+        program_state = STOPPED;
 }
 
 static int install_signal_handlers(void)
@@ -110,7 +116,24 @@ static int start_natwm(void)
                 return -1;
         }
 
+        // Successfully connected to x server - start natwm
+        program_state = RUNNING;
+
         LOG_INFO(natwm_logger, "Successfully connected to X server");
+
+        while (program_state & RUNNING) {
+                LOG_INFO(natwm_logger, "Running...");
+
+                sleep(1);
+
+                if (program_state & RELOAD) {
+                        LOG_INFO(natwm_logger, "Reloading natwm...");
+
+                        program_state = RUNNING;
+                }
+        }
+
+        LOG_INFO(natwm_logger, "Disconnected...");
 
         xcb_disconnect(connection);
 
