@@ -5,6 +5,7 @@
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <xcb/xcb.h>
 
 #include <common/logger.h>
@@ -106,21 +107,8 @@ static int install_signal_handlers(void)
         return 0;
 }
 
-static int start_natwm(void)
+static int start_natwm(xcb_connection_t *connection)
 {
-        int screen_num = 0;
-
-        xcb_connection_t *connection = make_connection(&screen_num);
-
-        if (connection == NULL) {
-                return -1;
-        }
-
-        // Successfully connected to x server - start natwm
-        program_state = RUNNING;
-
-        LOG_INFO(natwm_logger, "Successfully connected to X server");
-
         while (program_state & RUNNING) {
                 LOG_INFO(natwm_logger, "Running...");
 
@@ -133,6 +121,7 @@ static int start_natwm(void)
                 }
         }
 
+        // Event loop stopped disconnect from x
         LOG_INFO(natwm_logger, "Disconnected...");
 
         xcb_disconnect(connection);
@@ -214,10 +203,7 @@ int main(int argc, char **argv)
 
         // Initialize config
         if (initialize_config_path(arg_options->config_path) == NULL) {
-                free(arg_options);
-                destroy_logger(natwm_logger);
-
-                exit(EXIT_FAILURE);
+                goto free_and_error;
         }
 
         // Catch and handle signals
@@ -227,13 +213,30 @@ int main(int argc, char **argv)
                         "Failed to handle signals - This may cause problems!");
         }
 
-        // Start the window manager
-        if (start_natwm() < 0) {
-                return EXIT_FAILURE;
+        // Initialize x
+        int screen_num = 0;
+        xcb_connection_t *connection = make_connection(&screen_num);
+
+        if (connection == NULL) {
+                goto free_and_error;
+        }
+
+        program_state = RUNNING;
+
+        LOG_INFO(natwm_logger, "Successfully connected to X server");
+
+        if (start_natwm(connection) < 0) {
+                goto free_and_error;
         }
 
         free(arg_options);
         destroy_logger(natwm_logger);
 
         return EXIT_SUCCESS;
+
+free_and_error:
+        free(arg_options);
+        destroy_logger(natwm_logger);
+
+        return EXIT_FAILURE;
 }
