@@ -16,6 +16,8 @@
 
 #define DEFAULT_LIST_SIZE 10
 
+struct config_list *config = NULL;
+
 struct parser_context {
         const char *buffer;
         size_t buffer_size;
@@ -696,8 +698,7 @@ void destroy_config_value(struct config_value *value)
  * Takes a string buffer and uses it to return the key value pairs
  * of the config
  */
-struct config_list *initialize_config_string(const char *string,
-                                             size_t config_size)
+struct config_list *read_config_string(const char *string, size_t config_size)
 {
         struct parser_context *context
                 = initialize_parser_context(string, config_size);
@@ -721,12 +722,12 @@ struct config_list *initialize_config_string(const char *string,
  * into a buffer and uses it to return the key value pairs of the config
  * file
  */
-struct config_list *initialize_config_path(const char *path)
+int initialize_config_path(const char *path)
 {
         FILE *file = open_config_file(path);
 
         if (file == NULL) {
-                return NULL;
+                return -1;
         }
 
         ssize_t ftell_result = get_file_size(file);
@@ -742,10 +743,9 @@ struct config_list *initialize_config_path(const char *path)
                 goto close_file_and_error;
         }
 
-        struct config_list *list
-                = initialize_config_string(file_buffer, file_size);
+        config = read_config_string(file_buffer, file_size);
 
-        if (list == NULL) {
+        if (config == NULL) {
                 free(file_buffer);
 
                 goto close_file_and_error;
@@ -754,10 +754,10 @@ struct config_list *initialize_config_path(const char *path)
         free(file_buffer);
         fclose(file);
 
-        return list;
+        return 0;
 
 close_file_and_error:
         fclose(file);
 
-        return NULL;
+        return -1;
 }
