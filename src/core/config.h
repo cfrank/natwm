@@ -47,6 +47,5 @@ struct config_value *config_list_find(struct config_list *list,
 void destroy_config_list(struct config_list *list);
 void destroy_config_value(struct config_value *value);
 
-struct config_list *initialize_config_string(const char *config,
-                                             size_t config_size);
-struct config_list *initialize_config_path(const char *path);
+struct config_list *read_config_string(const char *config, size_t config_size);
+int initialize_config_path(const char *path);

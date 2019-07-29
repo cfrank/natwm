@@ -25,7 +25,6 @@ enum state {
 };
 
 static enum state program_state = STOPPED;
-struct config_list *config = NULL;
 
 static void handle_connection_error(int error)
 {
@@ -125,7 +124,14 @@ static int start_natwm(xcb_connection_t *connection, const char *config_path)
                         destroy_config_list(config);
 
                         // Re-initialize the new config
-                        config = initialize_config_path(config_path);
+                        if (initialize_config_path(config_path) < 0) {
+                                LOG_ERROR(natwm_logger,
+                                          "Failed to reload configuarion!");
+
+                                xcb_disconnect(connection);
+
+                                return -1;
+                        }
 
                         program_state = RUNNING;
                 }
@@ -218,9 +224,7 @@ int main(int argc, char **argv)
         initialize_logger(arg_options->verbose);
 
         // Initialize config
-        config = initialize_config_path(arg_options->config_path);
-
-        if (config == NULL) {
+        if (initialize_config_path(arg_options->config_path) < 0) {
                 goto free_and_error;
         }
 
