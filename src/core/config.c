@@ -696,11 +696,11 @@ void destroy_config_value(struct config_value *value)
  * Takes a string buffer and uses it to return the key value pairs
  * of the config
  */
-struct config_list *initialize_config_string(const char *config,
+struct config_list *initialize_config_string(const char *string,
                                              size_t config_size)
 {
         struct parser_context *context
-                = initialize_parser_context(config, config_size);
+                = initialize_parser_context(string, config_size);
 
         if (context == NULL) {
                 return NULL;
@@ -752,7 +752,6 @@ struct config_list *initialize_config_path(const char *path)
         }
 
         free(file_buffer);
-        destroy_config_list(list);
         fclose(file);
 
         return list;

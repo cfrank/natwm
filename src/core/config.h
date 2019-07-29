@@ -38,6 +38,8 @@ struct config_list {
         struct config_value **values;
 };
 
+extern struct config_list *config;
+
 struct config_value *get_config_value(const struct config_list *list,
                                       const char *key);
 struct config_value *config_list_find(struct config_list *list,
