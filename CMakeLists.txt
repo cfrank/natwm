@@ -28,6 +28,12 @@ endif()
 
 option(ENABLE_TESTING "Enable automated testing" OFF)
 
+option(USE_POSIX "Enable POSIX 2001 extensions" ON)
+
+if(USE_POSIX)
+    add_compile_definitions(USE_POSIX=1)
+endif()
+
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
 set(CMAKE_SRCS_DIRECTORY ${PROJECT_SOURCE_DIR}/src)
 

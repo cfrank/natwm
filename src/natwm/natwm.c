@@ -1,5 +1,10 @@
+
+#ifdef USE_POSIX
+
 // Required for handling signals
 #define _POSIX_C_SOURCE 200809L
+
+#endif
 
 #include <getopt.h>
 #include <signal.h>
@@ -20,8 +25,10 @@ struct argument_options {
 enum state {
         STOPPED = 1 << 0,
         RUNNING = 1 << 1,
+#ifdef USE_POSIX
         RELOAD = 1 << 2,
         NEEDS_RELOAD = RUNNING | RELOAD,
+#endif
 };
 
 static enum state program_state = STOPPED;
@@ -74,18 +81,21 @@ static xcb_connection_t *make_connection(const char *screen, int *screen_num)
 
 static void signal_handler(int signum)
 {
+#ifdef USE_POSIX
         if (signum == SIGHUP) {
                 // Perform a reload
                 program_state = NEEDS_RELOAD;
 
                 return;
         }
+#endif
 
         program_state = STOPPED;
 }
 
 static int install_signal_handlers(void)
 {
+#ifdef USE_POSIX
         struct sigaction action;
 
         action.sa_handler = &signal_handler;
@@ -106,6 +116,23 @@ static int install_signal_handlers(void)
         }
 
         return 0;
+#else
+        // Install interupt handler using ansi signals
+
+        if (signal(SIGINT, signal_handler) == SIG_ERR) {
+                LOG_ERROR(natwm_logger, "Failed to handle SIGINT");
+
+                return -1;
+        }
+
+        if (signal(SIGTERM, signal_handler) == SIG_ERR) {
+                LOG_ERROR(natwm_logger, "Failed to handle SIGTERM");
+
+                return -1;
+        }
+
+        return 0;
+#endif
 }
 
 static int start_natwm(xcb_connection_t *connection, const char *config_path)
@@ -117,6 +144,7 @@ static int start_natwm(xcb_connection_t *connection, const char *config_path)
 
                 sleep(1);
 
+#ifdef USE_POSIX
                 if (program_state & RELOAD) {
                         LOG_INFO(natwm_logger, "Reloading natwm...");
 
@@ -135,6 +163,7 @@ static int start_natwm(xcb_connection_t *connection, const char *config_path)
 
                         program_state = RUNNING;
                 }
+#endif
         }
 
         // Event loop stopped disconnect from x
