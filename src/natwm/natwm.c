@@ -5,6 +5,7 @@
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <xcb/xcb.h>
 
 #include <common/logger.h>
@@ -12,8 +13,19 @@
 
 struct argument_options {
         const char *config_path;
+        const char *screen;
         bool verbose;
 };
+
+enum state {
+        STOPPED = 1 << 0,
+        RUNNING = 1 << 1,
+        RELOAD = 1 << 2,
+        NEEDS_RELOAD = RUNNING | RELOAD,
+};
+
+static enum state program_state = STOPPED;
+struct config_list *config = NULL;
 
 static void handle_connection_error(int error)
 {
@@ -43,9 +55,9 @@ static void handle_connection_error(int error)
         LOG_CRITICAL(natwm_logger, message);
 }
 
-static xcb_connection_t *make_connection(int *screen_num)
+static xcb_connection_t *make_connection(const char *screen, int *screen_num)
 {
-        xcb_connection_t *connection = xcb_connect(NULL, screen_num);
+        xcb_connection_t *connection = xcb_connect(screen, screen_num);
 
         int connection_error = xcb_connection_has_error(connection);
 
@@ -64,16 +76,13 @@ static xcb_connection_t *make_connection(int *screen_num)
 static void signal_handler(int signum)
 {
         if (signum == SIGHUP) {
-                LOG_INFO(natwm_logger, "Restarting natwm...");
-                // TODO: Reload WM
+                // Perform a reload
+                program_state = NEEDS_RELOAD;
 
                 return;
         }
 
-        // TODO: Handle gracefully closing WM
-        LOG_CRITICAL(natwm_logger, "Terminating natwm...");
-
-        return;
+        program_state = STOPPED;
 }
 
 static int install_signal_handlers(void)
@@ -100,17 +109,30 @@ static int install_signal_handlers(void)
         return 0;
 }
 
-static int start_natwm(void)
+static int start_natwm(xcb_connection_t *connection, const char *config_path)
 {
-        int screen_num = 0;
+        while (program_state & RUNNING) {
+                struct config_value *val = config_list_find(config, "author");
 
-        xcb_connection_t *connection = make_connection(&screen_num);
+                LOG_INFO(natwm_logger, val->data.string);
 
-        if (connection == NULL) {
-                return -1;
+                sleep(1);
+
+                if (program_state & RELOAD) {
+                        LOG_INFO(natwm_logger, "Reloading natwm...");
+
+                        // Destroy the old config
+                        destroy_config_list(config);
+
+                        // Re-initialize the new config
+                        config = initialize_config_path(config_path);
+
+                        program_state = RUNNING;
+                }
         }
 
-        LOG_INFO(natwm_logger, "Successfully connected to X server");
+        // Event loop stopped disconnect from x
+        LOG_INFO(natwm_logger, "Disconnected...");
 
         xcb_disconnect(connection);
 
@@ -129,12 +151,13 @@ static struct argument_options *parse_arguments(int argc, char **argv)
 
         // defaults
         arg_options->config_path = NULL;
+        arg_options->screen = NULL;
         arg_options->verbose = false;
 
         // disable default error handling behavior in getopt
         opterr = 0;
 
-        while ((opt = getopt(argc, argv, "c:hvV")) != -1) {
+        while ((opt = getopt(argc, argv, "c:hs:vV")) != -1) {
                 switch (opt) {
                 case 'c':
                         arg_options->config_path = optarg;
@@ -143,10 +166,14 @@ static struct argument_options *parse_arguments(int argc, char **argv)
                         printf("%s\n", NATWM_VERSION_STRING);
                         printf("-c <file>, Set the config file\n");
                         printf("-h,        Print this help message\n");
+                        printf("-s,        Specify specific screen for X\n");
                         printf("-v,        Print version information\n");
                         printf("-V,        Verbose mode\n");
 
                         goto exit_success;
+                case 's':
+                        arg_options->screen = optarg;
+                        break;
                 case 'v':
                         printf("%s\n", NATWM_VERSION_STRING);
                         printf("Copywrite (c) 2019 Chris Frank\n");
@@ -178,6 +205,7 @@ exit_success:
 
 int main(int argc, char **argv)
 {
+        int screen_num = 0;
         struct argument_options *arg_options = parse_arguments(argc, argv);
 
         if (arg_options == NULL) {
@@ -190,12 +218,13 @@ int main(int argc, char **argv)
         initialize_logger(arg_options->verbose);
 
         // Initialize config
-        if (initialize_config_path(arg_options->config_path) == NULL) {
-                free(arg_options);
-                destroy_logger(natwm_logger);
+        config = initialize_config_path(arg_options->config_path);
 
-                exit(EXIT_FAILURE);
+        if (config == NULL) {
+                goto free_and_error;
         }
+
+        printf("Right? %zu\n", config->size);
 
         // Catch and handle signals
         if (install_signal_handlers() < 0) {
@@ -204,13 +233,32 @@ int main(int argc, char **argv)
                         "Failed to handle signals - This may cause problems!");
         }
 
-        // Start the window manager
-        if (start_natwm() < 0) {
-                return EXIT_FAILURE;
+        // Initialize x
+        xcb_connection_t *connection
+                = make_connection(arg_options->screen, &screen_num);
+
+        if (connection == NULL) {
+                goto free_and_error;
+        }
+
+        LOG_INFO(natwm_logger, "Successfully connected to X server");
+
+        program_state = RUNNING;
+
+        if (start_natwm(connection, arg_options->config_path) < 0) {
+                goto free_and_error;
         }
 
         free(arg_options);
         destroy_logger(natwm_logger);
+        destroy_config_list(config);
 
         return EXIT_SUCCESS;
+
+free_and_error:
+        free(arg_options);
+        destroy_logger(natwm_logger);
+        destroy_config_list(config);
+
+        return EXIT_FAILURE;
 }
