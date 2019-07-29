@@ -1,9 +1,6 @@
-
 #ifdef USE_POSIX
-
 // Required for handling signals
 #define _POSIX_C_SOURCE 200809L
-
 #endif
 
 #include <getopt.h>
