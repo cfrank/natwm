@@ -86,7 +86,6 @@ static void signal_handler(int signum)
                 return;
         }
 #endif
-
         program_state = STOPPED;
 }
 
@@ -140,7 +139,6 @@ static int start_natwm(xcb_connection_t *connection, const char *config_path)
                 LOG_INFO(natwm_logger, val->data.string);
 
                 sleep(1);
-
 #ifdef USE_POSIX
                 if (program_state & RELOAD) {
                         LOG_INFO(natwm_logger, "Reloading natwm...");
