@@ -518,6 +518,43 @@ static int parse_context_config_item(struct parser_context *context,
 }
 
 /**
+ * Try to find the configuration file
+ *
+ * Uses a couple common locations and falls back to searching the .confg
+ * directory in the users HOME directory
+ */
+static char *get_config_path(void)
+{
+        const char *base_directory = NULL;
+        char *config_path = NULL;
+
+        if ((base_directory = getenv("XDG_CONFIG_HOME")) != NULL) {
+                config_path = alloc_string(base_directory);
+
+                return config_path;
+        }
+
+        if ((base_directory = getenv("HOME")) != NULL) {
+                config_path = alloc_string(base_directory);
+                string_append(&config_path, "/.config/");
+
+                return config_path;
+        }
+
+        // If we still haven't found anything use passwd
+        struct passwd *db = getpwuid(getuid());
+
+        if (db == NULL) {
+                return NULL;
+        }
+
+        config_path = alloc_string(db->pw_dir);
+        string_append(&config_path, "/.config/");
+
+        return config_path;
+}
+
+/**
  * Open a configuration file
  *
  * This can either be supplied by the caller (through the first
@@ -544,18 +581,14 @@ static FILE *open_config_file(const char *path)
                 return file;
         }
 
-        // Otherwise use the default location
-        struct passwd *db = getpwuid(getuid());
+        char *config_path = get_config_path();
 
-        if (db == NULL) {
+        if (config_path == NULL) {
                 LOG_ERROR(natwm_logger, "Failed to find HOME directory");
 
                 return NULL;
         }
 
-        char *config_path = alloc_string(db->pw_dir);
-
-        string_append(&config_path, "/.config/");
         string_append(&config_path, NATWM_CONFIG_FILE);
 
         // Check if the file exists

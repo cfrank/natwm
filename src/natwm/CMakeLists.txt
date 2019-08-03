@@ -13,9 +13,5 @@ target_link_libraries(natwm
     PRIVATE
         common
         core
-)
-
-target_link_libraries(natwm
-    PRIVATE
         xcb
 )
