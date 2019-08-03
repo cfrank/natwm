@@ -252,8 +252,6 @@ int main(int argc, char **argv)
                 goto free_and_error;
         }
 
-        printf("Right? %zu\n", config->size);
-
         // Catch and handle signals
         if (install_signal_handlers() < 0) {
                 LOG_ERROR(

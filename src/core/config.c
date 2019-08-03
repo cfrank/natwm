@@ -583,6 +583,12 @@ static FILE *open_config_file(const char *path)
 
         char *config_path = get_config_path();
 
+        if (config_path == NULL) {
+                LOG_ERROR(natwm_logger, "Failed to find HOME directory");
+
+                return NULL;
+        }
+
         string_append(&config_path, NATWM_CONFIG_FILE);
 
         // Check if the file exists
