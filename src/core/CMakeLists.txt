@@ -1,4 +1,6 @@
 add_library(core STATIC
+    dict.c
+    dict.h
     config.c
     config.h
     list.c
