@@ -13,11 +13,11 @@
  *
  * Customizing is provided by the hash_function property on dict_table
  */
-static unsigned int hash_function(const void *key, size_t key_size)
+static uint32_t hash_function(const void *key, size_t key_size)
 {
         register size_t i = key_size;
-        register const unsigned char *s = (const unsigned char *)key;
-        register unsigned int ret = 0;
+        register const uint8_t *s = (const uint8_t *)key;
+        register uint32_t ret = 0;
 
         while (i--) {
                 ret += *s++;
@@ -58,4 +58,56 @@ static ATTR_INLINE void *duplicate_key_lower(const void *key, size_t key_size)
         }
 
         return new_key;
+}
+
+static uint32_t get_power_two(uint32_t num)
+{
+        uint32_t i = 1;
+
+        while (i < num) {
+                i <<= 1;
+        }
+
+        return i;
+}
+
+static struct dict_table *create_map_internal(size_t size, uint8_t flags)
+{
+        struct dict_table *table = malloc(sizeof(struct dict_table));
+
+        if (table == NULL) {
+                return NULL;
+        }
+
+        table->bucket_count = get_power_two((uint32_t)size);
+        table->entries_count = 0;
+        table->entries = NULL;
+#ifdef USE_POSIX
+        pthread_mutex_init(&table->mutex, NULL);
+#endif
+        table->flags = flags;
+        table->hash_function = hash_function;
+        table->itr_bucket_index = 0;
+        table->high_load_factor = 0.75;
+        table->low_load_factor = 0.20;
+        table->free_function = NULL;
+        table->event_flags = 0;
+
+        return table;
+}
+
+struct dict_table *create_map(size_t size)
+{
+        return create_map_internal(size, DICT_TABLE_IGNORE_THRESHOLDS_EMPTY);
+}
+
+struct dict_table *create_map_with_flags(size_t size, uint8_t flags)
+{
+        return create_map_internal(size,
+                                   flags | DICT_TABLE_IGNORE_THRESHOLDS_EMPTY);
+}
+
+void map_set_flags(struct dict_table *table, uint8_t flags)
+{
+        table->flags = flags;
 }
