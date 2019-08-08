@@ -60,7 +60,7 @@ static ATTR_INLINE void *duplicate_key_lower(const void *key, size_t key_size)
         return new_key;
 }
 
-static uint32_t get_power_two(uint32_t num)
+static ATTR_INLINE uint32_t get_power_two(uint32_t num)
 {
         uint32_t i = 1;
 
