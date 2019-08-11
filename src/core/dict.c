@@ -157,7 +157,7 @@ struct dict_table *create_map_with_flags(size_t size, uint8_t flags)
 uint32_t key_hash(const char *key)
 {
         // TODO: Maybe grab a seed from env variables for startup
-        return murmur3_32_hash((const uint8_t *)key, strlen(key), 1);
+        return murmur3_32_hash(key, strlen(key), 1);
 }
 
 void map_set_flags(struct dict_table *table, uint8_t flags)
