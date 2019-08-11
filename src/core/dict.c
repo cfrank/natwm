@@ -8,28 +8,73 @@
 
 #include "dict.h"
 
-/**
- * Use perl's hashing function by default
- *
- * Customizing is provided by the hash_function property on dict_table
- */
-static uint32_t hash_function(const void *key, size_t key_size)
-{
-        register size_t i = key_size;
-        register const uint8_t *s = (const uint8_t *)key;
-        register uint32_t ret = 0;
+#define ROL32(i32, n) ((i32) << (n) | (i32) >> (32 - (n)))
 
-        while (i--) {
-                ret += *s++;
-                ret += (ret << 10);
-                ret ^= (ret >> 6);
+static ATTR_INLINE uint32_t le32dec(const void *pp)
+{
+        uint8_t const *p = (uint8_t const *)pp;
+
+        return (uint32_t)((p[3] << 24) | (p[2] << 16) | (p[1] << 8) | p[0]);
+}
+
+/**
+ * A simple implementation of the Murmur3-32 hash function
+ *
+ * Originally written by Austin Appleby https://github.com/aappleby/smhasher
+ *
+ * C implementation used here taken from the FreeBSD project:
+ *
+ * Copywrite (c) 2014 Dag-Erling Smørgrav
+ * All rights reserved
+ *
+ * https://github.com/freebsd/freebsd/blob/master/sys/libkern/murmur3_32.c
+ */
+static uint32_t murmur3_32_hash(const void *data, size_t len, uint32_t seed)
+{
+        const uint8_t *bytes = (const uint8_t *)data;
+        uint32_t hash = seed;
+        uint32_t k = 0;
+        size_t result = len;
+
+        while (result >= 4) {
+                k = le32dec(bytes);
+                bytes += 4;
+                result -= 4;
+                k *= 0xcc9e2d51;
+                k = ROL32(k, 15);
+                k *= 0x1b873593;
+                hash ^= k;
+                hash = ROL32(hash, 13);
+                hash *= 5;
+                hash += 0xe6546b64;
         }
 
-        ret += (ret << 3);
-        ret ^= (ret >> 11);
-        ret += (ret << 15);
+        if (result > 0) {
+                k = 0;
+                switch (result) {
+                case 3:
+                        k |= (uint32_t)bytes[2] << 16; // Fallthrough
+                case 2:
+                        k |= (uint32_t)bytes[1] << 8; // Fallthrough
+                case 1:
+                        k |= bytes[0];
+                        k *= 0xcc9e2d51;
+                        k = ROL32(k, 15);
+                        k *= 0x1b873593;
+                        hash ^= k;
+                        break;
+                }
+        }
 
-        return ret;
+        // finalize the hash
+        hash ^= (uint32_t)len;
+        hash ^= hash >> 16;
+        hash *= 0x85ebca6b;
+        hash ^= hash >> 13;
+        hash *= 0xc2b2ae35;
+        hash ^= hash >> 16;
+
+        return hash;
 }
 
 static ATTR_INLINE void *duplicate_key(const void *key, size_t key_size)
@@ -83,10 +128,12 @@ static struct dict_table *create_map_internal(size_t size, uint8_t flags)
         table->entries_count = 0;
         table->entries = NULL;
 #ifdef USE_POSIX
-        pthread_mutex_init(&table->mutex, NULL);
+        if (pthread_mutex_init(&table->mutex, NULL) != 0) {
+                return NULL;
+        }
 #endif
         table->flags = flags;
-        table->hash_function = hash_function;
+        table->hash_function = key_hash;
         table->itr_bucket_index = 0;
         table->high_load_factor = 0.75;
         table->low_load_factor = 0.20;
@@ -105,6 +152,12 @@ struct dict_table *create_map_with_flags(size_t size, uint8_t flags)
 {
         return create_map_internal(size,
                                    flags | DICT_TABLE_IGNORE_THRESHOLDS_EMPTY);
+}
+
+uint32_t key_hash(const char *key)
+{
+        // TODO: Maybe grab a seed from env variables for startup
+        return murmur3_32_hash((const uint8_t *)key, strlen(key), 1);
 }
 
 void map_set_flags(struct dict_table *table, uint8_t flags)

@@ -12,7 +12,7 @@
 #include <common/constants.h>
 
 // Takes a key and returns a hash
-typedef unsigned int (*dict_hash_function_t)(const void *key, size_t key_size);
+typedef uint32_t (*dict_hash_function_t)(const char *key);
 
 // Frees data stored in the dict
 typedef void (*dict_free_function_t)(void *data);
@@ -45,10 +45,11 @@ struct dict_table {
         double high_load_factor;
         double low_load_factor;
         dict_free_function_t free_function;
-        uint32_t resize_count;
+        size_t resize_count;
         uint8_t event_flags;
 };
 
 struct dict_table *create_map(size_t size);
 struct dict_table *create_map_with_flags(size_t size, uint8_t flags);
+uint32_t key_hash(const char *key);
 void map_set_flags(struct dict_table *table, uint8_t flags);
