@@ -2,42 +2,31 @@
 // Licensed under BSD-3-Clause
 // Refer to the license.txt file included in the root of the project
 
+#include <assert.h>
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include <common/hash.h>
+#include <common/util.h>
 #include "dict.h"
 
-static ATTR_INLINE void *duplicate_key(const void *key, size_t key_size)
+static ATTR_INLINE char *duplicate_key_lower(const char *key)
 {
-        void *new_key = malloc(key_size);
+        char *new_key = alloc_string(key);
 
         if (new_key == NULL) {
                 return NULL;
         }
 
-        memcpy(new_key, key, key_size);
-
-        return new_key;
-}
-
-static ATTR_INLINE void *duplicate_key_lower(const void *key, size_t key_size)
-{
-        char *new_key = (char *)duplicate_key(key, key_size);
-
-        if (new_key == NULL) {
-                return NULL;
-        }
-
-        for (size_t i = 0; i < key_size; ++i) {
+        for (size_t i = 0; new_key[i]; ++i) {
                 new_key[i] = (char)tolower(new_key[i]);
         }
 
         return new_key;
 }
 
-static ATTR_INLINE uint32_t get_power_two(uint32_t num)
+static ATTR_CONST ATTR_INLINE uint32_t get_power_two(uint32_t num)
 {
         uint32_t i = 1;
 
@@ -73,6 +62,25 @@ static struct dict_table *create_map_internal(size_t size, uint8_t flags)
         table->event_flags = 0;
 
         return table;
+}
+
+static ATTR_INLINE uint32_t hash_value(const struct dict_table *table,
+                                       const char *key)
+{
+        assert(key);
+
+        if (table->flags & DICT_KEY_IGNORE_CASE) {
+                char *key_lower = duplicate_key_lower(key);
+                uint32_t hash = 0;
+
+                hash = table->hash_function(key_lower);
+
+                free(key_lower);
+
+                return hash;
+        }
+
+        return table->hash_function(key);
 }
 
 struct dict_table *create_map(size_t size)
