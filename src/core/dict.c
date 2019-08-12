@@ -26,9 +26,9 @@ static ATTR_INLINE char *duplicate_key_lower(const char *key)
         return new_key;
 }
 
-static ATTR_CONST ATTR_INLINE uint32_t get_power_two(uint32_t num)
+static ATTR_CONST ATTR_INLINE uint32_t next_power(uint32_t num)
 {
-        uint32_t i = 1;
+        uint32_t i = MAP_MIN_SIZE_MASK;
 
         while (i < num) {
                 i <<= 1;
@@ -37,11 +37,42 @@ static ATTR_CONST ATTR_INLINE uint32_t get_power_two(uint32_t num)
         return i;
 }
 
+static ATTR_CONST ATTR_INLINE uint32_t previous_power(uint32_t num)
+{
+        num = num | (num >> 1);
+        num = num | (num >> 2);
+        num = num | (num >> 4);
+        num = num | (num >> 8);
+        num = num | (num >> 16);
+
+        return num - (num >> 1);
+}
+
+/**
+ * Check to see if the map needs to resized - either up or down
+ */
+static uint32_t map_needs_resizing(const struct dict_map *map)
+{
+        if (map->size_mask == MAP_MIN_SIZE_MASK) {
+                return map->size_mask;
+        }
+
+        const float current_ratio = map->bucket_count / map->size_mask;
+
+        // First check if we have too many entries
+        if (current_ratio > map->high_load_factor) {
+                return next_power(map->size_mask);
+        }
+
+        // Next check if we have too few entries
+        if (current_ratio < map->low_load_factor) {
+                return previous_power(map->size_mask - 1);
+        }
+}
+
 static ATTR_INLINE int lock_map(struct dict_map *map)
 {
-        assert(map);
-
-        if (map->flags & DICT_MAP_NO_LOCKING) {
+        if (map->flags & MAP_FLAG_NO_LOCKING) {
                 return -1;
         }
 #ifdef USE_POSIX
@@ -56,9 +87,7 @@ static ATTR_INLINE int lock_map(struct dict_map *map)
 
 static ATTR_INLINE int unlock_map(struct dict_map *map)
 {
-        assert(map);
-
-        if (map->flags & DICT_MAP_NO_LOCKING) {
+        if (map->flags & MAP_FLAG_NO_LOCKING) {
                 return -1;
         }
 
@@ -72,12 +101,15 @@ static ATTR_INLINE int unlock_map(struct dict_map *map)
         return -1;
 }
 
+/**
+ * Take a string and return the hash value for it.
+ *
+ * This returns the raw hash and must be mapped to the table size_mask
+ */
 static ATTR_INLINE uint32_t hash_value(const struct dict_map *map,
                                        const char *key)
 {
-        assert(key);
-
-        if (map->flags & DICT_KEY_IGNORE_CASE) {
+        if (map->flags & MAP_FLAG_KEY_IGNORE_CASE) {
                 char *key_lower = duplicate_key_lower(key);
                 uint32_t hash = 0;
 
@@ -121,8 +153,9 @@ static struct dict_map *create_map_internal(size_t size, uint8_t flags)
                 return NULL;
         }
 
-        map->bucket_count = get_power_two((uint32_t)size);
-        map->entries_count = 0;
+        map->size = next_power((uint32_t)size);
+        map->size_mask = map->size - 1;
+        map->bucket_count = 0;
         map->entries = NULL;
 #ifdef USE_POSIX
         if (pthread_mutex_init(&map->mutex, NULL) != 0) {
@@ -142,13 +175,13 @@ static struct dict_map *create_map_internal(size_t size, uint8_t flags)
 
 struct dict_map *create_map(size_t size)
 {
-        return create_map_internal(size, DICT_MAP_IGNORE_THRESHOLDS_EMPTY);
+        return create_map_internal(size, MAP_FLAG_IGNORE_THRESHOLDS_EMPTY);
 }
 
 struct dict_map *create_map_with_flags(size_t size, uint8_t flags)
 {
         return create_map_internal(size,
-                                   flags | DICT_MAP_IGNORE_THRESHOLDS_EMPTY);
+                                   flags | MAP_FLAG_IGNORE_THRESHOLDS_EMPTY);
 }
 
 uint32_t key_hash(const char *key)
@@ -169,9 +202,7 @@ void map_clear_flag(struct dict_map *map, uint8_t flag)
 
 int map_set_hash_function(struct dict_map *map, dict_hash_function_t func)
 {
-        assert(func);
-
-        if (map->entries_count > 0) {
+        if (map->bucket_count > 0) {
                 return -1;
         }
 
@@ -182,7 +213,5 @@ int map_set_hash_function(struct dict_map *map, dict_hash_function_t func)
 
 void map_set_free_function(struct dict_map *map, dict_free_function_t func)
 {
-        assert(func);
-
         map->free_function = func;
 }

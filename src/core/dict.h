@@ -18,11 +18,18 @@ typedef uint32_t (*dict_hash_function_t)(const char *key);
 typedef void (*dict_free_function_t)(void *data);
 
 // Exported flags for the map
-#define DICT_KEY_IGNORE_CASE (1 << 0) // Ignore casing for keys
-#define DICT_MAP_USE_FREE (1 << 1) // Call free() on value when destroying
-#define DICT_MAP_IGNORE_THRESHOLDS (1 << 2) // Ignore load factors
-#define DICT_MAP_IGNORE_THRESHOLDS_EMPTY (1 << 3) // Ignore low_load_factor
-#define DICT_MAP_NO_LOCKING (1 << 4) // Don't be thread safe
+#define MAP_FLAG_KEY_IGNORE_CASE (1 << 0) // Ignore casing for keys
+#define MAP_FLAG_USE_FREE (1 << 1) // Call free() on value when destroying
+#define MAP_FLAG_IGNORE_THRESHOLDS (1 << 2) // Ignore load factors
+#define MAP_FLAG_IGNORE_THRESHOLDS_EMPTY (1 << 3) // Ignore low_load_factor
+#define MAP_FLAG_NO_LOCKING (1 << 4) // Don't be thread safe
+
+// Exported event flags for the map
+#define EVENT_FLAG_REHASHING_MAP (1 << 0) // Map is currently rehashing
+#define EVENT_FLAG_ITERATING (1 << 1) // Iteration in progress
+
+// Size constants
+#define MAP_MIN_SIZE_MASK 4
 
 struct dict_entry {
         const char *key;
@@ -32,20 +39,20 @@ struct dict_entry {
 };
 
 struct dict_map {
-        size_t bucket_count;
-        size_t entries_count;
+        uint32_t size_mask; // Power of two max size of the map
+        uint32_t bucket_count; // Current number of buckets in the map
         struct dict_entry **entries;
 #ifdef USE_POSIX
         pthread_mutex_t mutex;
 #endif
-        uint8_t flags;
-        dict_hash_function_t hash_function;
+        dict_hash_function_t hash_function; // Should never be NULL
+        dict_free_function_t free_function; // If NULL free(1) will be used
         size_t itr_bucket_index; // The current index during iteration
         double high_load_factor;
         double low_load_factor;
-        dict_free_function_t free_function;
         size_t resize_count;
-        uint8_t event_flags;
+        uint8_t flags; // Map settings flags
+        uint8_t event_flags; // Map event flags
 };
 
 struct dict_map *create_map(size_t size);
