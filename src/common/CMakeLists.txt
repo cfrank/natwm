@@ -1,5 +1,7 @@
 add_library(common STATIC
     constants.h
+    hash.h
+    hash.c
     logger.c
     logger.h
     util.c
