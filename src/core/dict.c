@@ -91,6 +91,28 @@ static ATTR_INLINE uint32_t hash_value(const struct dict_map *map,
         return map->hash_function(key);
 }
 
+static struct dict_entry *create_entry(const char *key, void *data,
+                                       size_t data_size)
+{
+        struct dict_entry *entry = malloc(sizeof(struct dict_entry));
+
+        if (entry == NULL) {
+                return NULL;
+        }
+
+        entry->key = alloc_string(key);
+
+        if (entry->key == NULL) {
+                return NULL;
+        }
+
+        entry->data = data;
+        entry->data_size = data_size;
+        entry->next = NULL;
+
+        return entry;
+}
+
 static struct dict_map *create_map_internal(size_t size, uint8_t flags)
 {
         struct dict_map *map = malloc(sizeof(struct dict_map));

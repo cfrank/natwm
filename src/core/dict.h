@@ -25,8 +25,7 @@ typedef void (*dict_free_function_t)(void *data);
 #define DICT_MAP_NO_LOCKING (1 << 4) // Don't be thread safe
 
 struct dict_entry {
-        void *key;
-        size_t key_size;
+        const char *key;
         void *data;
         size_t data_size;
         struct dict_entry *next;
