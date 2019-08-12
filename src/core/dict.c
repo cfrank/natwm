@@ -109,7 +109,7 @@ static ATTR_INLINE int unlock_map(struct dict_map *map)
 /**
  * Take a string and return the hash value for it.
  *
- * This returns the raw hash and must be mapped to the table size - 1
+ * This returns the raw hash and must be mapped to the table size
  */
 static ATTR_INLINE uint32_t hash_value(const struct dict_map *map,
                                        const char *key)
