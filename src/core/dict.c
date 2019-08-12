@@ -28,7 +28,7 @@ static ATTR_INLINE char *duplicate_key_lower(const char *key)
 
 static ATTR_CONST ATTR_INLINE uint32_t next_power(uint32_t num)
 {
-        uint32_t i = MAP_MIN_SIZE_MASK;
+        uint32_t i = MAP_MIN_SIZE;
 
         while (i < num) {
                 i <<= 1;
@@ -50,24 +50,29 @@ static ATTR_CONST ATTR_INLINE uint32_t previous_power(uint32_t num)
 
 /**
  * Check to see if the map needs to resized - either up or down
+ *
+ * Returns either the next or previous power if it needs to be resized.
+ * Otherwise mpa->size
  */
 static uint32_t map_needs_resizing(const struct dict_map *map)
 {
-        if (map->size_mask == MAP_MIN_SIZE_MASK) {
-                return map->size_mask;
+        if (map->size == MAP_MIN_SIZE) {
+                return map->size;
         }
 
-        const float current_ratio = map->bucket_count / map->size_mask;
+        const float current_ratio = map->bucket_count / map->size;
 
         // First check if we have too many entries
         if (current_ratio > map->high_load_factor) {
-                return next_power(map->size_mask);
+                return next_power(map->size);
         }
 
         // Next check if we have too few entries
         if (current_ratio < map->low_load_factor) {
-                return previous_power(map->size_mask - 1);
+                return previous_power(map->size - 1);
         }
+
+        return map->size;
 }
 
 static ATTR_INLINE int lock_map(struct dict_map *map)
@@ -104,7 +109,7 @@ static ATTR_INLINE int unlock_map(struct dict_map *map)
 /**
  * Take a string and return the hash value for it.
  *
- * This returns the raw hash and must be mapped to the table size_mask
+ * This returns the raw hash and must be mapped to the table size - 1
  */
 static ATTR_INLINE uint32_t hash_value(const struct dict_map *map,
                                        const char *key)
@@ -154,7 +159,6 @@ static struct dict_map *create_map_internal(size_t size, uint8_t flags)
         }
 
         map->size = next_power((uint32_t)size);
-        map->size_mask = map->size - 1;
         map->bucket_count = 0;
         map->entries = NULL;
 #ifdef USE_POSIX

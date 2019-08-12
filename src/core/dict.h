@@ -29,7 +29,7 @@ typedef void (*dict_free_function_t)(void *data);
 #define EVENT_FLAG_ITERATING (1 << 1) // Iteration in progress
 
 // Size constants
-#define MAP_MIN_SIZE_MASK 4
+#define MAP_MIN_SIZE 4
 
 struct dict_entry {
         const char *key;
@@ -39,7 +39,7 @@ struct dict_entry {
 };
 
 struct dict_map {
-        uint32_t size_mask; // Power of two max size of the map
+        uint32_t size; // Power of two max size of the map
         uint32_t bucket_count; // Current number of buckets in the map
         struct dict_entry **entries;
 #ifdef USE_POSIX
