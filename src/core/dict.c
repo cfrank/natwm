@@ -57,6 +57,38 @@ static ATTR_INLINE int lock_map(struct dict_map *map)
 static ATTR_INLINE int unlock_map(struct dict_map *map)
 {
         assert(map);
+
+        if (map->flags & DICT_MAP_NO_LOCKING) {
+                return -1;
+        }
+
+#ifdef USE_POSIX
+        if (pthread_mutex_unlock(&map->mutex) != 0) {
+                return -1;
+        }
+
+        return 0;
+#endif
+        return -1;
+}
+
+static ATTR_INLINE uint32_t hash_value(const struct dict_map *map,
+                                       const char *key)
+{
+        assert(key);
+
+        if (map->flags & DICT_KEY_IGNORE_CASE) {
+                char *key_lower = duplicate_key_lower(key);
+                uint32_t hash = 0;
+
+                hash = map->hash_function(key_lower);
+
+                free(key_lower);
+
+                return hash;
+        }
+
+        return map->hash_function(key);
 }
 
 static struct dict_map *create_map_internal(size_t size, uint8_t flags)
@@ -84,25 +116,6 @@ static struct dict_map *create_map_internal(size_t size, uint8_t flags)
         map->event_flags = 0;
 
         return map;
-}
-
-static ATTR_INLINE uint32_t hash_value(const struct dict_map *map,
-                                       const char *key)
-{
-        assert(key);
-
-        if (map->flags & DICT_KEY_IGNORE_CASE) {
-                char *key_lower = duplicate_key_lower(key);
-                uint32_t hash = 0;
-
-                hash = map->hash_function(key_lower);
-
-                free(key_lower);
-
-                return hash;
-        }
-
-        return map->hash_function(key);
 }
 
 struct dict_map *create_map(size_t size)
