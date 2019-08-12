@@ -26,7 +26,7 @@ static ATTR_INLINE uint32_t le32dec(const void *pp)
  *
  * https://github.com/freebsd/freebsd/blob/master/sys/libkern/murmur3_32.c
  */
-uint32_t hash_murmur3_32(const void *data, size_t len, uint32_t seed)
+ATTR_CONST uint32_t hash_murmur3_32(const void *data, size_t len, uint32_t seed)
 {
         const uint8_t *bytes = (const uint8_t *)data;
         uint32_t hash = seed;
