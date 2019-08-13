@@ -37,15 +37,13 @@ static ATTR_CONST ATTR_INLINE uint32_t next_power(uint32_t num)
         return i;
 }
 
+/**
+ * Given a power of 2 find the previous power of 2
+ */
 static ATTR_CONST ATTR_INLINE uint32_t previous_power(uint32_t num)
 {
-        num = num | (num >> 1);
-        num = num | (num >> 2);
-        num = num | (num >> 4);
-        num = num | (num >> 8);
-        num = num | (num >> 16);
-
-        return num - (num >> 1);
+        // Divide the provided power of 2 by 2
+        return (num * 0x200001) >> 2;
 }
 
 /**
