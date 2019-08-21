@@ -2,12 +2,19 @@
 // Licensed under BSD-3-Clause
 // Refer to the license.txt file included in the root of the project
 
+#include <common/constants.h>
 #include <common/hash.h>
 #include "map.h"
 
 static int entry_is_present(struct dict_entry *entry)
 {
         return entry->data != NULL;
+}
+
+static ATTR_CONST uint32_t default_key_hash(const char *key)
+{
+        // TODO: Should any thought be put into a seed
+        return hash_murmur3_32(key, strlen(key), 0);
 }
 
 struct dict_map *map_init(void)
@@ -31,7 +38,7 @@ struct dict_map *map_init(void)
                 return NULL;
         }
 #endif
-        map->hash_function = hash_murmur3_32;
+        map->hash_function = default_key_hash;
         map->setting_flags = MAP_FLAG_IGNORE_THRESHOLDS_EMPTY;
         map->event_flags = EVENT_FLAG_NORMAL;
 
@@ -50,8 +57,12 @@ void map_destroy(struct dict_map *map)
 {
         // Delete entries
         for (size_t i = 0; i < map->length; ++i) {
-                free(map->entries[i]->data);
-                free(map->entries[i]);
+                struct dict_entry *entry = map->entries[i];
+
+                if (entry_is_present(entry)) {
+                        free(map->entries[i]->data);
+                        free(map->entries[i]);
+                }
         }
 
         free(map);
@@ -67,11 +78,30 @@ void map_destroy_func(struct dict_map *map,
                       const map_entry_free_function_t free_function)
 {
         for (size_t i = 0; i < map->length; ++i) {
-                free_function(map->entries[i]->data);
-                free(map->entries[i]);
+                struct dict_entry *entry = map->entries[i];
+
+                if (entry_is_present(entry)) {
+                        free_function(map->entries[i]->data);
+                        free(map->entries[i]);
+                }
         }
 
         free(map);
+}
+
+int map_insert(struct dict_map *map, char *key, void *data)
+{
+        uint32_t hash = map->hash_function(key);
+        uint32_t original_index = hash % map->length;
+
+        assert(original_index < map->length);
+
+        if (entry_is_present(map->entries[original_index])) {
+                // Handle collision
+                return -1;
+        }
+
+        return 0;
 }
 
 void map_foreach(const struct dict_map *map,
