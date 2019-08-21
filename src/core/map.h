@@ -4,6 +4,12 @@
 
 #pragma once
 
+#include <stdint.h>
+
+#ifdef USE_POSIX
+#include <pthread.h>
+#endif
+
 /**
  * The following is a implementation of a simple hash table.
  *
@@ -17,6 +23,9 @@
  *
  * map_destroy(m)               Destroys the map _m_ and frees all of its
  *                              entries
+ *
+ * map_destroy_function(m, f)   Destroys the map _m_ and frees all of its
+ *                              entries using the function _f_
  *
  * --Primary methods--
  *
@@ -72,6 +81,13 @@ typedef uint32_t (*map_hash_function_t)(const char *key);
 // Frees data stored in the map entry
 typedef void (*map_entry_free_function_t)(void *data);
 
+// Callback function for iterator
+typedef void (*map_foreach_callback_function_t)(const struct dict_entry *entry);
+
+#define MAP_MIN_LENGTH 4
+#define MAP_LOAD_FACTOR_HIGH 0.75
+#define MAP_LOAD_FACTOR_LOW 0.2
+
 enum map_settings {
         MAP_FLAG_KEY_IGNORE_CASE = 1 << 0; // Ignore casing for keys
         MAP_FLAG_USE_FREE = 1 << 1; // Use free instead of supplied free func
@@ -81,8 +97,9 @@ enum map_settings {
 };
 
 enum map_events {
-        EVENT_FLAG_REHASHING_MAP = 1 << 5; // Map is currently rehashing
-        EVENT_FLAG_ITERATING = 1 << 6; // Map is currently iterating
+        EVENT_FLAG_NORMAL = 1 << 0; // Nothing special
+        EVENT_FLAG_REHASHING_MAP = 1 << 1; // Map is currently rehashing
+        EVENT_FLAG_ITERATING = 1 << 2; // Map is currently iterating
 };
 
 // Represents a entry in the hash table
@@ -101,9 +118,22 @@ struct dict_map {
         pthread_mutex_t mutex;
 #endif
         map_hash_function_t hash_function;
-        map_free_function_t free_function;
-        double load_factor_high;
-        double load_factor_low;
         enum map_settings setting_flags;
         enum map_events event_flags;
 };
+
+struct dict_map *map_init(void);
+void map_destroy(struct dict_map *map);
+void map_destroy_func(struct dict_map *map,
+                      const map_entry_free_function_t free_function);
+
+int map_insert(struct dict_map *map, char *key, void *data);
+int map_add(struct dict_map *map, char *key, void *data);
+int map_delete(struct dict_map *map, const char *key);
+
+void map_foreach(const struct dict_map *map,
+                 const map_foreach_callback_function_t callback);
+
+void map_set_hash_function(
+        struct dict_map *map const map_hash_function_t function);
+void map_set_setting_flag(struct dict_map *map, enum map_settings flag);
