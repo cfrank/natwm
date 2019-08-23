@@ -104,9 +104,12 @@ enum map_events {
 
 // Represents a entry in the hash table
 struct dict_entry {
+        // Tradeoff: Getting DIB from hash instead of storing DIB in entry
+        // Pro: Smaller entry memory footprint
+        // Con: Increased computation when calculating DIB
+        uint32_t hash;
         char *key;
         void *data;
-        size_t data_size;
 };
 
 // Represents a hash table
