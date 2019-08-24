@@ -38,22 +38,59 @@ static ATTR_INLINE size_t get_dib(const struct dict_map *map,
 {
         uint32_t initial_index = entry->hash % map->length;
 
+        if (current_index < initial_index) {
+                return (map->length - current_index) + initial_index;
+        }
+
         return current_index - initial_index;
 }
 
-static int map_probe(struct dict_map *map, const struct dict_entry *entry,
-                     uint32_t initial_index)
+static uint32_t map_probe(struct dict_map *map, struct dict_entry *entry,
+                          uint32_t index)
 {
-        uint32_t probe_position = initial_index + 1;
-        uint32_t dib = 1;
+        uint32_t probe_position = index;
+        struct dict_entry *insert_entry = entry;
 
         for (;;) {
-                if (probe_positon >= map->length) {
+                if (probe_position <= map->length) {
                         probe_position = 0;
                 }
 
-                struct dict_entry *entry_compare = map->entries[probe_position];
+                struct dict_entry *current_entry = map->entries[probe_position];
+
+                if (!entry_is_present(current_entry)) {
+                        // Insert here
+                        map->entries[prob_position] = insert_entry;
+
+                        return prob_position;
+                }
+
+                uint32_t insert_dib
+                        = get_dib(map, insert_entry, probe_position);
+
+                if (insert_dib > map->length) {
+                        return -1;
+                }
+
+                uint32_t current_dib
+                        = get_dib(map, current_entry, probe_position);
+
+                if (current_dib < insert_dib) {
+                        // Swap
+                        map->entries[probe_position] = insert_entry;
+
+                        probe_position = probe_position + 1;
+                        insert_entry = current_entry;
+
+                        continue;
+                }
+
+                // Keep probing
+                probe_position = probe_position + 1;
         }
+
+        // Should never happen
+        return -1;
 }
 
 struct dict_map *map_init(void)
@@ -152,15 +189,19 @@ int map_insert(struct dict_map *map, char *key, void *data)
 
         assert(original_index < map->length);
 
-        if (entry_is_present(map->entries[initial_index])) {
-                // We have encountered a collision start probe
-                return -1;
-        }
-
         struct dict_entry *entry = entry_init(hash, key, data);
 
         if (entry == NULL) {
                 return -1;
+        }
+
+        if (entry_is_present(map->entries[initial_index])) {
+                // We have encountered a collision start probe
+                if (map_probe(map, entry) < 0) {
+                        return -1;
+                }
+
+                return 0;
         }
 
         map->entries[initial_index] = entry;
