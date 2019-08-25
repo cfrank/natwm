@@ -2,6 +2,10 @@
 // Licensed under BSD-3-Clause
 // Refer to the license.txt file included in the root of the project
 
+#include <assert.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include <common/constants.h>
 #include <common/hash.h>
 #include "map.h"
@@ -27,14 +31,14 @@ static struct dict_entry *entry_init(uint32_t hash, char *key, void *data)
         return entry;
 }
 
-static int entry_is_present(const struct dict_entry *entry)
+static ATTR_INLINE int entry_is_present(const struct dict_entry *entry)
 {
         return entry->key != NULL && entry->data != NULL;
 }
 
-static ATTR_INLINE size_t get_dib(const struct dict_map *map,
-                                  const struct dict_entry *entry,
-                                  uint32_t current_index)
+static ATTR_INLINE uint32_t get_dib(const struct dict_map *map,
+                                    const struct dict_entry *entry,
+                                    uint32_t current_index)
 {
         uint32_t initial_index = entry->hash % map->length;
 
@@ -45,8 +49,8 @@ static ATTR_INLINE size_t get_dib(const struct dict_map *map,
         return current_index - initial_index;
 }
 
-static uint32_t map_probe(struct dict_map *map, struct dict_entry *entry,
-                          uint32_t index)
+static int map_probe(struct dict_map *map, struct dict_entry *entry,
+                     uint32_t index)
 {
         uint32_t probe_position = index;
         struct dict_entry *insert_entry = entry;
@@ -60,9 +64,9 @@ static uint32_t map_probe(struct dict_map *map, struct dict_entry *entry,
 
                 if (!entry_is_present(current_entry)) {
                         // Insert here
-                        map->entries[prob_position] = insert_entry;
+                        map->entries[probe_position] = insert_entry;
 
-                        return prob_position;
+                        return 0;
                 }
 
                 uint32_t insert_dib
@@ -103,14 +107,14 @@ struct dict_map *map_init(void)
 
         map->length = MAP_MIN_LENGTH;
         map->bucket_count = 0;
-        map->buckets = calloc(map->length, sizeof(struct dict_entry));
+        map->entries = calloc(map->length, sizeof(struct dict_entry));
 
-        if (map->buckets == NULL) {
+        if (map->entries == NULL) {
                 return NULL;
         }
 
 #ifdef USE_POSIX
-        if (pthread_mutex_init(map->mutex) != 0) {
+        if (pthread_mutex_init(&map->mutex, NULL) != 0) {
                 return NULL;
         }
 #endif
@@ -179,15 +183,15 @@ int map_insert(struct dict_map *map, char *key, void *data)
                 }
 
                 // Only resize if we aren't ignoring thresholds
-                if (!map->flags & MAP_FLAG_IGNORE_THRESHOLDS) {
+                if (!(map->setting_flags & MAP_FLAG_IGNORE_THRESHOLDS)) {
                         // TODO: Resize
                 }
         }
 
         uint32_t hash = map->hash_function(key);
-        int32_t initial_index = hash % map->length;
+        uint32_t initial_index = hash % map->length;
 
-        assert(original_index < map->length);
+        assert(initial_index < map->length);
 
         struct dict_entry *entry = entry_init(hash, key, data);
 
@@ -197,7 +201,7 @@ int map_insert(struct dict_map *map, char *key, void *data)
 
         if (entry_is_present(map->entries[initial_index])) {
                 // We have encountered a collision start probe
-                if (map_probe(map, entry) < 0) {
+                if (map_probe(map, entry, initial_index) < 0) {
                         return -1;
                 }
 
@@ -210,10 +214,10 @@ int map_insert(struct dict_map *map, char *key, void *data)
 }
 
 void map_foreach(const struct dict_map *map,
-                 const map_foreach_callback_t callback)
+                 const map_foreach_callback_function_t callback)
 {
         for (size_t i = 0; i < map->length; ++i) {
-                struct dict_entry entry = map->buckets[i];
+                struct dict_entry *entry = map->entries[i];
 
                 if (entry_is_present(entry)) {
                         callback(entry);

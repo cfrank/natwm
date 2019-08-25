@@ -78,28 +78,22 @@
 // Takes a key and returns a hash
 typedef uint32_t (*map_hash_function_t)(const char *key);
 
-// Frees data stored in the map entry
-typedef void (*map_entry_free_function_t)(void *data);
-
-// Callback function for iterator
-typedef void (*map_foreach_callback_function_t)(const struct dict_entry *entry);
-
 #define MAP_MIN_LENGTH 4
 #define MAP_LOAD_FACTOR_HIGH 0.75
 #define MAP_LOAD_FACTOR_LOW 0.2
 
 enum map_settings {
-        MAP_FLAG_KEY_IGNORE_CASE = 1 << 0; // Ignore casing for keys
-        MAP_FLAG_USE_FREE = 1 << 1; // Use free instead of supplied free func
-        MAP_FLAG_IGNORE_THRESHOLDS = 1 << 2; // Ignore load factors
-        MAP_FLAG_IGNORE_THRESHOLDS_EMPTY = 1 << 3; // Ignore low_load_factor
-        MAP_FLAG_NO_LOCKING = 1 << 4; // Don't try to be thread safe
+        MAP_FLAG_KEY_IGNORE_CASE = 1 << 0, // Ignore casing for keys
+        MAP_FLAG_USE_FREE = 1 << 1, // Use free instead of supplied free func
+        MAP_FLAG_IGNORE_THRESHOLDS = 1 << 2, // Ignore load factors
+        MAP_FLAG_IGNORE_THRESHOLDS_EMPTY = 1 << 3, // Ignore low_load_factor
+        MAP_FLAG_NO_LOCKING = 1 << 4, // Don't try to be thread safe
 };
 
 enum map_events {
-        EVENT_FLAG_NORMAL = 1 << 0; // Nothing special
-        EVENT_FLAG_REHASHING_MAP = 1 << 1; // Map is currently rehashing
-        EVENT_FLAG_ITERATING = 1 << 2; // Map is currently iterating
+        EVENT_FLAG_NORMAL = 1 << 0, // Nothing special
+        EVENT_FLAG_REHASHING_MAP = 1 << 1, // Map is currently rehashing
+        EVENT_FLAG_ITERATING = 1 << 2, // Map is currently iterating
 };
 
 // Represents a entry in the hash table
@@ -116,7 +110,7 @@ struct dict_entry {
 struct dict_map {
         uint32_t length; // Length of the table (power of 2)
         uint32_t bucket_count;
-        struct dict_entry **buckets;
+        struct dict_entry **entries;
 #ifdef USE_POSIX
         pthread_mutex_t mutex;
 #endif
@@ -124,6 +118,12 @@ struct dict_map {
         enum map_settings setting_flags;
         enum map_events event_flags;
 };
+
+// Frees data stored in the map entry
+typedef void (*map_entry_free_function_t)(void *data);
+
+// Callback function for iterator
+typedef void (*map_foreach_callback_function_t)(const struct dict_entry *entry);
 
 struct dict_map *map_init(void);
 void map_destroy(struct dict_map *map);
@@ -137,6 +137,6 @@ int map_delete(struct dict_map *map, const char *key);
 void map_foreach(const struct dict_map *map,
                  const map_foreach_callback_function_t callback);
 
-void map_set_hash_function(
-        struct dict_map *map const map_hash_function_t function);
+void map_set_hash_function(struct dict_map *map,
+                           const map_hash_function_t function);
 void map_set_setting_flag(struct dict_map *map, enum map_settings flag);

@@ -1,10 +1,10 @@
 add_library(core STATIC
-    dict.c
-    dict.h
     config.c
     config.h
     list.c
     list.h
+    map.c
+    map.h
 )
 
 target_link_libraries(core
