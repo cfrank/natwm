@@ -49,13 +49,49 @@ static ATTR_INLINE uint32_t get_dib(const struct dict_map *map,
         return current_index - initial_index;
 }
 
-static int map_probe(struct dict_map *map, struct dict_entry *entry,
-                     uint32_t index)
+static int map_lock(struct dict_map *map)
 {
-        uint32_t probe_position = index;
+        if (!map) {
+                return -1;
+        }
+
+        if (map->setting_flags & MAP_FLAG_NO_LOCKING) {
+                return 0;
+        }
+
+#ifdef USE_POSIX
+        if (pthread_mutex_lock(&map->mutex) != 0) {
+                return -1;
+        }
+#endif
+        return 0;
+}
+
+static int map_unlock(struct dict_map *map)
+{
+        if (!map) {
+                return -1;
+        }
+
+        if (map->setting_flags & MAP_FLAG_NO_LOCKING) {
+                return 0;
+        }
+
+#ifdef USE_POSIX
+        if (pthread_mutex_unlock(&map->mutex) != 0) {
+                return -1;
+        }
+#endif
+        return 0;
+}
+
+static int map_probe(struct dict_map *map, struct dict_entry *entry,
+                     uint32_t initial_index)
+{
+        uint32_t probe_position = initial_index;
         struct dict_entry *insert_entry = entry;
 
-        for (;;) {
+        for (size_t i = 0; i < map->length; ++i) {
                 if (probe_position <= map->length) {
                         probe_position = 0;
                 }
@@ -72,9 +108,7 @@ static int map_probe(struct dict_map *map, struct dict_entry *entry,
                 uint32_t insert_dib
                         = get_dib(map, insert_entry, probe_position);
 
-                if (insert_dib > map->length) {
-                        return -1;
-                }
+                assert(insert_dib < map->length);
 
                 uint32_t current_dib
                         = get_dib(map, current_entry, probe_position);
@@ -83,8 +117,8 @@ static int map_probe(struct dict_map *map, struct dict_entry *entry,
                         // Swap
                         map->entries[probe_position] = insert_entry;
 
-                        probe_position = probe_position + 1;
                         insert_entry = current_entry;
+                        probe_position = probe_position + 1;
 
                         continue;
                 }
@@ -95,6 +129,45 @@ static int map_probe(struct dict_map *map, struct dict_entry *entry,
 
         // Should never happen
         return -1;
+}
+
+static int map_resize(struct dict_map *map, int resize_direction)
+{
+        uint32_t new_length = 0;
+
+        if (resize_direction == 1) {
+                new_length = next_power(map->length);
+        } else {
+                new_length = previous_power(map->length);
+        }
+
+        struct dict_entry *new_entries
+                = calloc(new_length, sizeof(struct dict_entry));
+
+        if (new_entries == NULL) {
+                return -1;
+        }
+
+        if (map_lock(map) != 0) {
+                return -1;
+        }
+
+        // Resize map to new_size
+        struct dict_map *old_map = *map;
+
+        map->length = new_length;
+
+        for (size_t i = 0; i < old_map->length; ++i) {
+                struct dict_entry *entry = old_map->entries[i];
+
+                if (entry_is_present(entry)) {
+                        // TODO: Rehash
+                }
+        }
+
+        if (map_unlock(map) != 0) {
+                return -1;
+        }
 }
 
 struct dict_map *map_init(void)
@@ -185,6 +258,7 @@ int map_insert(struct dict_map *map, char *key, void *data)
                 // Only resize if we aren't ignoring thresholds
                 if (!(map->setting_flags & MAP_FLAG_IGNORE_THRESHOLDS)) {
                         // TODO: Resize
+                        map_resize(map, 1);
                 }
         }
 
