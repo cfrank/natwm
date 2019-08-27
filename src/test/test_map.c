@@ -2,7 +2,6 @@
 // Licensed under BSD-3-Clause
 // Refer to the license.txt file included in the root of the project
 
-#include <assert.h>
 #include <setjmp.h>
 #include <stdarg.h>
 #include <stdint.h>
@@ -37,8 +36,6 @@ static size_t count_entries(const struct dict_map *map)
         size_t count = 0;
 
         for (size_t i = 0; i < map->length; ++i) {
-                assert(i < map->length);
-
                 struct dict_entry *entry = map->entries[i];
 
                 if (entry != NULL && entry->key != NULL
