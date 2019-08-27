@@ -49,7 +49,7 @@ static struct dict_entry *entry_init(uint32_t hash, char *key, void *data)
 
 static ATTR_INLINE int entry_is_present(const struct dict_entry *entry)
 {
-        return entry->key != NULL && entry->data != NULL;
+        return entry != NULL && entry->key != NULL && entry->data != NULL;
 }
 
 static ATTR_INLINE uint32_t get_dib(const struct dict_map *map,
@@ -265,11 +265,14 @@ void map_destroy(struct dict_map *map)
                 struct dict_entry *entry = map->entries[i];
 
                 if (entry_is_present(entry)) {
-                        free(map->entries[i]->data);
+                        if (map->setting_flags & MAP_FLAG_USE_FREE) {
+                                free(map->entries[i]->data);
+                        }
                         free(map->entries[i]);
                 }
         }
 
+        free(map->entries);
         free(map);
 }
 
