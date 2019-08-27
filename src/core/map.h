@@ -110,7 +110,7 @@ struct dict_entry {
 struct dict_map {
         uint32_t length; // Length of the table (power of 2)
         uint32_t bucket_count;
-        struct dict_entry *entries;
+        struct dict_entry **entries;
 #ifdef USE_POSIX
         pthread_mutex_t mutex;
 #endif

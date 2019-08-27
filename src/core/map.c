@@ -16,6 +16,22 @@ static ATTR_CONST uint32_t default_key_hash(const char *key)
         return hash_murmur3_32(key, strlen(key), 0);
 }
 
+/**
+ * Given a power of 2, find the next power of 2
+ */
+static ATTR_INLINE ATTR_CONST uint32_t next_power(uint32_t num)
+{
+        return num * 2;
+}
+
+/**
+ * Given a power of 2, find the previous power of 2
+ */
+static ATTR_INLINE ATTR_CONST uint32_t previous_power(uint32_t num)
+{
+        return (num * 0x200001) >> 22;
+}
+
 static struct dict_entry *entry_init(uint32_t hash, char *key, void *data)
 {
         struct dict_entry *entry = malloc(sizeof(struct dict_entry));
@@ -131,6 +147,36 @@ static int map_probe(struct dict_map *map, struct dict_entry *entry,
         return -1;
 }
 
+/**
+ * Inserts a pre-hashed dict_entry into a dict_map.
+ *
+ * NOTE: This does not check for load factor compliance. It is an internal
+ * function which is used by the exported map_insert and map_resize. Both
+ * of these function deal with load_factor in their own ways, but when
+ * calling this function it should be known that the load factor will be
+ * kept valid.
+ */
+static int map_insert_entry(struct dict_map *map, struct dict_entry *entry)
+{
+        uint32_t initial_index = entry->hash % map->length;
+
+        assert(initial_index < map->length);
+        assert(entry != NULL);
+
+        if (entry_is_present(map->entries[initial_index])) {
+                // Handle collision
+                if (map_probe(map, entry, initial_index) != 0) {
+                        return -1;
+                }
+
+                return 0;
+        }
+
+        map->entries[initial_index] = entry;
+
+        return 0;
+}
+
 static int map_resize(struct dict_map *map, int resize_direction)
 {
         uint32_t new_length = 0;
@@ -141,33 +187,39 @@ static int map_resize(struct dict_map *map, int resize_direction)
                 new_length = previous_power(map->length);
         }
 
-        struct dict_entry *new_entries
-                = calloc(new_length, sizeof(struct dict_entry));
+        assert(map->length < new_length);
+
+        struct dict_entry **new_entries
+                = calloc(new_length, sizeof(struct dict_entry *));
 
         if (new_entries == NULL) {
                 return -1;
         }
 
-        if (map_lock(map) != 0) {
-                return -1;
-        }
+        map_lock(map);
 
         // Resize map to new_size
-        struct dict_map *old_map = *map;
+        struct dict_map old_map = *map;
 
-        map->length = new_length;
+        map->bucket_count = new_length;
+        map->entries = new_entries;
 
-        for (size_t i = 0; i < old_map->length; ++i) {
-                struct dict_entry *entry = old_map->entries[i];
+        for (size_t i = 0; i < old_map.length; ++i) {
+                struct dict_entry *entry = old_map.entries[i];
 
-                if (entry_is_present(entry)) {
-                        // TODO: Rehash
+                if (!entry_is_present(entry)) {
+                        // Nothing here - continue
+                        continue;
+                }
+
+                if (map_insert_entry(map, entry) != 0) {
+                        return -1;
                 }
         }
 
-        if (map_unlock(map) != 0) {
-                return -1;
-        }
+        map_unlock(map);
+
+        return 0;
 }
 
 struct dict_map *map_init(void)
@@ -246,15 +298,10 @@ int map_insert(struct dict_map *map, char *key, void *data)
 {
         assert(map);
 
-        const double load_factor = (map->bucket_count + 1) / map->length;
+        double load_factor = (map->bucket_count + 1) / map->length;
 
         // Determine if a resize is required
         if (load_factor > MAP_LOAD_FACTOR_HIGH) {
-                if (load_factor > 1) {
-                        // Can't insert into a full table
-                        return -1;
-                }
-
                 // Only resize if we aren't ignoring thresholds
                 if (!(map->setting_flags & MAP_FLAG_IGNORE_THRESHOLDS)) {
                         // TODO: Resize
@@ -263,28 +310,13 @@ int map_insert(struct dict_map *map, char *key, void *data)
         }
 
         uint32_t hash = map->hash_function(key);
-        uint32_t initial_index = hash % map->length;
-
-        assert(initial_index < map->length);
-
         struct dict_entry *entry = entry_init(hash, key, data);
 
         if (entry == NULL) {
                 return -1;
         }
 
-        if (entry_is_present(map->entries[initial_index])) {
-                // We have encountered a collision start probe
-                if (map_probe(map, entry, initial_index) < 0) {
-                        return -1;
-                }
-
-                return 0;
-        }
-
-        map->entries[initial_index] = entry;
-
-        return 0;
+        return map_insert_entry(map, entry);
 }
 
 void map_foreach(const struct dict_map *map,
