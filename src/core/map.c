@@ -32,7 +32,7 @@ static ATTR_INLINE ATTR_CONST uint32_t previous_power(uint32_t num)
         return (num * 0x200001) >> 22;
 }
 
-static struct dict_entry *entry_init(uint32_t hash, char *key, void *data)
+static struct dict_entry *entry_init(uint32_t hash, const char *key, void *data)
 {
         struct dict_entry *entry = malloc(sizeof(struct dict_entry));
 
@@ -169,10 +169,13 @@ static int map_insert_entry(struct dict_map *map, struct dict_entry *entry)
                         return -1;
                 }
 
+                map->bucket_count += 1;
+
                 return 0;
         }
 
         map->entries[initial_index] = entry;
+        map->bucket_count += 1;
 
         return 0;
 }
@@ -187,8 +190,6 @@ static int map_resize(struct dict_map *map, int resize_direction)
                 new_length = previous_power(map->length);
         }
 
-        assert(map->length < new_length);
-
         struct dict_entry **new_entries
                 = calloc(new_length, sizeof(struct dict_entry *));
 
@@ -201,7 +202,8 @@ static int map_resize(struct dict_map *map, int resize_direction)
         // Resize map to new_size
         struct dict_map old_map = *map;
 
-        map->bucket_count = new_length;
+        map->length = new_length;
+        map->bucket_count = 0;
         map->entries = new_entries;
 
         for (size_t i = 0; i < old_map.length; ++i) {
@@ -297,7 +299,7 @@ void map_destroy_func(struct dict_map *map,
         free(map);
 }
 
-int map_insert(struct dict_map *map, char *key, void *data)
+int map_insert(struct dict_map *map, const char *key, void *data)
 {
         assert(map);
 

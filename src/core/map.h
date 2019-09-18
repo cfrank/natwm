@@ -102,7 +102,7 @@ struct dict_entry {
         // Pro: Smaller entry memory footprint
         // Con: Increased computation when calculating DIB
         uint32_t hash;
-        char *key;
+        const char *key;
         void *data;
 };
 
@@ -130,8 +130,8 @@ void map_destroy(struct dict_map *map);
 void map_destroy_func(struct dict_map *map,
                       const map_entry_free_function_t free_function);
 
-int map_insert(struct dict_map *map, char *key, void *data);
-int map_add(struct dict_map *map, char *key, void *data);
+int map_insert(struct dict_map *map, const char *key, void *data);
+int map_add(struct dict_map *map, const char *key, void *data);
 int map_delete(struct dict_map *map, const char *key);
 
 void map_foreach(const struct dict_map *map,
