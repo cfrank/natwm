@@ -78,8 +78,14 @@ static void test_map_insert_load_factor(void **state)
         assert_int_equal(MAP_MIN_LENGTH, map->length);
 
         map_insert(map, "Hello", &value);
+        map_insert(map, "Hello One", &value);
+        // This will trigger a resize since the load factor is now
+        // MAP_LOAD_FACTOR_HIGH
+        map_insert(map, "Hello Two", &value);
 
-        assert_int_equal(1, map->bucket_count);
+        assert_int_equal(3, map->bucket_count);
+        assert_int_equal(3, count_entries(map));
+        assert_int_equal(8, map->length);
 }
 
 int main(void)

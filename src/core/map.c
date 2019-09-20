@@ -108,7 +108,7 @@ static int map_probe(struct dict_map *map, struct dict_entry *entry,
         struct dict_entry *insert_entry = entry;
 
         for (size_t i = 0; i < map->length; ++i) {
-                if (probe_position <= map->length) {
+                if (probe_position == map->length) {
                         probe_position = 0;
                 }
 
@@ -150,11 +150,11 @@ static int map_probe(struct dict_map *map, struct dict_entry *entry,
 /**
  * Inserts a pre-hashed dict_entry into a dict_map.
  *
- * NOTE: This does not check for load factor compliance. It is an internal
- * function which is used by the exported map_insert and map_resize. Both
- * of these function deal with load_factor in their own ways, but when
- * calling this function it should be known that the load factor will be
- * kept valid.
+ * NOTE: This does not check for load factor compliance. It is an
+ * internal function which is used by the exported map_insert and
+ * map_resize. Both of these function deal with load_factor in their own
+ * ways, but when calling this function it should be known that the load
+ * factor will be kept valid.
  */
 static int map_insert_entry(struct dict_map *map, struct dict_entry *entry)
 {
@@ -204,6 +204,10 @@ static int map_resize(struct dict_map *map, int resize_direction)
 
         map->length = new_length;
         map->bucket_count = 0;
+
+        // Free the old entries list
+        free(map->entries);
+
         map->entries = new_entries;
 
         for (size_t i = 0; i < old_map.length; ++i) {
@@ -279,8 +283,8 @@ void map_destroy(struct dict_map *map)
 }
 
 /**
- * Deletes a map by calling a provided free_function on all the data held
- * by every entry.
+ * Deletes a map by calling a provided free_function on all the data
+ * held by every entry.
  *
  * NOTE: Use this if you have data which has nested allocs
  */
@@ -303,10 +307,10 @@ int map_insert(struct dict_map *map, const char *key, void *data)
 {
         assert(map);
 
-        double load_factor = (map->bucket_count + 1) / map->length;
+        double load_factor = (map->bucket_count + 1.0) / map->length;
 
         // Determine if a resize is required
-        if (load_factor > MAP_LOAD_FACTOR_HIGH) {
+        if (load_factor >= MAP_LOAD_FACTOR_HIGH) {
                 // Only resize if we aren't ignoring thresholds
                 if (!(map->setting_flags & MAP_FLAG_IGNORE_THRESHOLDS)) {
                         // TODO: Resize
