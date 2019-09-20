@@ -13,7 +13,7 @@
 
 static int test_setup(void **state)
 {
-        struct dict_map *map = map_init();
+        struct map *map = map_init();
 
         if (map == NULL) {
                 return EXIT_FAILURE;
@@ -26,20 +26,20 @@ static int test_setup(void **state)
 
 static int test_teardown(void **state)
 {
-        map_destroy(*(struct dict_map **)state);
+        map_destroy(*(struct map **)state);
 
         return EXIT_SUCCESS;
 }
 
-static size_t count_entries(const struct dict_map *map)
+static size_t count_entries(const struct map *map)
 {
         size_t count = 0;
 
         for (size_t i = 0; i < map->length; ++i) {
-                struct dict_entry *entry = map->entries[i];
+                struct map_entry *entry = map->entries[i];
 
                 if (entry != NULL && entry->key != NULL
-                    && entry->data != NULL) {
+                    && entry->value != NULL) {
                         count++;
                 }
         }
@@ -49,7 +49,7 @@ static size_t count_entries(const struct dict_map *map)
 
 static void test_map_init(void **state)
 {
-        struct dict_map *map = *(struct dict_map **)state;
+        struct map *map = *(struct map **)state;
 
         assert_int_equal(MAP_MIN_LENGTH, map->length);
         assert_int_equal(0, map->bucket_count);
@@ -61,19 +61,21 @@ static void test_map_init(void **state)
 
 static void test_map_insert(void **state)
 {
-        struct dict_map *map = *(struct dict_map **)state;
+        struct map *map = *(struct map **)state;
         const char *expected_key = "test_key";
         size_t expected_value = 14;
-        int result = map_insert(map, expected_key, &expected_value);
+        enum map_error error = map_insert(map, expected_key, &expected_value);
 
-        assert_int_equal(0, result);
+        assert_int_equal(NO_ERROR, error);
         assert_int_equal(1, count_entries(map));
 }
 
 static void test_map_insert_load_factor(void **state)
 {
-        struct dict_map *map = *(struct dict_map **)state;
+        struct map *map = *(struct map **)state;
         size_t value = 1;
+        uint32_t expected_count = 3;
+        uint32_t expected_length = MAP_MIN_LENGTH * 2;
 
         assert_int_equal(MAP_MIN_LENGTH, map->length);
 
@@ -83,9 +85,9 @@ static void test_map_insert_load_factor(void **state)
         // MAP_LOAD_FACTOR_HIGH
         map_insert(map, "Hello Two", &value);
 
-        assert_int_equal(3, map->bucket_count);
-        assert_int_equal(3, count_entries(map));
-        assert_int_equal(8, map->length);
+        assert_int_equal(expected_count, map->bucket_count);
+        assert_int_equal(expected_count, count_entries(map));
+        assert_int_equal(expected_length, map->length);
 }
 
 int main(void)

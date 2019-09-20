@@ -11,51 +11,11 @@
 #endif
 
 /**
- * The following is a implementation of a simple hash table.
+ * The following is a implementation of a simple hash map.
  *
- * It exposes the following:
+ * The implementation details are as follows:
  *
- * --Constructor--
- *
- * map_init(void)               Creates and returns a new hash map
- *
- * --Destructor--
- *
- * map_destroy(m)               Destroys the map _m_ and frees all of its
- *                              entries
- *
- * map_destroy_function(m, f)   Destroys the map _m_ and frees all of its
- *                              entries using the function _f_
- *
- * --Primary methods--
- *
- * map_insert(m, k, v)          Insert a value _v_ into bucket with key _k_
- *                              inside map _m_
- *
- * map_add(m, k, v)             Add a value _v_ into bucket with key _k_ inside
- *                              map _m_ aborting if there exists a bucket with
- *                              key _k_
- *
- * map_delete(m, k)             Delete a value from bucket with key _k_ inside
- *                              map _m_
- *
- * map_foreach(m, f)            Iterate over the values inside map _m_ calling
- *                              function _f_ with the values key and value
- *
- * --Setters--
- *
- * map_set_hash_function(m, f)  Set hash function _f_ for map _m_ to use when
- *                              hashing keys
- *
- * map_set_free_function(m, f)  Set free function _f_ for map _m_ to use when
- *                              freeing entries
- *
- * map_set_setting_flag(m, f)   Set setting flag _f_ for map _m_
- *
- *
- * The implementation details of the hash table are as follows:
- *
- * The hash table uses the 32 bit version of the murmur hash v3
+ * The hash mamapp uses the 32 bit version of the murmur hash v3 by default
  *
  * Collisions are resolved using open addressing with the robin hood hashing
  * algorithm - probing linearly
@@ -66,16 +26,14 @@
  * The table implements bi-directional resizing using high+low load-factors
  *
  * After resize a re-hash is performed to amortize the keys across the new
- * table size
- *
- * Table size is bound to a set defined as {log(MAP_MIN_SIZE)^2 ... n^2}
+ * map size
  *
  * Keys are pointers to char
  *
  * Values are pointers to void
  */
 
-// Takes a key and returns a hash
+// Function which takes a key and returns a hash
 typedef uint32_t (*map_hash_function_t)(const char *key);
 
 #define MAP_MIN_LENGTH 4
@@ -92,25 +50,32 @@ enum map_settings {
 
 enum map_events {
         EVENT_FLAG_NORMAL = 1 << 0, // Nothing special
-        EVENT_FLAG_REHASHING_MAP = 1 << 1, // Map is currently rehashing
+        EVENT_FLAG_RESIZING_MAP = 1 << 1, // Map is currently resizing
         EVENT_FLAG_ITERATING = 1 << 2, // Map is currently iterating
 };
 
-// Represents a entry in the hash table
-struct dict_entry {
+enum map_error {
+        MEMORY_ALLOCATION_ERROR = 1 << 0, // Failed to allocate memory
+        ENTRY_NOT_FOUND_ERROR = 1 << 1, // Entry was not found in map
+        GENERIC_ERROR = 1 << 2, // For unknown errors
+        NO_ERROR = 1 << 3, // No error
+};
+
+// Represents an entry in the hash map
+struct map_entry {
         // Tradeoff: Getting DIB from hash instead of storing DIB in entry
         // Pro: Smaller entry memory footprint
         // Con: Increased computation when calculating DIB
         uint32_t hash;
         const char *key;
-        void *data;
+        void *value;
 };
 
-// Represents a hash table
-struct dict_map {
-        uint32_t length; // Length of the table (power of 2)
+// Represents a hash map
+struct map {
+        uint32_t length; // Length of the map (power of 2)
         uint32_t bucket_count;
-        struct dict_entry **entries;
+        struct map_entry **entries;
 #ifdef USE_POSIX
         pthread_mutex_t mutex;
 #endif
@@ -119,24 +84,24 @@ struct dict_map {
         enum map_events event_flags;
 };
 
-// Frees data stored in the map entry
+// Function which takes data and frees the memory allocated for it
 typedef void (*map_entry_free_function_t)(void *data);
 
-// Callback function for iterator
-typedef void (*map_foreach_callback_function_t)(const struct dict_entry *entry);
+// Function callback called when iterating through a map
+typedef void (*map_foreach_callback_function_t)(const struct map_entry *entry);
 
-struct dict_map *map_init(void);
-void map_destroy(struct dict_map *map);
-void map_destroy_func(struct dict_map *map,
+struct map *map_init(void);
+void map_destroy(struct map *map);
+void map_destroy_func(struct map *map,
                       const map_entry_free_function_t free_function);
 
-int map_insert(struct dict_map *map, const char *key, void *data);
-int map_add(struct dict_map *map, const char *key, void *data);
-int map_delete(struct dict_map *map, const char *key);
+enum map_error map_insert(struct map *map, const char *key, void *value);
+enum map_error map_add(struct map *map, const char *key, void *value);
+enum map_error map_delete(struct map *map, const char *key);
+enum map_error map_get(struct map *map, const char *key,
+                       struct map_entry **result);
 
-void map_foreach(const struct dict_map *map,
+void map_foreach(const struct map *map,
                  const map_foreach_callback_function_t callback);
-
-void map_set_hash_function(struct dict_map *map,
-                           const map_hash_function_t function);
-void map_set_setting_flag(struct dict_map *map, enum map_settings flag);
+void map_set_hash_function(struct map *map, const map_hash_function_t function);
+void map_set_setting_flag(struct map *map, enum map_settings flag);

@@ -10,51 +10,57 @@
 #include <common/hash.h>
 #include "map.h"
 
+// Default map hashing function
+// Uses Murmur v3 32bit
 static ATTR_CONST uint32_t default_key_hash(const char *key)
 {
-        // TODO: Should any thought be put into a seed
+        // TODO: Should thought be put into a seed for the hash
         return hash_murmur3_32(key, strlen(key), 0);
 }
 
-/**
- * Given a power of 2, find the next power of 2
- */
+// Given a power of 2 - find the next power of 2
 static ATTR_INLINE ATTR_CONST uint32_t next_power(uint32_t num)
 {
         return num * 2;
 }
 
-/**
- * Given a power of 2, find the previous power of 2
- */
+// Given a power of 2 - find the previous power of 2
 static ATTR_INLINE ATTR_CONST uint32_t previous_power(uint32_t num)
 {
         return (num * 0x200001) >> 22;
 }
 
-static struct dict_entry *entry_init(uint32_t hash, const char *key, void *data)
+// Given a hash, key, and value construct a map entry
+static enum map_error entry_init(uint32_t hash, const char *key, void *value,
+                                 struct map_entry **dest)
 {
-        struct dict_entry *entry = malloc(sizeof(struct dict_entry));
+        *dest = malloc(sizeof(struct map_entry));
 
-        if (entry == NULL) {
-                return NULL;
+        if (*dest == NULL) {
+                return MEMORY_ALLOCATION_ERROR;
         }
 
-        entry->hash = hash;
-        entry->key = key;
-        entry->data = data;
+        (*dest)->hash = hash;
+        (*dest)->key = key;
+        (*dest)->value = value;
 
-        return entry;
+        return NO_ERROR;
 }
 
-static ATTR_INLINE int entry_is_present(const struct dict_entry *entry)
+// Given a map_entry determine if it holds valid data and is present
+static int entry_is_present(const struct map_entry *entry)
 {
-        return entry != NULL && entry->key != NULL && entry->data != NULL;
+        if (entry != NULL && entry->key != NULL && entry->value != NULL) {
+                return 0;
+        }
+
+        return -1;
 }
 
-static ATTR_INLINE uint32_t get_dib(const struct dict_map *map,
-                                    const struct dict_entry *entry,
-                                    uint32_t current_index)
+// Given a map_entry and it's current index find the distance from the initial
+// bucket
+static uint32_t get_dib(const struct map *map, const struct map_entry *entry,
+                        uint32_t current_index)
 {
         uint32_t initial_index = entry->hash % map->length;
 
@@ -65,11 +71,10 @@ static ATTR_INLINE uint32_t get_dib(const struct dict_map *map,
         return current_index - initial_index;
 }
 
-static int map_lock(struct dict_map *map)
+// Attempt to lock the map
+static int map_lock(struct map *map)
 {
-        if (!map) {
-                return -1;
-        }
+        assert(map);
 
         if (map->setting_flags & MAP_FLAG_NO_LOCKING) {
                 return 0;
@@ -83,11 +88,10 @@ static int map_lock(struct dict_map *map)
         return 0;
 }
 
-static int map_unlock(struct dict_map *map)
+// Attempt to unlock the map
+static int map_unlock(struct map *map)
 {
-        if (!map) {
-                return -1;
-        }
+        assert(map);
 
         if (map->setting_flags & MAP_FLAG_NO_LOCKING) {
                 return 0;
@@ -101,88 +105,91 @@ static int map_unlock(struct dict_map *map)
         return 0;
 }
 
-static int map_probe(struct dict_map *map, struct dict_entry *entry,
-                     uint32_t initial_index)
+// Use the robin hood hashing method to probe the map for a sutable location to
+// place the provided entry
+static enum map_error map_probe(struct map *map, struct map_entry *entry,
+                                uint32_t initial_index)
 {
+        // As we probe through the map these will continually get updated
         uint32_t probe_position = initial_index;
-        struct dict_entry *insert_entry = entry;
+        struct map_entry *insert_entry = entry;
 
-        for (size_t i = 0; i < map->length; ++i) {
+        for (;;) {
                 if (probe_position == map->length) {
                         probe_position = 0;
                 }
 
-                struct dict_entry *current_entry = map->entries[probe_position];
+                assert(probe_position < map->length);
 
-                if (!entry_is_present(current_entry)) {
+                struct map_entry *current_entry = map->entries[probe_position];
+
+                if (entry_is_present(current_entry) != 0) {
                         // Insert here
                         map->entries[probe_position] = insert_entry;
 
-                        return 0;
+                        return NO_ERROR;
                 }
 
                 uint32_t insert_dib
                         = get_dib(map, insert_entry, probe_position);
 
-                assert(insert_dib < map->length);
-
                 uint32_t current_dib
                         = get_dib(map, current_entry, probe_position);
 
+                // If the current entry has a lower dib then the entry we are
+                // trying to insert then we swap the entries
                 if (current_dib < insert_dib) {
-                        // Swap
                         map->entries[probe_position] = insert_entry;
 
                         insert_entry = current_entry;
-                        probe_position = probe_position + 1;
+                        probe_position += 1;
 
                         continue;
                 }
 
                 // Keep probing
-                probe_position = probe_position + 1;
+                probe_position += 1;
         }
 
         // Should never happen
-        return -1;
+        return GENERIC_ERROR;
 }
 
-/**
- * Inserts a pre-hashed dict_entry into a dict_map.
- *
- * NOTE: This does not check for load factor compliance. It is an
- * internal function which is used by the exported map_insert and
- * map_resize. Both of these function deal with load_factor in their own
- * ways, but when calling this function it should be known that the load
- * factor will be kept valid.
- */
-static int map_insert_entry(struct dict_map *map, struct dict_entry *entry)
+// Inserts a pre-hashed entry into the map
+//
+// Note: This does not check for load factor compliance.
+static enum map_error map_insert_entry(struct map *map, struct map_entry *entry)
 {
-        uint32_t initial_index = entry->hash % map->length;
+        // Get the new initial index
+        uint32_t initial_index = entry->hash & map->length;
 
-        assert(initial_index < map->length);
-        assert(entry != NULL);
-
-        if (entry_is_present(map->entries[initial_index])) {
+        if (entry_is_present(map->entries[initial_index]) != -1) {
                 // Handle collision
-                if (map_probe(map, entry, initial_index) != 0) {
-                        return -1;
+                enum map_error error = map_probe(map, entry, initial_index);
+
+                if (error != NO_ERROR) {
+                        return error;
                 }
 
                 map->bucket_count += 1;
 
-                return 0;
+                return NO_ERROR;
         }
 
+        // Nothing at the initial index so insert here
         map->entries[initial_index] = entry;
         map->bucket_count += 1;
 
-        return 0;
+        return NO_ERROR;
 }
 
-static int map_resize(struct dict_map *map, int resize_direction)
+// Resizes the map either to a smaller size or a larger size
+//
+// resize_direction == 1 -> Increase size
+// resize_direction == -1 -> Decrease size
+static enum map_error map_resize(struct map *map, int resize_direction)
 {
-        uint32_t new_length = 0;
+        uint32_t new_length = map->length;
 
         if (resize_direction == 1) {
                 new_length = next_power(map->length);
@@ -190,47 +197,67 @@ static int map_resize(struct dict_map *map, int resize_direction)
                 new_length = previous_power(map->length);
         }
 
-        struct dict_entry **new_entries
-                = calloc(new_length, sizeof(struct dict_entry *));
+        struct map_entry **new_entries
+                = calloc(new_length, sizeof(struct map_entry *));
 
         if (new_entries == NULL) {
-                return -1;
+                return MEMORY_ALLOCATION_ERROR;
         }
 
         map_lock(map);
+        map->event_flags |= EVENT_FLAG_RESIZING_MAP;
 
-        // Resize map to new_size
-        struct dict_map old_map = *map;
+        // Cache old entries
+        struct map_entry **old_entries
+                = malloc(sizeof(struct map_entry *) * map->length);
+        size_t old_length = map->length;
+
+        if (old_entries == NULL) {
+                // Need to free newly initialized entries
+                free(new_entries);
+
+                return MEMORY_ALLOCATION_ERROR;
+        }
+
+        memcpy(old_entries,
+               map->entries,
+               sizeof(struct map_entry *) * map->length);
+
+        // Need to free the old entries
+        free(map->entries);
 
         map->length = new_length;
         map->bucket_count = 0;
-
-        // Free the old entries list
-        free(map->entries);
-
         map->entries = new_entries;
 
-        for (size_t i = 0; i < old_map.length; ++i) {
-                struct dict_entry *entry = old_map.entries[i];
+        for (size_t i = 0; i < old_length; ++i) {
+                struct map_entry *entry = old_entries[i];
 
-                if (!entry_is_present(entry)) {
-                        // Nothing here - continue
+                if (entry_is_present(entry) == -1) {
+                        // Nothing here
+
                         continue;
                 }
 
-                if (map_insert_entry(map, entry) != 0) {
-                        return -1;
+                enum map_error error = map_insert_entry(map, entry);
+
+                if (error != NO_ERROR) {
+                        return error;
                 }
         }
 
-        map_unlock(map);
+        free(old_entries);
 
-        return 0;
+        map_unlock(map);
+        map->event_flags &= (unsigned int)~EVENT_FLAG_RESIZING_MAP;
+
+        return NO_ERROR;
 }
 
-struct dict_map *map_init(void)
+// Initialize a map
+struct map *map_init(void)
 {
-        struct dict_map *map = malloc(sizeof(struct dict_map));
+        struct map *map = malloc(sizeof(struct map));
 
         if (map == NULL) {
                 return NULL;
@@ -238,7 +265,7 @@ struct dict_map *map_init(void)
 
         map->length = MAP_MIN_LENGTH;
         map->bucket_count = 0;
-        map->entries = calloc(map->length, sizeof(struct dict_entry));
+        map->entries = calloc(map->length, sizeof(struct map_entry));
 
         if (map->entries == NULL) {
                 return NULL;
@@ -256,25 +283,24 @@ struct dict_map *map_init(void)
         return map;
 }
 
-/**
- * Deletes a map by free'ing all entries and free'ing the table
- *
- * NOTE: If the data stored in the entries has nested items which need
- * to be free'd then there will be memory leaks if this function is used
- * since we are only dealing with the first level. map_destroy_func
- * allows for customized free'ing of entries.
- */
-void map_destroy(struct dict_map *map)
+// Destroys a map and it's entries
+//
+// Note: If the value stored in the entires has nested items which need to be
+// free'd then there will be memory leaks if this function is used since we are
+// only dealing with the top level. map_destroy_func allows for customizing the
+// free'ing of entries
+void map_destroy(struct map *map)
 {
         // Delete entries
         for (size_t i = 0; i < map->length; ++i) {
-                struct dict_entry *entry = map->entries[i];
+                struct map_entry *entry = map->entries[i];
 
-                if (entry_is_present(entry)) {
+                if (entry_is_present(entry) != -1) {
                         if (map->setting_flags & MAP_FLAG_USE_FREE) {
-                                free(map->entries[i]->data);
+                                free(entry->value);
                         }
-                        free(map->entries[i]);
+
+                        free(entry);
                 }
         }
 
@@ -282,59 +308,53 @@ void map_destroy(struct dict_map *map)
         free(map);
 }
 
-/**
- * Deletes a map by calling a provided free_function on all the data
- * held by every entry.
- *
- * NOTE: Use this if you have data which has nested allocs
- */
-void map_destroy_func(struct dict_map *map,
+// Destroys a map using a custom free function
+void map_destroy_func(struct map *map,
                       const map_entry_free_function_t free_function)
 {
         for (size_t i = 0; i < map->length; ++i) {
-                struct dict_entry *entry = map->entries[i];
+                struct map_entry *entry = map->entries[i];
 
-                if (entry_is_present(entry)) {
-                        free_function(map->entries[i]->data);
-                        free(map->entries[i]);
+                if (entry_is_present(entry) != -1) {
+                        free_function(entry);
                 }
         }
 
+        free(map->entries);
         free(map);
 }
 
-int map_insert(struct dict_map *map, const char *key, void *data)
+// Insert an entry into a map
+enum map_error map_insert(struct map *map, const char *key, void *value)
 {
-        assert(map);
-
         double load_factor = (map->bucket_count + 1.0) / map->length;
 
-        // Determine if a resize is required
         if (load_factor >= MAP_LOAD_FACTOR_HIGH) {
                 // Only resize if we aren't ignoring thresholds
                 if (!(map->setting_flags & MAP_FLAG_IGNORE_THRESHOLDS)) {
-                        // TODO: Resize
                         map_resize(map, 1);
                 }
         }
 
         uint32_t hash = map->hash_function(key);
-        struct dict_entry *entry = entry_init(hash, key, data);
+        struct map_entry *entry = NULL;
+        enum map_error error = entry_init(hash, key, value, &entry);
 
-        if (entry == NULL) {
-                return -1;
+        if (error != NO_ERROR) {
+                return error;
         }
 
         return map_insert_entry(map, entry);
 }
 
-void map_foreach(const struct dict_map *map,
+// Iterate through the map calling the callback for each entry
+void map_foreach(const struct map *map,
                  const map_foreach_callback_function_t callback)
 {
         for (size_t i = 0; i < map->length; ++i) {
-                struct dict_entry *entry = map->entries[i];
+                struct map_entry *entry = map->entries[i];
 
-                if (entry_is_present(entry)) {
+                if (entry_is_present(entry) != -1) {
                         callback(entry);
                 }
         }
