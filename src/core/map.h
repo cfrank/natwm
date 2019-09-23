@@ -37,8 +37,12 @@
 typedef uint32_t (*map_hash_function_t)(const char *key);
 
 #define MAP_MIN_LENGTH 4
+
 #define MAP_LOAD_FACTOR_HIGH 0.75
 #define MAP_LOAD_FACTOR_LOW 0.2
+
+#define MAP_RESIZE_UP 1
+#define MAP_RESIZE_DOWN -1
 
 enum map_settings {
         MAP_FLAG_KEY_IGNORE_CASE = 1 << 0, // Ignore casing for keys

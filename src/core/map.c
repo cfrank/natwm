@@ -165,21 +165,21 @@ static enum map_error map_insert_entry(struct map *map, struct map_entry *entry)
 
         assert(initial_index < map->length);
 
-        if (entry_is_present(map->entries[initial_index]) != -1) {
-                // Handle collision
-                enum map_error error = map_probe(map, entry, initial_index);
-
-                if (error != NO_ERROR) {
-                        return error;
-                }
-
+        if (entry_is_present(map->entries[initial_index]) != 0) {
+                // We just insert here
+                map->entries[initial_index] = entry;
                 map->bucket_count += 1;
 
                 return NO_ERROR;
         }
 
-        // Nothing at the initial index so insert here
-        map->entries[initial_index] = entry;
+        // Handle collision
+        enum map_error error = map_probe(map, entry, initial_index);
+
+        if (error != NO_ERROR) {
+                return error;
+        }
+
         map->bucket_count += 1;
 
         return NO_ERROR;
@@ -256,6 +256,31 @@ static enum map_error map_resize(struct map *map, int resize_direction)
         return NO_ERROR;
 }
 
+// Handle load factor for inserting/removing values
+static int get_resize_direction(struct map *map, double new_size)
+{
+        if (map->setting_flags & MAP_FLAG_IGNORE_THRESHOLDS) {
+                return 0;
+        }
+
+        double load_factor = new_size / map->length;
+
+        if (load_factor >= MAP_LOAD_FACTOR_HIGH) {
+                return MAP_RESIZE_UP;
+        }
+
+        if (load_factor <= MAP_LOAD_FACTOR_LOW) {
+                if (map->setting_flags & MAP_FLAG_IGNORE_THRESHOLDS_EMPTY) {
+                        return 0;
+                }
+
+                return MAP_RESIZE_DOWN;
+        }
+
+        // Should never happen
+        return 0;
+}
+
 // Initialize a map
 struct map *map_init(void)
 {
@@ -329,17 +354,14 @@ void map_destroy_func(struct map *map,
 // Insert an entry into a map
 enum map_error map_insert(struct map *map, const char *key, void *value)
 {
-        double load_factor = (map->bucket_count + 1.0) / map->length;
+        int resize_dir = get_resize_direction(map, map->bucket_count + 1.0);
 
-        if (load_factor >= MAP_LOAD_FACTOR_HIGH) {
-                // Only resize if we aren't ignoring thresholds
-                if (!(map->setting_flags & MAP_FLAG_IGNORE_THRESHOLDS)) {
-                        map_resize(map, 1);
-                }
+        if (resize_dir != 0) {
+                map_resize(map, resize_dir);
         }
 
-        uint32_t hash = map->hash_function(key);
         struct map_entry *entry = NULL;
+        uint32_t hash = map->hash_function(key);
         enum map_error error = entry_init(hash, key, value, &entry);
 
         if (error != NO_ERROR) {
