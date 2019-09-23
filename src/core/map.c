@@ -161,7 +161,9 @@ static enum map_error map_probe(struct map *map, struct map_entry *entry,
 static enum map_error map_insert_entry(struct map *map, struct map_entry *entry)
 {
         // Get the new initial index
-        uint32_t initial_index = entry->hash & map->length;
+        uint32_t initial_index = entry->hash % map->length;
+
+        assert(initial_index < map->length);
 
         if (entry_is_present(map->entries[initial_index]) != -1) {
                 // Handle collision
