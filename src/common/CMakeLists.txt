@@ -9,5 +9,5 @@ add_library(common STATIC
 )
 
 target_link_libraries(common
-    PRIVATE clog
+    PUBLIC clog
 )
