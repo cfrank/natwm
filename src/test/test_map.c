@@ -90,6 +90,20 @@ static void test_map_insert_load_factor(void **state)
         assert_int_equal(expected_length, map->length);
 }
 
+static void test_map_insert_duplicate(void **state)
+{
+        struct map *map = *(struct map **)state;
+        const char *first_value = "John Doe";
+        const char *second_value = "Jane Doe";
+        uint32_t expected_count = 1;
+
+        map_insert(map, "name", &first_value);
+        map_insert(map, "name", &second_value);
+
+        assert_int_equal(expected_count, map->bucket_count);
+        assert_int_equal(expected_count, count_entries(map));
+}
+
 int main(void)
 {
         const struct CMUnitTest tests[] = {
@@ -99,6 +113,8 @@ int main(void)
                         test_map_insert, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(
                         test_map_insert_load_factor, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(
+                        test_map_insert_duplicate, test_setup, test_teardown),
         };
 
         return cmocka_run_group_tests(tests, NULL, NULL);

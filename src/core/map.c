@@ -3,12 +3,17 @@
 // Refer to the license.txt file included in the root of the project
 
 #include <assert.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include <common/constants.h>
 #include <common/hash.h>
 #include "map.h"
+
+// Forward declarations
+static enum map_error map_insert_entry(struct map *map,
+                                       struct map_entry *entry);
 
 // Default map hashing function
 // Uses Murmur v3 32bit
@@ -30,31 +35,14 @@ static ATTR_INLINE ATTR_CONST uint32_t previous_power(uint32_t num)
         return (num * 0x200001) >> 22;
 }
 
-// Given a hash, key, and value construct a map entry
-static enum map_error entry_init(uint32_t hash, const char *key, void *value,
-                                 struct map_entry **dest)
-{
-        *dest = malloc(sizeof(struct map_entry));
-
-        if (*dest == NULL) {
-                return MEMORY_ALLOCATION_ERROR;
-        }
-
-        (*dest)->hash = hash;
-        (*dest)->key = key;
-        (*dest)->value = value;
-
-        return NO_ERROR;
-}
-
 // Given a map_entry determine if it holds valid data and is present
-static int entry_is_present(const struct map_entry *entry)
+static bool is_entry_present(const struct map_entry *entry)
 {
         if (entry != NULL && entry->key != NULL && entry->value != NULL) {
-                return 0;
+                return true;
         }
 
-        return -1;
+        return false;
 }
 
 // Given a map_entry and it's current index find the distance from the initial
@@ -123,7 +111,7 @@ static enum map_error map_probe(struct map *map, struct map_entry *entry,
 
                 struct map_entry *current_entry = map->entries[probe_position];
 
-                if (entry_is_present(current_entry) != 0) {
+                if (!is_entry_present(current_entry)) {
                         // Insert here
                         map->entries[probe_position] = insert_entry;
 
@@ -155,34 +143,29 @@ static enum map_error map_probe(struct map *map, struct map_entry *entry,
         return GENERIC_ERROR;
 }
 
-// Inserts a pre-hashed entry into the map
-//
-// Note: This does not check for load factor compliance.
-static enum map_error map_insert_entry(struct map *map, struct map_entry *entry)
+// Handle load factor for inserting/removing values
+static int get_resize_direction(const struct map *map, double new_size)
 {
-        // Get the new initial index
-        uint32_t initial_index = entry->hash % map->length;
-
-        assert(initial_index < map->length);
-
-        if (entry_is_present(map->entries[initial_index]) != 0) {
-                // We just insert here
-                map->entries[initial_index] = entry;
-                map->bucket_count += 1;
-
-                return NO_ERROR;
+        if (map->setting_flags & MAP_FLAG_IGNORE_THRESHOLDS) {
+                return 0;
         }
 
-        // Handle collision
-        enum map_error error = map_probe(map, entry, initial_index);
+        double load_factor = new_size / map->length;
 
-        if (error != NO_ERROR) {
-                return error;
+        if (load_factor >= MAP_LOAD_FACTOR_HIGH) {
+                return MAP_RESIZE_UP;
         }
 
-        map->bucket_count += 1;
+        if (load_factor <= MAP_LOAD_FACTOR_LOW) {
+                if (map->setting_flags & MAP_FLAG_IGNORE_THRESHOLDS_EMPTY) {
+                        return 0;
+                }
 
-        return NO_ERROR;
+                return MAP_RESIZE_DOWN;
+        }
+
+        // Should never happen
+        return 0;
 }
 
 // Resizes the map either to a smaller size or a larger size
@@ -235,7 +218,7 @@ static enum map_error map_resize(struct map *map, int resize_direction)
         for (size_t i = 0; i < old_length; ++i) {
                 struct map_entry *entry = old_entries[i];
 
-                if (entry_is_present(entry) == -1) {
+                if (!is_entry_present(entry)) {
                         // Nothing here
 
                         continue;
@@ -256,29 +239,92 @@ static enum map_error map_resize(struct map *map, int resize_direction)
         return NO_ERROR;
 }
 
-// Handle load factor for inserting/removing values
-static int get_resize_direction(struct map *map, double new_size)
+// Inserts a pre-hashed entry into the map
+static enum map_error map_insert_entry(struct map *map, struct map_entry *entry)
 {
-        if (map->setting_flags & MAP_FLAG_IGNORE_THRESHOLDS) {
-                return 0;
+        // Get the new initial index
+        uint32_t initial_index = entry->hash % map->length;
+
+        assert(initial_index < map->length);
+
+        struct map_entry *present_entry = map->entries[initial_index];
+        bool is_hash_collision = is_entry_present(present_entry);
+
+        if (is_hash_collision && strcmp(present_entry->key, entry->key) == 0) {
+                map_entry_destroy(map, present_entry);
+
+                map->entries[initial_index] = entry;
+
+                return NO_ERROR;
         }
 
-        double load_factor = new_size / map->length;
+        // Now we need to increase map->bucket_count
+        int resize_direction
+                = get_resize_direction(map, map->bucket_count + 1.0);
 
-        if (load_factor >= MAP_LOAD_FACTOR_HIGH) {
-                return MAP_RESIZE_UP;
-        }
+        if (resize_direction != 0) {
+                enum map_error resize_error = map_resize(map, resize_direction);
 
-        if (load_factor <= MAP_LOAD_FACTOR_LOW) {
-                if (map->setting_flags & MAP_FLAG_IGNORE_THRESHOLDS_EMPTY) {
-                        return 0;
+                if (resize_error != NO_ERROR) {
+                        return resize_error;
                 }
 
-                return MAP_RESIZE_DOWN;
+                // Insert with the new size
+                return map_insert_entry(map, entry);
         }
 
-        // Should never happen
-        return 0;
+        if (!is_hash_collision) {
+                // No collision - just insert here
+                map->entries[initial_index] = entry;
+                map->bucket_count += 1;
+
+                return NO_ERROR;
+        }
+
+        // Handle collision
+        enum map_error error = map_probe(map, entry, initial_index);
+
+        if (error != NO_ERROR) {
+                return error;
+        }
+
+        map->bucket_count += 1;
+
+        return NO_ERROR;
+}
+
+// Given a hash, key, and value construct a map entry
+enum map_error entry_init(uint32_t hash, const char *key, void *value,
+                          struct map_entry **dest)
+{
+        *dest = malloc(sizeof(struct map_entry));
+
+        if (*dest == NULL) {
+                return MEMORY_ALLOCATION_ERROR;
+        }
+
+        (*dest)->hash = hash;
+        (*dest)->key = key;
+        (*dest)->value = value;
+
+        return NO_ERROR;
+}
+
+void map_entry_destroy(const struct map *map, struct map_entry *entry)
+{
+        if (!is_entry_present(entry)) {
+                return;
+        }
+
+        if (map->setting_flags & MAP_FLAG_USE_FREE) {
+                free(entry->value);
+        }
+
+        if (map->setting_flags & MAP_FLAG_USE_FREE_FUNC) {
+                map->free_function(entry->value);
+        }
+
+        free(entry);
 }
 
 // Initialize a map
@@ -320,31 +366,7 @@ void map_destroy(struct map *map)
 {
         // Delete entries
         for (size_t i = 0; i < map->length; ++i) {
-                struct map_entry *entry = map->entries[i];
-
-                if (entry_is_present(entry) != -1) {
-                        if (map->setting_flags & MAP_FLAG_USE_FREE) {
-                                free(entry->value);
-                        }
-
-                        free(entry);
-                }
-        }
-
-        free(map->entries);
-        free(map);
-}
-
-// Destroys a map using a custom free function
-void map_destroy_func(struct map *map,
-                      const map_entry_free_function_t free_function)
-{
-        for (size_t i = 0; i < map->length; ++i) {
-                struct map_entry *entry = map->entries[i];
-
-                if (entry_is_present(entry) != -1) {
-                        free_function(entry);
-                }
+                map_entry_destroy(map, map->entries[i]);
         }
 
         free(map->entries);
@@ -354,12 +376,6 @@ void map_destroy_func(struct map *map,
 // Insert an entry into a map
 enum map_error map_insert(struct map *map, const char *key, void *value)
 {
-        int resize_dir = get_resize_direction(map, map->bucket_count + 1.0);
-
-        if (resize_dir != 0) {
-                map_resize(map, resize_dir);
-        }
-
         struct map_entry *entry = NULL;
         uint32_t hash = map->hash_function(key);
         enum map_error error = entry_init(hash, key, value, &entry);
@@ -373,13 +389,37 @@ enum map_error map_insert(struct map *map, const char *key, void *value)
 
 // Iterate through the map calling the callback for each entry
 void map_foreach(const struct map *map,
-                 const map_foreach_callback_function_t callback)
+                 map_foreach_callback_function_t callback)
 {
         for (size_t i = 0; i < map->length; ++i) {
                 struct map_entry *entry = map->entries[i];
 
-                if (entry_is_present(entry) != -1) {
+                if (is_entry_present(entry)) {
                         callback(entry);
                 }
         }
+}
+
+// Set a hashing function for use when inserting and re-hashing entries
+int map_set_hash_function(struct map *map, map_hash_function_t function)
+{
+        if (map->hash_function != NULL && map->bucket_count > 0) {
+                // Since we have entries we can't use a different hashing func
+                return -1;
+        }
+
+        map->hash_function = function;
+
+        return 0;
+}
+
+// Set a custom free function for use when destroying entries
+void map_set_entry_free_function(struct map *map,
+                                 map_entry_free_function_t function)
+{
+        if (map->setting_flags & MAP_FLAG_USE_FREE) {
+                map->setting_flags &= (unsigned int)~MAP_FLAG_USE_FREE;
+        }
+
+        map->setting_flags |= MAP_FLAG_USE_FREE_FUNC;
 }

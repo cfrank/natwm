@@ -36,6 +36,9 @@
 // Function which takes a key and returns a hash
 typedef uint32_t (*map_hash_function_t)(const char *key);
 
+// Function which takes data and frees the memory allocated for it
+typedef void (*map_entry_free_function_t)(void *data);
+
 #define MAP_MIN_LENGTH 4
 
 #define MAP_LOAD_FACTOR_HIGH 0.75
@@ -47,9 +50,10 @@ typedef uint32_t (*map_hash_function_t)(const char *key);
 enum map_settings {
         MAP_FLAG_KEY_IGNORE_CASE = 1 << 0, // Ignore casing for keys
         MAP_FLAG_USE_FREE = 1 << 1, // Use free instead of supplied free func
-        MAP_FLAG_IGNORE_THRESHOLDS = 1 << 2, // Ignore load factors
-        MAP_FLAG_IGNORE_THRESHOLDS_EMPTY = 1 << 3, // Ignore low_load_factor
-        MAP_FLAG_NO_LOCKING = 1 << 4, // Don't try to be thread safe
+        MAP_FLAG_USE_FREE_FUNC = 1 << 2, // Use a custom free function
+        MAP_FLAG_IGNORE_THRESHOLDS = 1 << 3, // Ignore load factors
+        MAP_FLAG_IGNORE_THRESHOLDS_EMPTY = 1 << 4, // Ignore low_load_factor
+        MAP_FLAG_NO_LOCKING = 1 << 5, // Don't try to be thread safe
 };
 
 enum map_events {
@@ -84,28 +88,30 @@ struct map {
         pthread_mutex_t mutex;
 #endif
         map_hash_function_t hash_function;
+        map_entry_free_function_t free_function;
         enum map_settings setting_flags;
         enum map_events event_flags;
 };
 
-// Function which takes data and frees the memory allocated for it
-typedef void (*map_entry_free_function_t)(void *data);
-
 // Function callback called when iterating through a map
 typedef void (*map_foreach_callback_function_t)(const struct map_entry *entry);
 
+enum map_error entry_init(uint32_t hash, const char *key, void *value,
+                          struct map_entry **dest);
+void map_entry_destroy(const struct map *map, struct map_entry *entry);
+
 struct map *map_init(void);
 void map_destroy(struct map *map);
-void map_destroy_func(struct map *map,
-                      const map_entry_free_function_t free_function);
+void map_destroy_func(struct map *map, map_entry_free_function_t free_function);
 
 enum map_error map_insert(struct map *map, const char *key, void *value);
-enum map_error map_add(struct map *map, const char *key, void *value);
 enum map_error map_delete(struct map *map, const char *key);
 enum map_error map_get(struct map *map, const char *key,
                        struct map_entry **result);
 
 void map_foreach(const struct map *map,
-                 const map_foreach_callback_function_t callback);
-void map_set_hash_function(struct map *map, const map_hash_function_t function);
+                 map_foreach_callback_function_t callback);
+int map_set_hash_function(struct map *map, map_hash_function_t function);
+void map_set_entry_free_function(struct map *map,
+                                 map_entry_free_function_t function);
 void map_set_setting_flag(struct map *map, enum map_settings flag);
