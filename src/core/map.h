@@ -104,7 +104,7 @@ void map_entry_destroy(const struct map *map, struct map_entry *entry);
 struct map *map_init(void);
 void map_destroy(struct map *map);
 enum map_error map_insert(struct map *map, const char *key, void *value);
-struct map_entry *map_get(struct map *map, const char *key);
+struct map_entry *map_get(const struct map *map, const char *key);
 enum map_error map_delete(struct map *map, const char *key);
 
 void map_foreach(const struct map *map,
@@ -113,3 +113,6 @@ int map_set_hash_function(struct map *map, map_hash_function_t function);
 void map_set_entry_free_function(struct map *map,
                                  map_entry_free_function_t function);
 void map_set_setting_flag(struct map *map, enum map_settings flag);
+
+uint32_t map_get_uint32(const struct map *map, const char *key,
+                        enum map_error *error);

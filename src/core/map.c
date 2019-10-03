@@ -138,7 +138,7 @@ static enum map_error map_probe(struct map *map, struct map_entry *entry,
         return GENERIC_ERROR;
 }
 
-static struct map_entry *map_search(struct map *map, const char *key,
+static struct map_entry *map_search(const struct map *map, const char *key,
                                     uint32_t initial_index)
 {
         uint32_t index = initial_index;
@@ -413,7 +413,7 @@ enum map_error map_insert(struct map *map, const char *key, void *value)
         return map_insert_entry(map, entry);
 }
 
-struct map_entry *map_get(struct map *map, const char *key)
+struct map_entry *map_get(const struct map *map, const char *key)
 {
         uint32_t initial_index = (map->hash_function(key)) % map->length;
 
@@ -468,4 +468,21 @@ void map_set_entry_free_function(struct map *map,
         }
 
         map->setting_flags |= MAP_FLAG_USE_FREE_FUNC;
+}
+
+/**
+ * Type specific getters
+ */
+uint32_t map_get_uint32(const struct map *map, const char *key,
+                        enum map_error *error)
+{
+        struct map_entry *entry = map_get(map, key);
+
+        if (entry == NULL) {
+                *error = ENTRY_NOT_FOUND_ERROR;
+        }
+
+        *error = NO_ERROR;
+
+        return *(uint32_t *)entry->value;
 }

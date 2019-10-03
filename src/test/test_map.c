@@ -31,22 +31,6 @@ static int test_teardown(void **state)
         return EXIT_SUCCESS;
 }
 
-static size_t count_entries(const struct map *map)
-{
-        size_t count = 0;
-
-        for (size_t i = 0; i < map->length; ++i) {
-                struct map_entry *entry = map->entries[i];
-
-                if (entry != NULL && entry->key != NULL
-                    && entry->value != NULL) {
-                        count++;
-                }
-        }
-
-        return count;
-}
-
 static void test_map_init(void **state)
 {
         struct map *map = *(struct map **)state;
@@ -54,7 +38,6 @@ static void test_map_init(void **state)
         assert_int_equal(MAP_MIN_LENGTH, map->length);
         assert_int_equal(0, map->bucket_count);
         assert_non_null(map->entries);
-        assert_int_equal(0, count_entries(map));
         assert_true(map->setting_flags & MAP_FLAG_IGNORE_THRESHOLDS_EMPTY);
         assert_true(map->event_flags & EVENT_FLAG_NORMAL);
 }
@@ -63,15 +46,16 @@ static void test_map_insert(void **state)
 {
         struct map *map = *(struct map **)state;
         const char *expected_key = "test_key";
-        size_t expected_value = 14;
-        enum map_error error = map_insert(map, expected_key, &expected_value);
+        uint32_t expected_value = 14;
+        enum map_error test_error
+                = map_insert(map, expected_key, &expected_value);
 
-        assert_int_equal(NO_ERROR, error);
-        assert_int_equal(1, count_entries(map));
+        assert_int_equal(NO_ERROR, test_error);
 
-        struct map_entry *result = map_get(map, expected_key);
+        uint32_t result = map_get_uint32(map, expected_key, &test_error);
 
-        assert_int_equal(&expected_value, result->value);
+        assert_int_equal(NO_ERROR, test_error);
+        assert_int_equal(expected_value, result);
 }
 
 static void test_map_insert_load_factor(void **state)
@@ -90,7 +74,6 @@ static void test_map_insert_load_factor(void **state)
         map_insert(map, "Hello Two", &value);
 
         assert_int_equal(expected_count, map->bucket_count);
-        assert_int_equal(expected_count, count_entries(map));
         assert_int_equal(expected_length, map->length);
 }
 
@@ -105,7 +88,6 @@ static void test_map_insert_duplicate(void **state)
         map_insert(map, "name", &second_value);
 
         assert_int_equal(expected_count, map->bucket_count);
-        assert_int_equal(expected_count, count_entries(map));
 }
 
 int main(void)
