@@ -83,6 +83,7 @@ struct map_entry {
 struct map {
         uint32_t length; // Length of the map (power of 2)
         uint32_t bucket_count;
+        uint32_t max_dib; // Largest distance from initial bucket
         struct map_entry **entries;
 #ifdef USE_POSIX
         pthread_mutex_t mutex;
@@ -102,12 +103,9 @@ void map_entry_destroy(const struct map *map, struct map_entry *entry);
 
 struct map *map_init(void);
 void map_destroy(struct map *map);
-void map_destroy_func(struct map *map, map_entry_free_function_t free_function);
-
 enum map_error map_insert(struct map *map, const char *key, void *value);
+struct map_entry *map_get(struct map *map, const char *key);
 enum map_error map_delete(struct map *map, const char *key);
-enum map_error map_get(struct map *map, const char *key,
-                       struct map_entry **result);
 
 void map_foreach(const struct map *map,
                  map_foreach_callback_function_t callback);

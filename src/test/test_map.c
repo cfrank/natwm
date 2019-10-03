@@ -68,6 +68,10 @@ static void test_map_insert(void **state)
 
         assert_int_equal(NO_ERROR, error);
         assert_int_equal(1, count_entries(map));
+
+        struct map_entry *result = map_get(map, expected_key);
+
+        assert_int_equal(&expected_value, result->value);
 }
 
 static void test_map_insert_load_factor(void **state)

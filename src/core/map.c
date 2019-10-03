@@ -23,18 +23,6 @@ static ATTR_CONST uint32_t default_key_hash(const char *key)
         return hash_murmur3_32(key, strlen(key), 0);
 }
 
-// Given a power of 2 - find the next power of 2
-static ATTR_INLINE ATTR_CONST uint32_t next_power(uint32_t num)
-{
-        return num * 2;
-}
-
-// Given a power of 2 - find the previous power of 2
-static ATTR_INLINE ATTR_CONST uint32_t previous_power(uint32_t num)
-{
-        return (num * 0x200001) >> 22;
-}
-
 // Given a map_entry determine if it holds valid data and is present
 static bool is_entry_present(const struct map_entry *entry)
 {
@@ -132,6 +120,13 @@ static enum map_error map_probe(struct map *map, struct map_entry *entry,
                         insert_entry = current_entry;
                         probe_position += 1;
 
+                        if (insert_dib > map->max_dib) {
+                                assert(map->max_dib < map->length);
+
+                                // We have a new largest dib
+                                map->max_dib = insert_dib;
+                        }
+
                         continue;
                 }
 
@@ -141,6 +136,30 @@ static enum map_error map_probe(struct map *map, struct map_entry *entry,
 
         // Should never happen
         return GENERIC_ERROR;
+}
+
+static struct map_entry *map_search(struct map *map, const char *key,
+                                    uint32_t initial_index)
+{
+        uint32_t index = initial_index;
+
+        for (size_t i = 0; i <= map->max_dib; ++i) {
+                if ((index + i) >= map->length) {
+                        index = 0;
+                }
+
+                struct map_entry *entry = map->entries[index + i];
+
+                if (!is_entry_present(entry)) {
+                        continue;
+                }
+
+                if (strcmp(entry->key, key) == 0) {
+                        return entry;
+                }
+        }
+
+        return NULL;
 }
 
 // Handle load factor for inserting/removing values
@@ -177,9 +196,9 @@ static enum map_error map_resize(struct map *map, int resize_direction)
         uint32_t new_length = map->length;
 
         if (resize_direction == 1) {
-                new_length = next_power(map->length);
+                new_length = map->length * 2;
         } else {
-                new_length = previous_power(map->length);
+                new_length = map->length / 2;
         }
 
         struct map_entry **new_entries
@@ -193,24 +212,23 @@ static enum map_error map_resize(struct map *map, int resize_direction)
         map->event_flags |= EVENT_FLAG_RESIZING_MAP;
 
         // Cache old entries
-        struct map_entry **old_entries
-                = malloc(sizeof(struct map_entry *) * map->length);
+        size_t old_entries_size = sizeof(struct map_entry *) * map->length;
+        struct map_entry **old_entries = malloc(old_entries_size);
         size_t old_length = map->length;
 
         if (old_entries == NULL) {
-                // Need to free newly initialized entries
+                // Need to free newly initialized entries array
                 free(new_entries);
 
                 return MEMORY_ALLOCATION_ERROR;
         }
 
-        memcpy(old_entries,
-               map->entries,
-               sizeof(struct map_entry *) * map->length);
+        memcpy(old_entries, map->entries, old_entries_size);
 
-        // Need to free the old entries
+        // Need to free the old entries array
         free(map->entries);
 
+        // Set new attributes
         map->length = new_length;
         map->bucket_count = 0;
         map->entries = new_entries;
@@ -231,10 +249,12 @@ static enum map_error map_resize(struct map *map, int resize_direction)
                 }
         }
 
+        // Get rid of the cache array
+        // Actual entries are stored in the new map->entries array
         free(old_entries);
 
-        map_unlock(map);
         map->event_flags &= (unsigned int)~EVENT_FLAG_RESIZING_MAP;
+        map_unlock(map);
 
         return NO_ERROR;
 }
@@ -321,6 +341,10 @@ void map_entry_destroy(const struct map *map, struct map_entry *entry)
         }
 
         if (map->setting_flags & MAP_FLAG_USE_FREE_FUNC) {
+                if (map->free_function == NULL) {
+                        return;
+                }
+
                 map->free_function(entry->value);
         }
 
@@ -338,6 +362,7 @@ struct map *map_init(void)
 
         map->length = MAP_MIN_LENGTH;
         map->bucket_count = 0;
+        map->max_dib = 0;
         map->entries = calloc(map->length, sizeof(struct map_entry));
 
         if (map->entries == NULL) {
@@ -350,6 +375,7 @@ struct map *map_init(void)
         }
 #endif
         map->hash_function = default_key_hash;
+        map->free_function = NULL;
         map->setting_flags = MAP_FLAG_IGNORE_THRESHOLDS_EMPTY;
         map->event_flags = EVENT_FLAG_NORMAL;
 
@@ -385,6 +411,26 @@ enum map_error map_insert(struct map *map, const char *key, void *value)
         }
 
         return map_insert_entry(map, entry);
+}
+
+struct map_entry *map_get(struct map *map, const char *key)
+{
+        uint32_t initial_index = (map->hash_function(key)) % map->length;
+
+        return map_search(map, key, initial_index);
+}
+
+enum map_error map_delete(struct map *map, const char *key)
+{
+        struct map_entry *entry = map_get(map, key);
+
+        if (entry == NULL) {
+                return ENTRY_NOT_FOUND_ERROR;
+        }
+
+        map_entry_destroy(map, entry);
+
+        return NO_ERROR;
 }
 
 // Iterate through the map calling the callback for each entry
