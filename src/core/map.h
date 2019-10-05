@@ -83,7 +83,6 @@ struct map_entry {
 struct map {
         uint32_t length; // Length of the map (power of 2)
         uint32_t bucket_count;
-        uint32_t max_dib; // Largest distance from initial bucket
         struct map_entry **entries;
 #ifdef USE_POSIX
         pthread_mutex_t mutex;

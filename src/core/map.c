@@ -26,7 +26,11 @@ static ATTR_CONST uint32_t default_key_hash(const char *key)
 // Given a map_entry determine if it holds valid data and is present
 static bool is_entry_present(const struct map_entry *entry)
 {
-        if (entry != NULL && entry->key != NULL && entry->value != NULL) {
+        if (entry == NULL) {
+                return false;
+        }
+
+        if (entry->key != NULL && entry->value != NULL) {
                 return true;
         }
 
@@ -120,13 +124,6 @@ static enum map_error map_probe(struct map *map, struct map_entry *entry,
                         insert_entry = current_entry;
                         probe_position += 1;
 
-                        if (insert_dib > map->max_dib) {
-                                assert(map->max_dib < map->length);
-
-                                // We have a new largest dib
-                                map->max_dib = insert_dib;
-                        }
-
                         continue;
                 }
 
@@ -138,28 +135,31 @@ static enum map_error map_probe(struct map *map, struct map_entry *entry,
         return GENERIC_ERROR;
 }
 
-static struct map_entry *map_search(const struct map *map, const char *key,
-                                    uint32_t initial_index)
+static enum map_error map_search(const struct map *map, const char *key,
+                                 uint32_t *index)
 {
-        uint32_t index = initial_index;
+        // Initialize index with initial bucket index
+        uint32_t current_index = map->hash_function(key) % map->length;
 
-        for (size_t i = 0; i <= map->max_dib; ++i) {
-                if ((index + i) >= map->length) {
-                        index = 0;
+        for (size_t i = 0; i <= map->length; ++i) {
+                if ((current_index + i) >= map->length) {
+                        current_index = 0;
                 }
 
-                struct map_entry *entry = map->entries[index + i];
+                struct map_entry *entry = map->entries[current_index + i];
 
-                if (!is_entry_present(entry)) {
+                if (!is_entry_present(entry) || strcmp(key, entry->key) != 0) {
                         continue;
                 }
 
-                if (strcmp(entry->key, key) == 0) {
-                        return entry;
+                if (index) {
+                        *index = current_index;
                 }
+
+                return NO_ERROR;
         }
 
-        return NULL;
+        return ENTRY_NOT_FOUND_ERROR;
 }
 
 // Handle load factor for inserting/removing values
@@ -262,7 +262,7 @@ static enum map_error map_resize(struct map *map, int resize_direction)
 // Inserts a pre-hashed entry into the map
 static enum map_error map_insert_entry(struct map *map, struct map_entry *entry)
 {
-        // Get the new initial index
+        // Get the new initial idex
         uint32_t initial_index = entry->hash % map->length;
 
         assert(initial_index < map->length);
@@ -332,10 +332,6 @@ enum map_error entry_init(uint32_t hash, const char *key, void *value,
 
 void map_entry_destroy(const struct map *map, struct map_entry *entry)
 {
-        if (!is_entry_present(entry)) {
-                return;
-        }
-
         if (map->setting_flags & MAP_FLAG_USE_FREE) {
                 free(entry->value);
         }
@@ -362,7 +358,6 @@ struct map *map_init(void)
 
         map->length = MAP_MIN_LENGTH;
         map->bucket_count = 0;
-        map->max_dib = 0;
         map->entries = calloc(map->length, sizeof(struct map_entry));
 
         if (map->entries == NULL) {
@@ -415,20 +410,59 @@ enum map_error map_insert(struct map *map, const char *key, void *value)
 
 struct map_entry *map_get(const struct map *map, const char *key)
 {
-        uint32_t initial_index = (map->hash_function(key)) % map->length;
+        uint32_t index = 0;
 
-        return map_search(map, key, initial_index);
+        if (map_search(map, key, &index) != NO_ERROR) {
+                return NULL;
+        }
+
+        return map->entries[index];
 }
 
 enum map_error map_delete(struct map *map, const char *key)
 {
-        struct map_entry *entry = map_get(map, key);
+        uint32_t dest_index = 0;
+        enum map_error err = map_search(map, key, &dest_index);
 
-        if (entry == NULL) {
-                return ENTRY_NOT_FOUND_ERROR;
+        if (err != NO_ERROR) {
+                return err;
         }
 
-        map_entry_destroy(map, entry);
+        uint32_t swap_index = dest_index + 1;
+
+        for (size_t i = 1; i < map->length; ++i) {
+                if (swap_index >= map->length) {
+                        swap_index = 0;
+                }
+
+                struct map_entry *swap_entry = map->entries[swap_index];
+
+                if (!is_entry_present(swap_entry)) {
+                        break;
+                }
+
+                uint32_t swap_dib = get_dib(map, swap_entry, swap_index);
+
+                if (swap_dib == 0) {
+                        break;
+                }
+
+                // We need to swap
+                struct map_entry *temp = map->entries[dest_index];
+                map->entries[dest_index] = swap_entry;
+                map->entries[swap_index] = temp;
+
+                // Update values
+                dest_index += 1;
+                swap_index += 1;
+        }
+
+        // Delete the resulting entry
+        struct map_entry *delete_entry = map->entries[dest_index];
+
+        delete_entry->key = NULL;
+        delete_entry->value = NULL;
+        delete_entry = NULL;
 
         return NO_ERROR;
 }
