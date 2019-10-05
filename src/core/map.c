@@ -26,11 +26,7 @@ static ATTR_CONST uint32_t default_key_hash(const char *key)
 // Given a map_entry determine if it holds valid data and is present
 static bool is_entry_present(const struct map_entry *entry)
 {
-        if (entry == NULL) {
-                return false;
-        }
-
-        if (entry->key != NULL && entry->value != NULL) {
+        if (entry != NULL && entry->key != NULL && entry->value != NULL) {
                 return true;
         }
 
@@ -142,11 +138,13 @@ static enum map_error map_search(const struct map *map, const char *key,
         uint32_t current_index = map->hash_function(key) % map->length;
 
         for (size_t i = 0; i <= map->length; ++i) {
+                current_index += (uint32_t)i;
+
                 if ((current_index + i) >= map->length) {
                         current_index = 0;
                 }
 
-                struct map_entry *entry = map->entries[current_index + i];
+                struct map_entry *entry = map->entries[current_index];
 
                 if (!is_entry_present(entry) || strcmp(key, entry->key) != 0) {
                         continue;
@@ -460,9 +458,12 @@ enum map_error map_delete(struct map *map, const char *key)
         // Delete the resulting entry
         struct map_entry *delete_entry = map->entries[dest_index];
 
+        // Mark entry as deleted
         delete_entry->key = NULL;
         delete_entry->value = NULL;
         delete_entry = NULL;
+
+        map->bucket_count -= 1;
 
         return NO_ERROR;
 }
