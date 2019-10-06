@@ -58,6 +58,27 @@ static void test_map_insert(void **state)
         assert_int_equal(expected_value, result);
 }
 
+static void test_map_insert_null_value(void **state)
+{
+        struct map *map = *(struct map **)state;
+        const char *key = "key";
+
+        assert_int_equal(NO_ERROR, map_insert(map, key, NULL));
+
+        struct map_entry *result = map_get(map, key);
+
+        assert_non_null(result);
+        assert_string_equal(key, result->key);
+        assert_null(result->value);
+}
+
+static void test_map_insert_null_key(void **state)
+{
+        struct map *map = *(struct map **)state;
+
+        assert_int_equal(GENERIC_ERROR, map_insert(map, NULL, NULL));
+}
+
 static void test_map_insert_load_factor(void **state)
 {
         struct map *map = *(struct map **)state;
@@ -106,6 +127,25 @@ static void test_map_get(void **state)
         assert_int_equal(value, *(uint32_t *)result->value);
 }
 
+static void test_map_get_empty(void **state)
+{
+        struct map *map = *(struct map **)state;
+
+        map_insert(map, "Test", "Value");
+
+        struct map_entry *result = map_get(map, "Unknown");
+
+        assert_null(result);
+}
+
+static void test_map_get_null(void **state)
+{
+        struct map *map = *(struct map **)state;
+        struct map_entry *result = map_get(map, NULL);
+
+        assert_null(result);
+}
+
 static void test_map_get_duplicate(void **state)
 {
         struct map *map = *(struct map **)state;
@@ -147,6 +187,22 @@ static void test_map_delete(void **state)
         assert_int_equal(NO_ERROR, map_delete(map, key));
 
         assert_null(map_get(map, key));
+}
+
+static void test_map_delete_null(void **state)
+{
+        struct map *map = *(struct map **)state;
+
+        assert_int_equal(GENERIC_ERROR, map_delete(map, NULL));
+}
+
+static void test_map_delete_unknown(void **state)
+{
+        struct map *map = *(struct map **)state;
+
+        map_insert(map, "Test", "Value");
+
+        assert_int_equal(ENTRY_NOT_FOUND_ERROR, map_delete(map, "Unknown"));
 }
 
 static void test_map_delete_resize(void **state)
@@ -239,15 +295,27 @@ int main(void)
                 cmocka_unit_test_setup_teardown(
                         test_map_insert, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(
+                        test_map_insert_null_value, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(
+                        test_map_insert_null_key, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(
                         test_map_insert_load_factor, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(
                         test_map_insert_duplicate, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(
                         test_map_get, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(
+                        test_map_get_empty, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(
+                        test_map_get_null, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(
                         test_map_get_duplicate, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(
                         test_map_delete, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(
+                        test_map_delete_null, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(
+                        test_map_delete_unknown, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(
                         test_map_delete_resize, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(

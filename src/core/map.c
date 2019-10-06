@@ -26,7 +26,7 @@ static ATTR_CONST uint32_t default_key_hash(const char *key)
 // Given a map_entry determine if it holds valid data and is present
 static bool is_entry_present(const struct map_entry *entry)
 {
-        if (entry != NULL && entry->key != NULL && entry->value != NULL) {
+        if (entry != NULL && entry->key != NULL) {
                 return true;
         }
 
@@ -134,6 +134,10 @@ static enum map_error map_probe(struct map *map, struct map_entry *entry,
 static enum map_error map_search(const struct map *map, const char *key,
                                  uint32_t *index)
 {
+        if (key == NULL) {
+                return GENERIC_ERROR;
+        }
+
         // Initialize index with initial bucket index
         uint32_t current_index = map->hash_function(key) % map->length;
 
@@ -315,6 +319,10 @@ static enum map_error map_insert_entry(struct map *map, struct map_entry *entry)
 enum map_error entry_init(uint32_t hash, const char *key, void *value,
                           struct map_entry **dest)
 {
+        if (key == NULL || dest == NULL) {
+                return GENERIC_ERROR;
+        }
+
         *dest = malloc(sizeof(struct map_entry));
 
         if (*dest == NULL) {
@@ -395,6 +403,10 @@ void map_destroy(struct map *map)
 // Insert an entry into a map
 enum map_error map_insert(struct map *map, const char *key, void *value)
 {
+        if (key == NULL) {
+                return GENERIC_ERROR;
+        }
+
         struct map_entry *entry = NULL;
         uint32_t hash = map->hash_function(key);
         enum map_error error = entry_init(hash, key, value, &entry);
@@ -466,19 +478,6 @@ enum map_error map_delete(struct map *map, const char *key)
         map->bucket_count -= 1;
 
         return NO_ERROR;
-}
-
-// Iterate through the map calling the callback for each entry
-void map_foreach(const struct map *map,
-                 map_foreach_callback_function_t callback)
-{
-        for (size_t i = 0; i < map->length; ++i) {
-                struct map_entry *entry = map->entries[i];
-
-                if (is_entry_present(entry)) {
-                        callback(entry);
-                }
-        }
 }
 
 // Set a hashing function for use when inserting and re-hashing entries
