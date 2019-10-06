@@ -1,4 +1,4 @@
-# natwm
+# natwm [![Build Status](https://travis-ci.com/cfrank/natwm.svg?branch=dev)](https://travis-ci.com/cfrank/natwm)
 The purpose of this is to create a tiling window manager which one developer would be able to wrap their head around.
 
 The goals of the project are:
