@@ -421,6 +421,7 @@ struct map_entry *map_get(const struct map *map, const char *key)
         return map->entries[index];
 }
 
+// TODO: Add resize when threshold goes below MAP_LOAD_FACTOR_LOW
 enum map_error map_delete(struct map *map, const char *key)
 {
         uint32_t dest_index = 0;

@@ -45,30 +45,31 @@ static void test_map_init(void **state)
 static void test_map_insert(void **state)
 {
         struct map *map = *(struct map **)state;
-        const char *expected_key = "test_key";
-        uint32_t expected_value = 14;
-        enum map_error test_error
-                = map_insert(map, expected_key, &expected_value);
+        const char *expected_key = "test";
+        uint32_t expected_value = 123;
+        enum map_error err = GENERIC_ERROR;
 
-        assert_int_equal(NO_ERROR, test_error);
+        err = map_insert(map, expected_key, &expected_value);
 
-        uint32_t result = map_get_uint32(map, expected_key, &test_error);
+        assert_int_equal(NO_ERROR, err);
 
-        assert_int_equal(NO_ERROR, test_error);
+        uint32_t result = map_get_uint32(map, expected_key, &err);
+
+        assert_int_equal(NO_ERROR, err);
         assert_int_equal(expected_value, result);
 }
 
 static void test_map_insert_null_value(void **state)
 {
         struct map *map = *(struct map **)state;
-        const char *key = "key";
+        const char *expected_key = "test";
 
-        assert_int_equal(NO_ERROR, map_insert(map, key, NULL));
+        assert_int_equal(NO_ERROR, map_insert(map, expected_key, NULL));
 
-        struct map_entry *result = map_get(map, key);
+        struct map_entry *result = map_get(map, expected_key);
 
         assert_non_null(result);
-        assert_string_equal(key, result->key);
+        assert_string_equal(expected_key, result->key);
         assert_null(result->value);
 }
 
@@ -82,17 +83,19 @@ static void test_map_insert_null_key(void **state)
 static void test_map_insert_load_factor(void **state)
 {
         struct map *map = *(struct map **)state;
-        size_t value = 1;
         uint32_t expected_count = 3;
         uint32_t expected_length = MAP_MIN_LENGTH * 2;
 
         assert_int_equal(MAP_MIN_LENGTH, map->length);
 
-        map_insert(map, "Hello", &value);
-        map_insert(map, "Hello One", &value);
+        map_insert(map, "test1", "value");
+        map_insert(map, "test2", "value");
+
+        assert_int_equal(MAP_MIN_LENGTH, map->length);
+
         // This will trigger a resize since the load factor is now
         // MAP_LOAD_FACTOR_HIGH
-        map_insert(map, "Hello Two", &value);
+        map_insert(map, "test3", "value");
 
         assert_int_equal(expected_count, map->bucket_count);
         assert_int_equal(expected_length, map->length);
@@ -114,26 +117,26 @@ static void test_map_insert_duplicate(void **state)
 static void test_map_get(void **state)
 {
         struct map *map = *(struct map **)state;
-        const char *key = "test";
-        uint32_t value = 14;
+        const char *expected_key = "test";
+        uint32_t expected_value = 123;
 
-        map_insert(map, key, &value);
+        map_insert(map, expected_key, &expected_value);
 
-        struct map_entry *result = map_get(map, key);
+        struct map_entry *result = map_get(map, expected_key);
 
         assert_non_null(result);
-        assert_string_equal(key, result->key);
-        assert_ptr_equal(&value, result->value);
-        assert_int_equal(value, *(uint32_t *)result->value);
+        assert_string_equal(expected_key, result->key);
+        assert_ptr_equal(&expected_value, result->value);
+        assert_int_equal(expected_value, *(uint32_t *)result->value);
 }
 
 static void test_map_get_empty(void **state)
 {
         struct map *map = *(struct map **)state;
 
-        map_insert(map, "Test", "Value");
+        map_insert(map, "test", "value");
 
-        struct map_entry *result = map_get(map, "Unknown");
+        struct map_entry *result = map_get(map, "unknown");
 
         assert_null(result);
 }
@@ -149,44 +152,44 @@ static void test_map_get_null(void **state)
 static void test_map_get_duplicate(void **state)
 {
         struct map *map = *(struct map **)state;
-        const char *key = "test";
-        char *const val_arr[] = {"First", "Second", NULL};
         struct map_entry *result = NULL;
+        const char *expected_key = "test";
+        char *const expected_values[2] = {"first", "second"};
 
-        map_insert(map, key, val_arr[0]);
+        map_insert(map, expected_key, expected_values[0]);
 
-        result = map_get(map, key);
-
-        assert_non_null(result);
-        assert_string_equal(key, result->key);
-        assert_string_equal(val_arr[0], result->value);
-
-        map_insert(map, key, val_arr[1]);
-
-        result = map_get(map, key);
+        result = map_get(map, expected_key);
 
         assert_non_null(result);
-        assert_string_equal(key, result->key);
-        assert_string_equal(val_arr[1], result->value);
+        assert_string_equal(expected_key, result->key);
+        assert_string_equal(expected_values[0], result->value);
+
+        map_insert(map, expected_key, expected_values[1]);
+
+        result = map_get(map, expected_key);
+
+        assert_non_null(result);
+        assert_string_equal(expected_key, result->key);
+        assert_string_equal(expected_values[1], result->value);
 }
 
 static void test_map_delete(void **state)
 {
         struct map *map = *(struct map **)state;
-        const char *key = "test";
-        uint32_t value = 14;
+        const char *expected_key = "test";
+        uint32_t expected_value = 123;
         enum map_error err = GENERIC_ERROR;
 
-        map_insert(map, key, &value);
+        map_insert(map, expected_key, &expected_value);
 
-        uint32_t result = map_get_uint32(map, key, &err);
+        uint32_t result = map_get_uint32(map, expected_key, &err);
 
         assert_int_equal(NO_ERROR, err);
-        assert_int_equal(value, result);
+        assert_int_equal(expected_value, result);
 
-        assert_int_equal(NO_ERROR, map_delete(map, key));
+        assert_int_equal(NO_ERROR, map_delete(map, expected_key));
 
-        assert_null(map_get(map, key));
+        assert_null(map_get(map, expected_key));
 }
 
 static void test_map_delete_null(void **state)
@@ -200,45 +203,46 @@ static void test_map_delete_unknown(void **state)
 {
         struct map *map = *(struct map **)state;
 
-        map_insert(map, "Test", "Value");
+        map_insert(map, "test", "value");
 
-        assert_int_equal(ENTRY_NOT_FOUND_ERROR, map_delete(map, "Unknown"));
+        assert_int_equal(ENTRY_NOT_FOUND_ERROR, map_delete(map, "unknown"));
 }
 
 static void test_map_delete_resize(void **state)
 {
         struct map *map = *(struct map **)state;
-        const char *key = "testKey2";
+        const char *expected_key = "test";
 
-        map_insert(map, "testKey3", "testValue");
-        map_insert(map, key, "testValue");
+        map_insert(map, "test1", "value");
+        map_insert(map, expected_key, "value");
         // This will trigger resize
-        map_insert(map, "testKey5", "testValue");
+        map_insert(map, "test3", "value");
 
-        assert_int_equal(NO_ERROR, map_delete(map, key));
+        assert_int_equal(NO_ERROR, map_delete(map, expected_key));
+        // TODO: This should be 4 not 8
         assert_int_equal(8, map->length);
-        assert_null(map_get(map, key));
+        assert_null(map_get(map, expected_key));
 }
 
 static void test_map_delete_duplicate(void **state)
 {
         struct map *map = *(struct map **)state;
-        const char *key = "testKey2";
-        uint32_t expected_value = 23;
+        const char *expected_key = "testKey2";
+        uint32_t expected_value = 123;
         enum map_error err = GENERIC_ERROR;
 
-        map_insert(map, key, "Value");
-        map_insert(map, key, &expected_value);
+        map_insert(map, expected_key, "value");
+        map_insert(map, expected_key, &expected_value);
 
-        uint32_t result = map_get_uint32(map, key, &err);
+        uint32_t result = map_get_uint32(map, expected_key, &err);
 
         assert_int_equal(NO_ERROR, err);
         assert_int_equal(expected_value, result);
 
-        assert_int_equal(NO_ERROR, map_delete(map, key));
+        assert_int_equal(NO_ERROR, map_delete(map, expected_key));
 
         assert_int_equal(0, map->bucket_count);
-        assert_null(map_get(map, key));
+        assert_null(map_get(map, expected_key));
 }
 
 static void test_map_get_and_delete(void **state)
