@@ -3,6 +3,8 @@ add_library(core STATIC
     config.h
     list.c
     list.h
+    map.c
+    map.h
 )
 
 target_link_libraries(core

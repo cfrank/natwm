@@ -8,10 +8,12 @@
 #define ATTR_CONST __attribute__((__const__))
 #define ATTR_NONNULL __attribute__((__nonnull__))
 #define ATTR_PURE __attribute__((__pure__))
+#define ATTR_INLINE inline __attribute__((always_inline))
 #else
 #define ATTR_CONT
 #define ATTR_NONNULL
 #define ATTR_PURE
+#define ATTR_INLINE inline
 #endif
 
 #define NATWM_CONFIG_FILE "natwm/config"
