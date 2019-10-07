@@ -1,5 +1,4 @@
-// Copyright 2019 Chris Frank
-// Licensed under BSD-3-Clause
+// Copyright 2019 Chris Fraexpected_key// Licensed under BSD-3-Clause
 // Refer to the license.txt file included in the root of the project
 
 #include <setjmp.h>
@@ -78,6 +77,23 @@ static void test_map_insert_null_key(void **state)
         struct map *map = *(struct map **)state;
 
         assert_int_equal(GENERIC_ERROR, map_insert(map, NULL, NULL));
+}
+
+static void test_map_insert_load_factor_disabled(void **state)
+{
+        struct map *map = *(struct map **)state;
+
+        map->setting_flags |= MAP_FLAG_IGNORE_THRESHOLDS;
+
+        map_insert(map, "test1", "value");
+        map_insert(map, "test2", "value");
+        map_insert(map, "test3", "value");
+        map_insert(map, "test4", "value");
+
+        assert_int_equal(MAP_MIN_LENGTH, map->length);
+        assert_int_equal(4, map->bucket_count);
+
+        assert_int_equal(MAP_IS_FULL_ERROR, map_insert(map, "test5", "value"));
 }
 
 static void test_map_insert_load_factor(void **state)
@@ -291,6 +307,11 @@ static void test_map_get_and_delete(void **state)
         assert_string_equal("7", result->value);
 }
 
+static void test_map_destroy_null(void **state)
+{
+        map_destroy(NULL);
+}
+
 int main(void)
 {
         const struct CMUnitTest tests[] = {
@@ -302,6 +323,10 @@ int main(void)
                         test_map_insert_null_value, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(
                         test_map_insert_null_key, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(
+                        test_map_insert_load_factor_disabled,
+                        test_setup,
+                        test_teardown),
                 cmocka_unit_test_setup_teardown(
                         test_map_insert_load_factor, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(
@@ -326,6 +351,8 @@ int main(void)
                         test_map_delete_duplicate, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(
                         test_map_get_and_delete, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(
+                        test_map_destroy_null, test_setup, test_teardown),
         };
 
         return cmocka_run_group_tests(tests, NULL, NULL);

@@ -90,7 +90,7 @@ static enum map_error map_probe(struct map *map, struct map_entry *entry,
         uint32_t probe_position = initial_index;
         struct map_entry *insert_entry = entry;
 
-        for (;;) {
+        for (size_t i = 0; i < map->length; ++i) {
                 if (probe_position >= map->length) {
                         probe_position = 0;
                 }
@@ -122,8 +122,7 @@ static enum map_error map_probe(struct map *map, struct map_entry *entry,
                 probe_position += 1;
         }
 
-        // Should never happen
-        return GENERIC_ERROR;
+        return MAP_IS_FULL_ERROR;
 }
 
 static enum map_error map_search(const struct map *map, const char *key,
@@ -383,6 +382,10 @@ struct map *map_init(void)
 // free'ing of entries
 void map_destroy(struct map *map)
 {
+        if (map == NULL) {
+                return;
+        }
+
         // Delete entries
         for (size_t i = 0; i < map->length; ++i) {
                 map_entry_destroy(map, map->entries[i]);

@@ -63,8 +63,9 @@ enum map_events {
 enum map_error {
         MEMORY_ALLOCATION_ERROR = 1 << 0, // Failed to allocate memory
         ENTRY_NOT_FOUND_ERROR = 1 << 1, // Entry was not found in map
-        GENERIC_ERROR = 1 << 2, // For unknown errors
-        NO_ERROR = 1 << 3, // No error
+        MAP_IS_FULL_ERROR = 1 << 2, // No more room available
+        GENERIC_ERROR = 1 << 3, // For unknown errors
+        NO_ERROR = 1 << 4, // No error
 };
 
 // Represents an entry in the hash map
