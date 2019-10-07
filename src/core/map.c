@@ -294,6 +294,12 @@ static enum map_error map_insert_entry(struct map *map, struct map_entry *entry)
                 return NO_ERROR;
         }
 
+        if ((map->bucket_count + 1) > map->length) {
+                map_entry_destroy(map, entry);
+
+                return MAP_IS_FULL_ERROR;
+        }
+
         // Handle collision
         enum map_error error = map_probe(map, entry, initial_index);
 
@@ -329,16 +335,18 @@ enum map_error entry_init(uint32_t hash, const char *key, void *value,
 
 void map_entry_destroy(const struct map *map, struct map_entry *entry)
 {
-        if (map->setting_flags & MAP_FLAG_USE_FREE) {
-                free(entry->value);
-        }
-
-        if (map->setting_flags & MAP_FLAG_USE_FREE_FUNC) {
-                if (map->free_function == NULL) {
-                        return;
+        if (is_entry_present(entry)) {
+                if (map->setting_flags & MAP_FLAG_USE_FREE) {
+                        free(entry->value);
                 }
 
-                map->free_function(entry->value);
+                if (map->setting_flags & MAP_FLAG_USE_FREE_FUNC) {
+                        if (map->free_function == NULL) {
+                                return;
+                        }
+
+                        map->free_function(entry->value);
+                }
         }
 
         free(entry);
@@ -497,6 +505,7 @@ void map_set_entry_free_function(struct map *map,
                 map->setting_flags &= (unsigned int)~MAP_FLAG_USE_FREE;
         }
 
+        map->free_function = function;
         map->setting_flags |= MAP_FLAG_USE_FREE_FUNC;
 }
 

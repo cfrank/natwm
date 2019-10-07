@@ -10,6 +10,50 @@
 #include <cmocka.h>
 #include <core/map.h>
 
+/*
+ * Static functions for use in tests
+ */
+struct test_value {
+        size_t length;
+        uint32_t *test_values;
+};
+
+static struct test_value *test_value_init(void)
+{
+        struct test_value *value = malloc(sizeof(struct test_value));
+
+        if (value == NULL) {
+                return NULL;
+        }
+
+        value->length = 3;
+        value->test_values = malloc(sizeof(uint32_t) * value->length);
+
+        if (value->test_values == NULL) {
+                free(value);
+
+                return NULL;
+        }
+
+        for (size_t i = 0; i < value->length; ++i) {
+                value->test_values[i] = (uint32_t)i;
+        }
+
+        return value;
+}
+
+void test_value_destroy(void *data)
+{
+        struct test_value *value = (struct test_value *)data;
+
+        if (value == NULL) {
+                return;
+        }
+
+        free(value->test_values);
+        free(value);
+}
+
 static int test_setup(void **state)
 {
         struct map *map = map_init();
@@ -312,6 +356,37 @@ static void test_map_destroy_null(void **state)
         map_destroy(NULL);
 }
 
+static void test_map_destroy_use_free(void **state)
+{
+        struct map *map = *(struct map **)state;
+        const char *expected_key = "test";
+        size_t value_length = 5;
+        size_t *allocated_value = malloc(sizeof(size_t) * value_length);
+
+        assert_non_null(allocated_value);
+
+        for (size_t i = 0; i < value_length; ++i) {
+                allocated_value[i] = i;
+        }
+
+        map->setting_flags |= MAP_FLAG_USE_FREE;
+
+        map_insert(map, expected_key, allocated_value);
+}
+
+static void test_map_destroy_free_func(void **state)
+{
+        struct map *map = *(struct map **)state;
+        const char *expected_key = "test";
+        struct test_value *allocated_value = test_value_init();
+
+        assert_non_null(allocated_value);
+
+        map_set_entry_free_function(map, test_value_destroy);
+
+        map_insert(map, expected_key, allocated_value);
+}
+
 int main(void)
 {
         const struct CMUnitTest tests[] = {
@@ -353,6 +428,10 @@ int main(void)
                         test_map_get_and_delete, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(
                         test_map_destroy_null, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(
+                        test_map_destroy_use_free, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(
+                        test_map_destroy_free_func, test_setup, test_teardown),
         };
 
         return cmocka_run_group_tests(tests, NULL, NULL);
