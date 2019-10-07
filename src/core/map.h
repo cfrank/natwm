@@ -40,10 +40,8 @@ typedef uint32_t (*map_hash_function_t)(const char *key);
 typedef void (*map_entry_free_function_t)(void *data);
 
 #define MAP_MIN_LENGTH 4
-
 #define MAP_LOAD_FACTOR_HIGH 0.75
 #define MAP_LOAD_FACTOR_LOW 0.2
-
 #define MAP_RESIZE_UP 1
 #define MAP_RESIZE_DOWN -1
 
@@ -93,9 +91,6 @@ struct map {
         enum map_events event_flags;
 };
 
-// Function callback called when iterating through a map
-typedef void (*map_foreach_callback_function_t)(const struct map_entry *entry);
-
 enum map_error entry_init(uint32_t hash, const char *key, void *value,
                           struct map_entry **dest);
 void map_entry_destroy(const struct map *map, struct map_entry *entry);
@@ -106,12 +101,9 @@ enum map_error map_insert(struct map *map, const char *key, void *value);
 struct map_entry *map_get(const struct map *map, const char *key);
 enum map_error map_delete(struct map *map, const char *key);
 
-void map_foreach(const struct map *map,
-                 map_foreach_callback_function_t callback);
 int map_set_hash_function(struct map *map, map_hash_function_t function);
 void map_set_entry_free_function(struct map *map,
                                  map_entry_free_function_t function);
-void map_set_setting_flag(struct map *map, enum map_settings flag);
 
 uint32_t map_get_uint32(const struct map *map, const char *key,
                         enum map_error *error);

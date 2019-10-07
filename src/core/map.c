@@ -91,11 +91,9 @@ static enum map_error map_probe(struct map *map, struct map_entry *entry,
         struct map_entry *insert_entry = entry;
 
         for (;;) {
-                if (probe_position == map->length) {
+                if (probe_position >= map->length) {
                         probe_position = 0;
                 }
-
-                assert(probe_position < map->length);
 
                 struct map_entry *current_entry = map->entries[probe_position];
 
@@ -118,9 +116,6 @@ static enum map_error map_probe(struct map *map, struct map_entry *entry,
                         map->entries[probe_position] = insert_entry;
 
                         insert_entry = current_entry;
-                        probe_position += 1;
-
-                        continue;
                 }
 
                 // Keep probing
@@ -134,7 +129,7 @@ static enum map_error map_probe(struct map *map, struct map_entry *entry,
 static enum map_error map_search(const struct map *map, const char *key,
                                  uint32_t *index)
 {
-        if (key == NULL) {
+        if (key == NULL || index == NULL) {
                 return GENERIC_ERROR;
         }
 
@@ -142,21 +137,19 @@ static enum map_error map_search(const struct map *map, const char *key,
         uint32_t current_index = map->hash_function(key) % map->length;
 
         for (size_t i = 0; i <= map->length; ++i) {
-                current_index += (uint32_t)i;
-
-                if ((current_index + i) >= map->length) {
+                if ((current_index) >= map->length) {
                         current_index = 0;
                 }
 
                 struct map_entry *entry = map->entries[current_index];
 
                 if (!is_entry_present(entry) || strcmp(key, entry->key) != 0) {
+                        current_index += 1;
+
                         continue;
                 }
 
-                if (index) {
-                        *index = current_index;
-                }
+                *index = current_index;
 
                 return NO_ERROR;
         }
@@ -199,8 +192,10 @@ static enum map_error map_resize(struct map *map, int resize_direction)
 
         if (resize_direction == 1) {
                 new_length = map->length * 2;
-        } else {
+        } else if (resize_direction == -1) {
                 new_length = map->length / 2;
+        } else {
+                return GENERIC_ERROR;
         }
 
         struct map_entry **new_entries
@@ -266,9 +261,6 @@ static enum map_error map_insert_entry(struct map *map, struct map_entry *entry)
 {
         // Get the new initial idex
         uint32_t initial_index = entry->hash % map->length;
-
-        assert(initial_index < map->length);
-
         struct map_entry *present_entry = map->entries[initial_index];
         bool is_hash_collision = is_entry_present(present_entry);
 
