@@ -42,7 +42,7 @@ static struct test_value *test_value_init(void)
         return value;
 }
 
-void test_value_destroy(void *data)
+static void test_value_destroy(void *data)
 {
         struct test_value *value = (struct test_value *)data;
 
