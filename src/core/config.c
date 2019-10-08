@@ -12,6 +12,7 @@
 #include <common/constants.h>
 #include <common/logger.h>
 #include <common/util.h>
+#include <core/map.h>
 #include "config.h"
 
 #define DEFAULT_LIST_SIZE 10
@@ -24,7 +25,7 @@ struct parser_context {
         size_t pos;
         size_t line_num;
         size_t col_num;
-        struct config_list *variables;
+        struct map *variables;
 };
 
 enum config_token_types {
@@ -177,7 +178,7 @@ static struct parser_context *initialize_parser_context(const char *buffer,
         context->pos = 0;
         context->line_num = 1;
         context->col_num = 1;
-        context->variables = create_list();
+        context->variables = map_init();
 
         if (context->variables == NULL) {
                 free(context);
@@ -185,13 +186,16 @@ static struct parser_context *initialize_parser_context(const char *buffer,
                 return NULL;
         }
 
+        // Set up hashmap
+        map_set_entry_free_function(context->variables, destroy_config_value);
+
         return context;
 }
 
 static void destroy_parser_context(struct parser_context *context)
 {
         if (context->variables != NULL) {
-                destroy_config_list(context->variables);
+                map_destroy(context->variables);
         }
 
         free(context);
@@ -318,8 +322,7 @@ static struct config_value *resolve_variable(struct parser_context *context,
                                              const char *variable_key,
                                              char *new_key)
 {
-        struct config_value *variable
-                = config_list_find(context->variables, variable_key);
+        struct map_entry *variable = map_get(context->variables, variable_key);
 
         if (variable == NULL) {
                 LOG_ERROR(natwm_logger,
@@ -330,7 +333,8 @@ static struct config_value *resolve_variable(struct parser_context *context,
                 return NULL;
         }
 
-        struct config_value *new = value_from_variable(new_key, variable);
+        struct config_value *new
+                = value_from_variable(new_key, variable->value);
 
         if (new == NULL) {
                 LOG_ERROR(natwm_logger,
@@ -481,7 +485,7 @@ static int parse_context_variable(struct parser_context *context)
                 return -1;
         }
 
-        list_insert(context->variables, variable);
+        map_insert(context->variables, variable->key, variable);
 
         return 0;
 }
@@ -714,8 +718,10 @@ void destroy_config_list(struct config_list *list)
         free(list);
 }
 
-void destroy_config_value(struct config_value *value)
+void destroy_config_value(void *data)
 {
+        struct config_value *value = (struct config_value *)data;
+
         if (value->type == STRING) {
                 // For strings we need to free the data as well
                 free(value->data.string);
