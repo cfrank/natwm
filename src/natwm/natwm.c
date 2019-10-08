@@ -134,7 +134,7 @@ static int install_signal_handlers(void)
 static int start_natwm(xcb_connection_t *connection, const char *config_path)
 {
         while (program_state & RUNNING) {
-                struct config_value *val = config_list_find(config, "author");
+                struct config_value *val = config_find(config, "author");
 
                 LOG_INFO(natwm_logger, val->data.string);
 
@@ -144,7 +144,7 @@ static int start_natwm(xcb_connection_t *connection, const char *config_path)
                         LOG_INFO(natwm_logger, "Reloading natwm...");
 
                         // Destroy the old config
-                        destroy_config_list(config);
+                        destroy_config(config);
 
                         // Re-initialize the new config
                         if (initialize_config_path(config_path) < 0) {
@@ -277,14 +277,14 @@ int main(int argc, char **argv)
 
         free(arg_options);
         destroy_logger(natwm_logger);
-        destroy_config_list(config);
+        destroy_config(config);
 
         return EXIT_SUCCESS;
 
 free_and_error:
         free(arg_options);
         destroy_logger(natwm_logger);
-        destroy_config_list(config);
+        destroy_config(config);
 
         return EXIT_FAILURE;
 }
