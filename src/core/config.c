@@ -14,9 +14,7 @@
 #include <common/util.h>
 #include "config.h"
 
-#define DEFAULT_LIST_SIZE 10
-
-struct config_list *config = NULL;
+struct map *config = NULL;
 
 struct parser_context {
         const char *buffer;
@@ -24,7 +22,7 @@ struct parser_context {
         size_t pos;
         size_t line_num;
         size_t col_num;
-        struct config_list *variables;
+        struct map *variables;
 };
 
 enum config_token_types {
@@ -64,68 +62,17 @@ static enum config_token_types char_to_token(char c)
         }
 }
 
-static struct config_list *create_list(void)
+static void internal_destroy_config_value(void *data)
 {
-        struct config_list *list = malloc(sizeof(struct config_list));
+        struct config_value *value = (struct config_value *)data;
 
-        if (list == NULL) {
-                return NULL;
+        if (value->type == STRING) {
+                // For strings we need to free the data as well
+                free(value->data.string);
         }
 
-        list->length = 0;
-        list->size = DEFAULT_LIST_SIZE;
-        list->values = malloc(sizeof(struct config_value) * DEFAULT_LIST_SIZE);
-
-        if (list->values == NULL) {
-                free(list);
-
-                return NULL;
-        }
-
-        return list;
-}
-
-/**
- * Double the size of the list so that it can store more items
- *
- * If we are able to grow the list then the resized list is placed into the
- * pointer passed by the caller and 0 is returned
- *
- * Otherwise -1 is returned and the caller is required to free the list
- * to avoid a leak
- */
-static int list_grow(struct config_list **list)
-{
-        size_t new_size = (sizeof(struct config_list) * ((*list)->size * 2));
-        struct config_list *new_list = realloc(list, new_size);
-
-        if (new_list == NULL) {
-                // Realloc failed caller will need to release old list
-                return -1;
-        }
-
-        *list = new_list;
-
-        return 0;
-}
-
-static int list_insert(struct config_list *list, struct config_value *value)
-{
-        if (list->length == list->size) {
-                // Need to grow list
-                if (list_grow(&list) < 0) {
-                        // Could not grow list
-                        free(list);
-
-                        return -1;
-                }
-        }
-
-        // List should be able to hold new items
-        list->values[list->length] = value;
-        ++list->length;
-
-        return 0;
+        free(value->key);
+        free(value);
 }
 
 static struct config_value *create_number(char *key, intmax_t number)
@@ -177,7 +124,7 @@ static struct parser_context *initialize_parser_context(const char *buffer,
         context->pos = 0;
         context->line_num = 1;
         context->col_num = 1;
-        context->variables = create_list();
+        context->variables = map_init();
 
         if (context->variables == NULL) {
                 free(context);
@@ -185,13 +132,17 @@ static struct parser_context *initialize_parser_context(const char *buffer,
                 return NULL;
         }
 
+        // Set up hashmap
+        map_set_entry_free_function(context->variables,
+                                    internal_destroy_config_value);
+
         return context;
 }
 
 static void destroy_parser_context(struct parser_context *context)
 {
         if (context->variables != NULL) {
-                destroy_config_list(context->variables);
+                map_destroy(context->variables);
         }
 
         free(context);
@@ -318,8 +269,7 @@ static struct config_value *resolve_variable(struct parser_context *context,
                                              const char *variable_key,
                                              char *new_key)
 {
-        struct config_value *variable
-                = config_list_find(context->variables, variable_key);
+        struct map_entry *variable = map_get(context->variables, variable_key);
 
         if (variable == NULL) {
                 LOG_ERROR(natwm_logger,
@@ -330,7 +280,8 @@ static struct config_value *resolve_variable(struct parser_context *context,
                 return NULL;
         }
 
-        struct config_value *new = value_from_variable(new_key, variable);
+        struct config_value *new
+                = value_from_variable(new_key, variable->value);
 
         if (new == NULL) {
                 LOG_ERROR(natwm_logger,
@@ -481,7 +432,7 @@ static int parse_context_variable(struct parser_context *context)
                 return -1;
         }
 
-        list_insert(context->variables, variable);
+        map_insert(context->variables, variable->key, variable);
 
         return 0;
 }
@@ -502,15 +453,15 @@ static int parse_context_variable(struct parser_context *context)
  * allow for the next line to be consumed
  */
 static int parse_context_config_item(struct parser_context *context,
-                                     struct config_list **list)
+                                     struct map **config_map)
 {
         struct config_value *item = handle_context_value(context);
 
-        if (item == NULL || *list == NULL) {
+        if (item == NULL || *config_map == NULL) {
                 return -1;
         }
 
-        if (list_insert(*list, item) != 0) {
+        if (map_insert(*config_map, item->key, item) != NO_ERROR) {
                 return -1;
         }
 
@@ -650,16 +601,19 @@ static int read_file_into_buffer(FILE *file, char **buffer, size_t file_size)
         return 0;
 }
 
-static struct config_list *read_context(struct parser_context *context)
+static struct map *read_context(struct parser_context *context)
 {
-        struct config_list *list = create_list();
+        struct map *map = map_init();
 
-        if (list == NULL) {
+        if (map == NULL) {
                 LOG_ERROR(natwm_logger,
-                          "Failed initializing configuration list");
+                          "Failed initializing configuration map");
 
                 return NULL;
         }
+
+        // Setup hash map
+        map_set_entry_free_function(map, internal_destroy_config_value);
 
         char c = '\0';
         while ((c = context->buffer[context->pos]) != '\0') {
@@ -673,7 +627,7 @@ static struct config_list *read_context(struct parser_context *context)
                         }
                         break;
                 case ALPHA_CHAR:
-                        if (parse_context_config_item(context, &list) != 0) {
+                        if (parse_context_config_item(context, &map) != 0) {
                                 goto handle_error;
                         }
                 default:
@@ -683,46 +637,35 @@ static struct config_list *read_context(struct parser_context *context)
                 increment_parser_context(context);
         }
 
-        return list;
+        return map;
 
 handle_error:
         LOG_ERROR(natwm_logger, "Error reading configuration file!");
 
-        destroy_config_list(list);
+        map_destroy(map);
 
         return NULL;
 }
 
-struct config_value *config_list_find(struct config_list *list, const char *key)
+struct config_value *config_find(const struct map *config_map, const char *key)
 {
-        for (size_t i = 0; i < list->length; ++i) {
-                if (strcmp(key, list->values[i]->key) == 0) {
-                        return list->values[i];
-                }
+        struct map_entry *entry = map_get(config_map, key);
+
+        if (entry == NULL) {
+                return NULL;
         }
 
-        return NULL;
+        return (struct config_value *)entry->value;
 }
 
-void destroy_config_list(struct config_list *list)
+void destroy_config(struct map *config_map)
 {
-        for (size_t i = 0; i < list->length; ++i) {
-                destroy_config_value(list->values[i]);
-        }
-
-        free(list->values);
-        free(list);
+        map_destroy(config_map);
 }
 
 void destroy_config_value(struct config_value *value)
 {
-        if (value->type == STRING) {
-                // For strings we need to free the data as well
-                free(value->data.string);
-        }
-
-        free(value->key);
-        free(value);
+        internal_destroy_config_value(value);
 }
 
 /**
@@ -731,7 +674,7 @@ void destroy_config_value(struct config_value *value)
  * Takes a string buffer and uses it to return the key value pairs
  * of the config
  */
-struct config_list *read_config_string(const char *string, size_t config_size)
+struct map *read_config_string(const char *string, size_t config_size)
 {
         struct parser_context *context
                 = initialize_parser_context(string, config_size);
@@ -740,12 +683,12 @@ struct config_list *read_config_string(const char *string, size_t config_size)
                 return NULL;
         }
 
-        struct config_list *list = read_context(context);
+        struct map *map = read_context(context);
 
         destroy_parser_context(context);
 
         // May be NULL
-        return list;
+        return map;
 }
 
 /**

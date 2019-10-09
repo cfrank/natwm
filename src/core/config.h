@@ -6,6 +6,8 @@
 
 #include <stdint.h>
 
+#include "map.h"
+
 /**
  * The available data types for natwm configuration files
  *
@@ -29,23 +31,11 @@ struct config_value {
         } data;
 };
 
-/**
- * Holds all the configuration values
- */
-struct config_list {
-        size_t length;
-        size_t size;
-        struct config_value **values;
-};
+extern struct map *config;
 
-extern struct config_list *config;
-
-struct config_value *get_config_value(const struct config_list *list,
-                                      const char *key);
-struct config_value *config_list_find(struct config_list *list,
-                                      const char *key);
-void destroy_config_list(struct config_list *list);
+struct config_value *config_find(const struct map *config_map, const char *key);
+void destroy_config(struct map *config_map);
 void destroy_config_value(struct config_value *value);
 
-struct config_list *read_config_string(const char *config, size_t config_size);
+struct map *read_config_string(const char *config, size_t config_size);
 int initialize_config_path(const char *path);
