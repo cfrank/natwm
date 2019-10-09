@@ -12,7 +12,6 @@
 #include <common/constants.h>
 #include <common/logger.h>
 #include <common/util.h>
-#include <core/map.h>
 #include "config.h"
 
 struct map *config = NULL;
