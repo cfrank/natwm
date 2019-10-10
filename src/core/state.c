@@ -1,0 +1,37 @@
+// Copyright 2019 Chris Frank
+// Licensed under BSD-3-Clause
+// Refer to the license.txt file included in the root of the project
+
+#include "state.h"
+
+struct natwm_state *natwm_state_init(void)
+{
+        struct natwm_state *state = calloc(1, sizeof(struct natwm_state));
+
+        if (state == NULL) {
+                return NULL;
+        }
+
+        return state;
+}
+
+void natwm_state_destroy(struct natwm_state *state)
+{
+        if (state == NULL) {
+                return;
+        }
+
+        if (state->xcb != NULL) {
+                xcb_disconnect(state->xcb);
+        }
+
+        if (state->ewmh != NULL) {
+                xcb_ewmh_connection_wipe(state->ewmh);
+        }
+
+        if (state->config != NULL) {
+                destroy_config(state->config);
+        }
+
+        free(state);
+}

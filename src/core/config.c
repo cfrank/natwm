@@ -14,8 +14,6 @@
 #include <common/util.h>
 #include "config.h"
 
-struct map *config = NULL;
-
 struct parser_context {
         const char *buffer;
         size_t buffer_size;
@@ -698,12 +696,12 @@ struct map *read_config_string(const char *string, size_t config_size)
  * into a buffer and uses it to return the key value pairs of the config
  * file
  */
-int initialize_config_path(const char *path)
+struct map *initialize_config_path(const char *path)
 {
         FILE *file = open_config_file(path);
 
         if (file == NULL) {
-                return -1;
+                return NULL;
         }
 
         ssize_t ftell_result = get_file_size(file);
@@ -719,7 +717,7 @@ int initialize_config_path(const char *path)
                 goto close_file_and_error;
         }
 
-        config = read_config_string(file_buffer, file_size);
+        struct map *config = read_config_string(file_buffer, file_size);
 
         if (config == NULL) {
                 free(file_buffer);
@@ -730,10 +728,10 @@ int initialize_config_path(const char *path)
         free(file_buffer);
         fclose(file);
 
-        return 0;
+        return config;
 
 close_file_and_error:
         fclose(file);
 
-        return -1;
+        return NULL;
 }
