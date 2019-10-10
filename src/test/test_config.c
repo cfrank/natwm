@@ -39,7 +39,7 @@ static void test_config_simple_config(void **state)
         const char *config_string = "name = \"John\"\n";
         size_t config_length = strlen(config_string);
         struct map *config_map
-                = read_config_string(config_string, config_length);
+                = config_read_string(config_string, config_length);
         struct config_value *value = config_find(config_map, expected_key);
 
         assert_non_null(config_map);
@@ -48,7 +48,7 @@ static void test_config_simple_config(void **state)
         assert_int_equal(value->type, STRING);
         assert_string_equal(value->data.string, expected_value);
 
-        destroy_config(config_map);
+        config_destroy(config_map);
 }
 
 static void test_config_number_variable(void **state)
@@ -58,7 +58,7 @@ static void test_config_number_variable(void **state)
         const char *config_string = "$test = 100\nage = $test\n";
         size_t config_length = strlen(config_string);
         struct map *config_map
-                = read_config_string(config_string, config_length);
+                = config_read_string(config_string, config_length);
         struct config_value *value = config_find(config_map, expected_key);
 
         assert_non_null(config_map);
@@ -67,7 +67,7 @@ static void test_config_number_variable(void **state)
         assert_int_equal(value->type, NUMBER);
         assert_int_equal(value->data.number, expected_value);
 
-        destroy_config(config_map);
+        config_destroy(config_map);
 }
 
 static void test_config_string_variable(void **state)
@@ -77,7 +77,7 @@ static void test_config_string_variable(void **state)
         const char *config_string = "$test = \"testing\"\nname = $test\n";
         size_t config_length = strlen(config_string);
         struct map *config_map
-                = read_config_string(config_string, config_length);
+                = config_read_string(config_string, config_length);
         struct config_value *value = config_find(config_map, expected_key);
 
         assert_non_null(config_map);
@@ -86,7 +86,7 @@ static void test_config_string_variable(void **state)
         assert_int_equal(value->type, STRING);
         assert_string_equal(value->data.string, expected_value);
 
-        destroy_config(config_map);
+        config_destroy(config_map);
 }
 
 static void test_config_comment(void **state)
@@ -95,12 +95,12 @@ static void test_config_comment(void **state)
         const char *config_string = "// An example comment\n";
         size_t config_length = strlen(config_string);
         struct map *config_map
-                = read_config_string(config_string, config_length);
+                = config_read_string(config_string, config_length);
 
         assert_non_null(config_map);
         assert_int_equal(expected_result, config_map->bucket_count);
 
-        destroy_config(config_map);
+        config_destroy(config_map);
 }
 
 static void test_config_double_definition(void **state)
@@ -111,7 +111,7 @@ static void test_config_double_definition(void **state)
                 = "$first = \"first\"\n$second = $first\ntest = $second\n";
         size_t config_length = strlen(config_string);
         struct map *config_map
-                = read_config_string(config_string, config_length);
+                = config_read_string(config_string, config_length);
         struct config_value *value = config_find(config_map, expected_key);
 
         assert_non_null(config_map);
@@ -120,7 +120,7 @@ static void test_config_double_definition(void **state)
         assert_int_equal(STRING, value->type);
         assert_string_equal(expected_value, value->data.string);
 
-        destroy_config(config_map);
+        config_destroy(config_map);
 }
 
 static void test_config_unset_variable(void **state)
@@ -128,7 +128,7 @@ static void test_config_unset_variable(void **state)
         const char *config_string = "test = $undefined\n";
         size_t config_length = strlen(config_string);
         struct map *config_map
-                = read_config_string(config_string, config_length);
+                = config_read_string(config_string, config_length);
 
         assert_null(config_map);
 }
@@ -138,7 +138,7 @@ static void test_config_invalid_number(void **state)
         const char *config_string = "$number = not a number\n";
         size_t config_length = strlen(config_string);
         struct map *config_map
-                = read_config_string(config_string, config_length);
+                = config_read_string(config_string, config_length);
 
         assert_null(config_map);
 }
@@ -148,7 +148,7 @@ static void test_config_invalid_single_quotes(void **state)
         const char *config_string = "$string = 'invalid'\n";
         size_t config_length = strlen(config_string);
         struct map *config_map
-                = read_config_string(config_string, config_length);
+                = config_read_string(config_string, config_length);
 
         assert_null(config_map);
 }
@@ -158,7 +158,7 @@ static void test_config_invalid_variable(void **state)
         const char *config_string = "$invalid =\n";
         size_t config_length = strlen(config_string);
         struct map *config_map
-                = read_config_string(config_string, config_length);
+                = config_read_string(config_string, config_length);
 
         assert_null(config_map);
 }
@@ -168,7 +168,7 @@ static void test_config_invalid_item(void **state)
         const char *config_string = "invalid = \n";
         size_t config_length = strlen(config_string);
         struct map *config_map
-                = read_config_string(config_string, config_length);
+                = config_read_string(config_string, config_length);
 
         assert_null(config_map);
 }
@@ -178,7 +178,7 @@ static void test_config_invalid_double(void **state)
         const char *config_string = "$number = 2.3\n";
         size_t config_length = strlen(config_string);
         struct map *config_map
-                = read_config_string(config_string, config_length);
+                = config_read_string(config_string, config_length);
 
         assert_null(config_map);
 }

@@ -32,8 +32,8 @@ struct config_value {
 };
 
 struct config_value *config_find(const struct map *config_map, const char *key);
-void destroy_config(struct map *config_map);
-void destroy_config_value(struct config_value *value);
+void config_destroy(struct map *config_map);
+void config_value_destroy(struct config_value *value);
 
-struct map *read_config_string(const char *config, size_t config_size);
-struct map *initialize_config_path(const char *path);
+struct map *config_read_string(const char *config, size_t config_size);
+struct map *config_initialize_path(const char *path);

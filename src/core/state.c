@@ -31,7 +31,7 @@ void natwm_state_destroy(struct natwm_state *state)
         }
 
         if (state->config != NULL) {
-                destroy_config(state->config);
+                config_destroy(state->config);
         }
 
         free(state);

@@ -146,11 +146,11 @@ static int start_natwm(struct natwm_state *state, const char *config_path)
                         LOG_INFO(natwm_logger, "Reloading natwm...");
 
                         // Destroy the old config
-                        destroy_config(state->config);
+                        config_destroy(state->config);
 
                         // Re-initialize the new config
                         struct map *new_config
-                                = initialize_config_path(config_path);
+                                = config_initialize_path(config_path);
 
                         if (new_config == NULL) {
                                 LOG_ERROR(natwm_logger,
@@ -261,7 +261,7 @@ int main(int argc, char **argv)
         }
 
         // Initialize config
-        struct map *config = initialize_config_path(arg_options->config_path);
+        struct map *config = config_initialize_path(arg_options->config_path);
 
         if (config == NULL) {
                 goto free_and_error;

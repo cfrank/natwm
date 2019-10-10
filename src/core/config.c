@@ -60,7 +60,7 @@ static enum config_token_types char_to_token(char c)
         }
 }
 
-static void internal_destroy_config_value(void *data)
+static void internal_config_value_destroy(void *data)
 {
         struct config_value *value = (struct config_value *)data;
 
@@ -108,8 +108,8 @@ static struct config_value *create_string(char *key, char *string)
  *
  * This will be used to track the position of the parser in the file.
  */
-static struct parser_context *initialize_parser_context(const char *buffer,
-                                                        size_t buffer_size)
+static struct parser_context *parser_context_init(const char *buffer,
+                                                  size_t buffer_size)
 {
         struct parser_context *context = malloc(sizeof(struct parser_context));
 
@@ -132,12 +132,12 @@ static struct parser_context *initialize_parser_context(const char *buffer,
 
         // Set up hashmap
         map_set_entry_free_function(context->variables,
-                                    internal_destroy_config_value);
+                                    internal_config_value_destroy);
 
         return context;
 }
 
-static void destroy_parser_context(struct parser_context *context)
+static void parser_context_destroy(struct parser_context *context)
 {
         if (context->variables != NULL) {
                 map_destroy(context->variables);
@@ -151,7 +151,7 @@ static void destroy_parser_context(struct parser_context *context)
  * context is a new line make sure to update the column and line numbers
  * to represent the new location
  */
-static void increment_parser_context(struct parser_context *context)
+static void parser_context_increment(struct parser_context *context)
 {
         if (context->pos > context->buffer_size) {
                 return;
@@ -172,21 +172,21 @@ static void increment_parser_context(struct parser_context *context)
  *
  * This makes sure that the parser positioning stays intact
  */
-static void move_parser_context(struct parser_context *context, size_t new_pos)
+static void parser_context_move(struct parser_context *context, size_t new_pos)
 {
         for (size_t i = 0; i < new_pos; ++i) {
-                increment_parser_context(context);
+                parser_context_increment(context);
         }
 }
 
 /**
  * Consume the rest of a line in the configuration file.
  */
-static void consume_line(struct parser_context *context)
+static void parser_context_consume_line(struct parser_context *context)
 {
         char c = '\0';
         while ((c = context->buffer[context->pos]) != '\n' && c != '\0') {
-                increment_parser_context(context);
+                parser_context_increment(context);
         }
 }
 
@@ -201,7 +201,7 @@ static void consume_line(struct parser_context *context)
  * Value -> The value which needs to be parsed further to determine it's type
  * and strip any additional characters
  */
-static struct config_value *create_value_from_strings(char *key, char *value)
+static struct config_value *config_value_from_string(char *key, char *value)
 {
         // Handle creating numbers
         if (char_to_token(value[0]) != QUOTE) {
@@ -238,8 +238,8 @@ static struct config_value *create_value_from_strings(char *key, char *value)
         return create_string(key, string_value);
 }
 
-static struct config_value *value_from_variable(char *key,
-                                                struct config_value *variable)
+static struct config_value *
+variable_from_config_value(char *key, struct config_value *variable)
 {
         if (variable->type == NUMBER) {
                 return create_number(key, variable->data.number);
@@ -279,7 +279,7 @@ static struct config_value *resolve_variable(struct parser_context *context,
         }
 
         struct config_value *new
-                = value_from_variable(new_key, variable->value);
+                = variable_from_config_value(new_key, variable->value);
 
         if (new == NULL) {
                 LOG_ERROR(natwm_logger,
@@ -348,7 +348,7 @@ static struct config_value *handle_context_value(struct parser_context *context)
                 return NULL;
         }
 
-        move_parser_context(context, (size_t)equal_pos);
+        parser_context_move(context, (size_t)equal_pos);
 
         // Skip EQUAL char
         const char *value_start = context->buffer + context->pos + 1;
@@ -372,7 +372,7 @@ static struct config_value *handle_context_value(struct parser_context *context)
                 ret = resolve_variable(
                         context, value_stripped + 1, key_stripped);
         } else {
-                ret = create_value_from_strings(key_stripped, value_stripped);
+                ret = config_value_from_string(key_stripped, value_stripped);
         }
 
         if (ret == NULL) {
@@ -386,7 +386,7 @@ static struct config_value *handle_context_value(struct parser_context *context)
         }
 
         // Update context
-        move_parser_context(context, (size_t)end_pos);
+        parser_context_move(context, (size_t)end_pos);
 
         // Free everything not contained in the value
         free(key);
@@ -422,7 +422,7 @@ free_and_error:
 static int parse_context_variable(struct parser_context *context)
 {
         // Skip VARIABLE_START
-        increment_parser_context(context);
+        parser_context_increment(context);
 
         struct config_value *variable = handle_context_value(context);
 
@@ -611,13 +611,13 @@ static struct map *read_context(struct parser_context *context)
         }
 
         // Setup hash map
-        map_set_entry_free_function(map, internal_destroy_config_value);
+        map_set_entry_free_function(map, internal_config_value_destroy);
 
         char c = '\0';
         while ((c = context->buffer[context->pos]) != '\0') {
                 switch (char_to_token(c)) {
                 case COMMENT_START:
-                        consume_line(context);
+                        parser_context_consume_line(context);
                         break;
                 case VARIABLE_START:
                         if (parse_context_variable(context) != 0) {
@@ -632,7 +632,7 @@ static struct map *read_context(struct parser_context *context)
                         break;
                 }
 
-                increment_parser_context(context);
+                parser_context_increment(context);
         }
 
         return map;
@@ -656,14 +656,14 @@ struct config_value *config_find(const struct map *config_map, const char *key)
         return (struct config_value *)entry->value;
 }
 
-void destroy_config(struct map *config_map)
+void config_destroy(struct map *config_map)
 {
         map_destroy(config_map);
 }
 
-void destroy_config_value(struct config_value *value)
+void config_value_destroy(struct config_value *value)
 {
-        internal_destroy_config_value(value);
+        internal_config_value_destroy(value);
 }
 
 /**
@@ -672,10 +672,10 @@ void destroy_config_value(struct config_value *value)
  * Takes a string buffer and uses it to return the key value pairs
  * of the config
  */
-struct map *read_config_string(const char *string, size_t config_size)
+struct map *config_read_string(const char *string, size_t config_size)
 {
         struct parser_context *context
-                = initialize_parser_context(string, config_size);
+                = parser_context_init(string, config_size);
 
         if (context == NULL) {
                 return NULL;
@@ -683,7 +683,7 @@ struct map *read_config_string(const char *string, size_t config_size)
 
         struct map *map = read_context(context);
 
-        destroy_parser_context(context);
+        parser_context_destroy(context);
 
         // May be NULL
         return map;
@@ -696,7 +696,7 @@ struct map *read_config_string(const char *string, size_t config_size)
  * into a buffer and uses it to return the key value pairs of the config
  * file
  */
-struct map *initialize_config_path(const char *path)
+struct map *config_initialize_path(const char *path)
 {
         FILE *file = open_config_file(path);
 
@@ -717,7 +717,7 @@ struct map *initialize_config_path(const char *path)
                 goto close_file_and_error;
         }
 
-        struct map *config = read_config_string(file_buffer, file_size);
+        struct map *config = config_read_string(file_buffer, file_size);
 
         if (config == NULL) {
                 free(file_buffer);
