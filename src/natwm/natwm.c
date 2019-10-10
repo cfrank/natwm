@@ -12,6 +12,7 @@
 
 #include <common/logger.h>
 #include <core/config.h>
+#include <core/ewmh.h>
 #include <core/map.h>
 #include <core/state.h>
 
@@ -159,6 +160,8 @@ static int start_natwm(struct natwm_state *state, const char *config_path)
                                 return -1;
                         }
 
+                        state->config = new_config;
+
                         program_status &= (unsigned int)~RELOAD;
                 }
 #endif
@@ -285,6 +288,14 @@ int main(int argc, char **argv)
         state->xcb = xcb;
 
         LOG_INFO(natwm_logger, "Successfully connected to X server");
+
+        xcb_ewmh_connection_t *ewmh = ewmh_init(xcb);
+
+        if (ewmh == NULL) {
+                goto free_and_error;
+        }
+
+        state->ewmh = ewmh;
 
         program_status = RUNNING;
 
