@@ -12,6 +12,8 @@
 
 #include <common/logger.h>
 #include <core/config.h>
+#include <core/map.h>
+#include <core/state.h>
 
 struct argument_options {
         const char *config_path;
@@ -19,7 +21,7 @@ struct argument_options {
         bool verbose;
 };
 
-enum state {
+enum status {
         STOPPED = 1 << 0,
         RUNNING = 1 << 1,
 #ifdef USE_POSIX
@@ -28,7 +30,7 @@ enum state {
 #endif
 };
 
-static enum state program_state = STOPPED;
+static enum status program_status = STOPPED;
 
 static void handle_connection_error(int error)
 {
@@ -81,12 +83,12 @@ static void signal_handler(int signum)
 #ifdef USE_POSIX
         if (signum == SIGHUP) {
                 // Perform a reload
-                program_state = NEEDS_RELOAD;
+                program_status |= NEEDS_RELOAD;
 
                 return;
         }
 #endif
-        program_state = STOPPED;
+        program_status = STOPPED;
 }
 
 static int install_signal_handlers(void)
@@ -131,40 +133,39 @@ static int install_signal_handlers(void)
 #endif
 }
 
-static int start_natwm(xcb_connection_t *connection, const char *config_path)
+static int start_natwm(struct natwm_state *state, const char *config_path)
 {
-        while (program_state & RUNNING) {
-                struct config_value *val = config_find(config, "author");
+        while (program_status & RUNNING) {
+                struct config_value *val = config_find(state->config, "author");
 
                 LOG_INFO(natwm_logger, val->data.string);
 
                 sleep(1);
 #ifdef USE_POSIX
-                if (program_state & RELOAD) {
+                if (program_status & RELOAD) {
                         LOG_INFO(natwm_logger, "Reloading natwm...");
 
                         // Destroy the old config
-                        destroy_config(config);
+                        destroy_config(state->config);
 
                         // Re-initialize the new config
-                        if (initialize_config_path(config_path) < 0) {
+                        struct map *new_config
+                                = initialize_config_path(config_path);
+
+                        if (new_config == NULL) {
                                 LOG_ERROR(natwm_logger,
                                           "Failed to reload configuarion!");
-
-                                xcb_disconnect(connection);
 
                                 return -1;
                         }
 
-                        program_state = RUNNING;
+                        program_status &= (unsigned int)~RELOAD;
                 }
 #endif
         }
 
         // Event loop stopped disconnect from x
         LOG_INFO(natwm_logger, "Disconnected...");
-
-        xcb_disconnect(connection);
 
         return 0;
 }
@@ -247,10 +248,24 @@ int main(int argc, char **argv)
         // Initialize the logger
         initialize_logger(arg_options->verbose);
 
+        // Initialize program state
+        struct natwm_state *state = natwm_state_init();
+
+        if (state == NULL) {
+                LOG_CRITICAL(natwm_logger,
+                             "Failed to initialize applicaiton state");
+
+                exit(EXIT_FAILURE);
+        }
+
         // Initialize config
-        if (initialize_config_path(arg_options->config_path) < 0) {
+        struct map *config = initialize_config_path(arg_options->config_path);
+
+        if (config == NULL) {
                 goto free_and_error;
         }
+
+        state->config = config;
 
         // Catch and handle signals
         if (install_signal_handlers() < 0) {
@@ -260,31 +275,33 @@ int main(int argc, char **argv)
         }
 
         // Initialize x
-        xcb_connection_t *connection
+        xcb_connection_t *xcb
                 = make_connection(arg_options->screen, &screen_num);
 
-        if (connection == NULL) {
+        if (xcb == NULL) {
                 goto free_and_error;
         }
 
+        state->xcb = xcb;
+
         LOG_INFO(natwm_logger, "Successfully connected to X server");
 
-        program_state = RUNNING;
+        program_status = RUNNING;
 
-        if (start_natwm(connection, arg_options->config_path) < 0) {
+        if (start_natwm(state, arg_options->config_path) < 0) {
                 goto free_and_error;
         }
 
         free(arg_options);
         destroy_logger(natwm_logger);
-        destroy_config(config);
+        natwm_state_destroy(state);
 
         return EXIT_SUCCESS;
 
 free_and_error:
         free(arg_options);
         destroy_logger(natwm_logger);
-        destroy_config(config);
+        natwm_state_destroy(state);
 
         return EXIT_FAILURE;
 }
