@@ -3,6 +3,7 @@
 // Refer to the license.txt file included in the root of the project
 
 #include "state.h"
+#include "ewmh.h"
 
 struct natwm_state *natwm_state_init(void)
 {
@@ -26,7 +27,7 @@ void natwm_state_destroy(struct natwm_state *state)
         }
 
         if (state->ewmh != NULL) {
-                xcb_ewmh_connection_wipe(state->ewmh);
+                ewmh_destroy(state->ewmh);
         }
 
         if (state->config != NULL) {

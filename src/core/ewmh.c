@@ -25,3 +25,10 @@ xcb_ewmh_connection_t *ewmh_init(xcb_connection_t *xcb_connection)
 
         return ewmh_connection;
 }
+
+void ewmh_destroy(xcb_ewmh_connection_t *ewmh_connection)
+{
+        xcb_ewmh_connection_wipe(ewmh_connection);
+
+        free(ewmh_connection);
+}

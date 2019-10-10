@@ -23,11 +23,10 @@ struct argument_options {
 };
 
 enum status {
-        STOPPED = 1 << 0,
-        RUNNING = 1 << 1,
+        STOPPED = 1U << 0U,
+        RUNNING = 1U << 1U,
 #ifdef USE_POSIX
-        RELOAD = 1 << 2,
-        NEEDS_RELOAD = RUNNING | RELOAD,
+        RELOAD = 1U << 2U,
 #endif
 };
 
@@ -84,7 +83,7 @@ static void signal_handler(int signum)
 #ifdef USE_POSIX
         if (signum == SIGHUP) {
                 // Perform a reload
-                program_status |= NEEDS_RELOAD;
+                program_status |= RELOAD;
 
                 return;
         }

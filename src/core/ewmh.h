@@ -7,3 +7,4 @@
 #include <xcb/xcb_ewmh.h>
 
 xcb_ewmh_connection_t *ewmh_init(xcb_connection_t *xcb_connection);
+void ewmh_destroy(xcb_ewmh_connection_t *ewmh_connection);
