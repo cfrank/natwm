@@ -4,7 +4,7 @@
 
 #include "ewmh.h"
 
-xcb_ewmh_connection_t *ewmh_init(xcb_connection_t *xcb_connection)
+xcb_ewmh_connection_t *ewmh_create(xcb_connection_t *xcb_connection)
 {
         xcb_ewmh_connection_t *ewmh_connection
                 = malloc(sizeof(xcb_ewmh_connection_t));

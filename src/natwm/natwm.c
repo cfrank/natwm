@@ -1,3 +1,7 @@
+// Copyright 2019 Chris Frank
+// Licensed under BSD-3-Clause
+// Refer to the license.txt file included in the root of the project
+
 #ifdef USE_POSIX
 // Required for handling signals
 #define _POSIX_C_SOURCE 200809L
@@ -251,7 +255,7 @@ int main(int argc, char **argv)
         initialize_logger(arg_options->verbose);
 
         // Initialize program state
-        struct natwm_state *state = natwm_state_init();
+        struct natwm_state *state = natwm_state_create();
 
         if (state == NULL) {
                 LOG_CRITICAL(natwm_logger,
@@ -288,7 +292,7 @@ int main(int argc, char **argv)
 
         LOG_INFO(natwm_logger, "Successfully connected to X server");
 
-        xcb_ewmh_connection_t *ewmh = ewmh_init(xcb);
+        xcb_ewmh_connection_t *ewmh = ewmh_create(xcb);
 
         if (ewmh == NULL) {
                 goto free_and_error;
