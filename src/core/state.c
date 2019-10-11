@@ -5,7 +5,7 @@
 #include "state.h"
 #include "ewmh.h"
 
-struct natwm_state *natwm_state_init(void)
+struct natwm_state *natwm_state_create(void)
 {
         struct natwm_state *state = calloc(1, sizeof(struct natwm_state));
 

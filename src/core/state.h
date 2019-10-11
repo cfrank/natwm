@@ -15,5 +15,5 @@ struct natwm_state {
         struct map *config;
 };
 
-struct natwm_state *natwm_state_init(void);
+struct natwm_state *natwm_state_create(void);
 void natwm_state_destroy(struct natwm_state *state);
