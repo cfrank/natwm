@@ -3,7 +3,7 @@
 // Refer to the license.txt file included in the root of the project
 
 #ifdef USE_POSIX
-// Required for handling signals
+// Required for handling POSIX signals
 #define _POSIX_C_SOURCE 200809L
 #endif
 
@@ -18,6 +18,7 @@
 #include <core/config.h>
 #include <core/ewmh.h>
 #include <core/map.h>
+#include <core/screen.h>
 #include <core/state.h>
 
 struct argument_options {
@@ -264,6 +265,8 @@ int main(int argc, char **argv)
                 exit(EXIT_FAILURE);
         }
 
+        state->screen_num = screen_num;
+
         // Initialize config
         struct map *config = config_initialize_path(arg_options->config_path);
 
@@ -292,6 +295,19 @@ int main(int argc, char **argv)
 
         LOG_INFO(natwm_logger, "Successfully connected to X server");
 
+        // Find the default screen
+
+        xcb_screen_t *default_screen
+                = find_default_screen(state->xcb, screen_num);
+
+        if (default_screen == NULL) {
+                LOG_ERROR(natwm_logger, "Failed to find default screen");
+
+                goto free_and_error;
+        }
+
+        state->screen = default_screen;
+
         xcb_ewmh_connection_t *ewmh = ewmh_create(xcb);
 
         if (ewmh == NULL) {
@@ -299,6 +315,9 @@ int main(int argc, char **argv)
         }
 
         state->ewmh = ewmh;
+
+        // Initialize ewmh hinting
+        ewmh_init(state);
 
         program_status = RUNNING;
 

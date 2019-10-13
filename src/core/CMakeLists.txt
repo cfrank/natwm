@@ -7,6 +7,8 @@ add_library(core STATIC
     list.h
     map.c
     map.h
+    screen.c
+    screen.h
     state.c
     state.h
 )
