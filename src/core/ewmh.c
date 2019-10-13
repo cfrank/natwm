@@ -7,6 +7,28 @@
 
 #include "ewmh.h"
 
+// Create a simple window for the _NET_SUPPORTING_WM_CHECK property
+static xcb_window_t create_supporting_window(const struct natwm_state *state)
+{
+        xcb_window_t win = xcb_generate_id(state->xcb);
+
+        xcb_create_window(state->xcb,
+                          XCB_COPY_FROM_PARENT,
+                          win,
+                          state->screen->root,
+                          -1,
+                          -1,
+                          1,
+                          1,
+                          0,
+                          XCB_COPY_FROM_PARENT,
+                          state->screen->root_visual,
+                          0,
+                          NULL);
+
+        return win;
+}
+
 xcb_ewmh_connection_t *ewmh_create(xcb_connection_t *xcb_connection)
 {
         xcb_ewmh_connection_t *ewmh_connection
@@ -89,6 +111,17 @@ void ewmh_init(const struct natwm_state *state)
         uint32_t len = (uint32_t)(sizeof(net_atoms) / sizeof(xcb_atom_t));
 
         xcb_ewmh_set_supported(state->ewmh, state->screen_num, len, net_atoms);
+
+        xcb_window_t supporting_win = create_supporting_window(state);
+
+        xcb_ewmh_set_supporting_wm_check(
+                state->ewmh, state->screen->root, supporting_win);
+
+        // Set the WM name on the supporting win
+        xcb_ewmh_set_wm_name(state->ewmh,
+                             supporting_win,
+                             strlen(NATWM_VERSION_STRING),
+                             NATWM_VERSION_STRING);
 }
 
 void ewmh_destroy(xcb_ewmh_connection_t *ewmh_connection)
