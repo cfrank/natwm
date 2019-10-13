@@ -142,9 +142,9 @@ static bool is_other_wm_present(struct natwm_state *state)
 {
         // Only one x client can select substructure redirection on root
         xcb_generic_error_t *error = NULL;
-        xcb_event_mask_t mask[1] = {XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT};
+        xcb_event_mask_t mask = XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT;
         xcb_void_cookie_t cookie = xcb_change_window_attributes_checked(
-                state->xcb, state->screen->root, XCB_CW_EVENT_MASK, mask);
+                state->xcb, state->screen->root, XCB_CW_EVENT_MASK, &mask);
 
         error = xcb_request_check(state->xcb, cookie);
 
