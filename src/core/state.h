@@ -10,7 +10,9 @@
 #include "config.h"
 
 struct natwm_state {
+        int screen_num;
         xcb_connection_t *xcb;
+        xcb_screen_t *screen;
         xcb_ewmh_connection_t *ewmh;
         struct map *config;
 };
