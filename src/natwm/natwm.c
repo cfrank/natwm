@@ -265,6 +265,8 @@ int main(int argc, char **argv)
                 exit(EXIT_FAILURE);
         }
 
+        LOG_INFO(natwm_logger, "Initializing with screen: %d", screen_num);
+
         state->screen_num = screen_num;
 
         // Initialize config
