@@ -298,7 +298,6 @@ int main(int argc, char **argv)
         LOG_INFO(natwm_logger, "Successfully connected to X server");
 
         // Find the default screen
-
         xcb_screen_t *default_screen
                 = find_default_screen(state->xcb, screen_num);
 
