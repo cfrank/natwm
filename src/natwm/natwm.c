@@ -138,6 +138,25 @@ static int install_signal_handlers(void)
 #endif
 }
 
+static bool is_other_wm_present(struct natwm_state *state)
+{
+        // Only one x client can select substructure redirection on root
+        xcb_generic_error_t *error = NULL;
+        xcb_event_mask_t mask[1] = {XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT};
+        xcb_void_cookie_t cookie = xcb_change_window_attributes_checked(
+                state->xcb, state->screen->root, XCB_CW_EVENT_MASK, mask);
+
+        error = xcb_request_check(state->xcb, cookie);
+
+        if (error != NULL) {
+                free(error);
+
+                return true;
+        }
+
+        return false;
+}
+
 static int start_natwm(struct natwm_state *state, const char *config_path)
 {
         while (program_status & RUNNING) {
@@ -308,6 +327,14 @@ int main(int argc, char **argv)
         }
 
         state->screen = default_screen;
+
+        // Check if another window manager is present
+        if (is_other_wm_present(state)) {
+                LOG_ERROR(natwm_logger,
+                          "Failed to initialize: Other window manager found");
+
+                goto free_and_error;
+        }
 
         xcb_ewmh_connection_t *ewmh = ewmh_create(xcb);
 
