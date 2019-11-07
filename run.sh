@@ -67,7 +67,3 @@ export DISPLAY=:14
 $($BIN)
 
 killall $XEPHYR
-
-echo $EXEC_TYPE
-echo $SCREEN_RES
-echo $BIN
