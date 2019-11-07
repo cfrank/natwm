@@ -11,7 +11,7 @@ if [ ! -x $(command -v $XEPHYR) ]; then
     echo Xephyr is required but was not found
 fi
 
-readonly BUILD="build"
+readonly BUILD="dev"
 readonly SYSTEM="system"
 
 readonly APP_NAME="natwm"
