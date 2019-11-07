@@ -1,8 +1,11 @@
 #!/bin/bash
 set -e
 
+readonly BUILD="dev"
+readonly SYSTEM="system"
+
 function show_help() {
-    echo "Usage: ./run <build|system> <wxh>"
+    echo "Usage: ./run <$BUILD|$SYSTEM> <wxh>"
 }
 
 readonly XEPHYR="Xephyr"
@@ -10,9 +13,6 @@ readonly XEPHYR="Xephyr"
 if [ ! -x $(command -v $XEPHYR) ]; then
     echo Xephyr is required but was not found
 fi
-
-readonly BUILD="dev"
-readonly SYSTEM="system"
 
 readonly APP_NAME="natwm"
 readonly BUILD_BIN_DIR="./build/bin"
@@ -54,9 +54,7 @@ if [ "$EXEC_TYPE" == "$BUILD" ] && [ -f "$BUILD_BIN" ]; then
     BIN=$BUILD_BIN
 elif [ "$EXEC_TYPE" == "$SYSTEM" ] && [ -f "$SYSTEM_BIN" ]; then
     BIN=$SYSTEM_BIN
-fi
-
-if [ "$BIN" == "" ]; then
+else
     echo Could not find \"$EXEC_TYPE\" binary
 
     exit
