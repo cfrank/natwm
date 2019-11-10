@@ -160,11 +160,6 @@ static bool is_other_wm_present(struct natwm_state *state)
 static int start_natwm(struct natwm_state *state, const char *config_path)
 {
         while (program_status & RUNNING) {
-                struct config_value *val = config_find(state->config, "author");
-
-                LOG_INFO(natwm_logger, val->data.string);
-
-                sleep(1);
 #ifdef USE_POSIX
                 if (program_status & RELOAD) {
                         LOG_INFO(natwm_logger, "Reloading natwm...");
@@ -185,7 +180,7 @@ static int start_natwm(struct natwm_state *state, const char *config_path)
 
                         state->config = new_config;
 
-                        program_status &= (unsigned int)~RELOAD;
+                        program_status &= (uint8_t)~RELOAD;
                 }
 #endif
         }
@@ -283,8 +278,6 @@ int main(int argc, char **argv)
 
                 exit(EXIT_FAILURE);
         }
-
-        LOG_INFO(natwm_logger, "Initializing with screen: %d", screen_num);
 
         state->screen_num = screen_num;
 
