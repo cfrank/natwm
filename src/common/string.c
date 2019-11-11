@@ -54,3 +54,27 @@ enum natwm_error string_append(char **destination, const char *append)
 
         return NO_ERROR;
 }
+
+/*
+ * Takes a pointer to a heap allocated string and appends a single char to the
+ * end of it, making sure to add a null terminator to the end. The resulting
+ * string is reallocated in place of the first argument, so it must be freed
+ */
+enum natwm_error string_append_char(char **destination, char append)
+{
+        size_t destination_size = strlen(*destination);
+        char *tmp = realloc(*destination, destination_size + 2);
+
+        if (tmp == NULL) {
+                free(*destination);
+
+                return MEMORY_ALLOCATION_ERROR;
+        }
+
+        *destination = tmp;
+
+        (*destination)[destination_size] = append;
+        (*destination)[destination_size + 1] = '\0';
+
+        return NO_ERROR;
+}

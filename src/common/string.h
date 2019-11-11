@@ -10,3 +10,4 @@
 
 char *string_init(const char *string);
 enum natwm_error string_append(char **destination, const char *append);
+enum natwm_error string_append_char(char **destination, char append);

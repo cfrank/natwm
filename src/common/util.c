@@ -13,32 +13,6 @@
 #include "constants.h"
 #include "util.h"
 
-/*
- * Takes a pointer to a heap allocated string and appends a single char to the
- * end of it, making sure to add a null terminator to the end. The resulting
- * string is reallocated in place of the first argument, so it must be freed
- */
-int string_append_char(char **destination, char append)
-{
-        char *tmp = NULL;
-        size_t destination_size = strlen(*destination);
-
-        tmp = realloc(*destination, destination_size + 2);
-
-        if (tmp == NULL) {
-                free(*destination);
-
-                return -1;
-        }
-
-        *destination = tmp;
-
-        (*destination)[destination_size] = append;
-        (*destination)[destination_size + 1] = '\0';
-
-        return 0;
-}
-
 /**
  * Search a string for a specific char
  *

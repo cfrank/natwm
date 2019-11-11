@@ -8,7 +8,6 @@
 #include <stdint.h>
 #include <stdio.h>
 
-int string_append_char(char **destination, char append);
 ssize_t string_find_char(const char *haystack, char needle);
 ssize_t string_find_first_nonspace(const char *string);
 ssize_t string_find_last_nonspace(const char *string);

@@ -72,7 +72,7 @@ static void test_string_append_char_succeeds(void **state)
         const char *expected_string = "Test.";
         char *first_string = string_init("Test");
 
-        assert_int_equal(0, string_append_char(&first_string, '.'));
+        assert_int_equal(NO_ERROR, string_append_char(&first_string, '.'));
         assert_string_equal(expected_string, first_string);
         assert_int_equal('\0', first_string[strlen(first_string)]);
 
@@ -84,7 +84,7 @@ static void test_string_append_char_empty_append(void **state)
         const char *expected_string = "Test";
         char *first_string = string_init(expected_string);
 
-        assert_int_equal(0, string_append_char(&first_string, '\0'));
+        assert_int_equal(NO_ERROR, string_append_char(&first_string, '\0'));
         assert_string_equal(expected_string, first_string);
         assert_int_equal('\0', first_string[strlen(first_string)]);
 
@@ -96,7 +96,7 @@ static void test_string_append_char_empty_destination(void **state)
         const char *expected_string = ".";
         char *first_string = string_init("");
 
-        assert_int_equal(0, string_append_char(&first_string, '.'));
+        assert_int_equal(NO_ERROR, string_append_char(&first_string, '.'));
         assert_string_equal(expected_string, first_string);
         assert_int_equal('\0', first_string[strlen(first_string)]);
 
