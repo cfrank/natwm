@@ -10,6 +10,7 @@
 #include <string.h>
 
 #include <cmocka.h>
+#include <common/error.h>
 #include <common/string.h>
 #include <common/util.h>
 
@@ -30,7 +31,7 @@ static void test_string_append(void **state)
         char *first_string = string_init("Test");
         char *second_string = string_init("String");
 
-        assert_int_equal(0, string_append(&first_string, second_string));
+        assert_int_equal(NO_ERROR, string_append(&first_string, second_string));
         assert_string_equal(expected_string, first_string);
 
         // Make sure the null terminator is appended as well
@@ -45,7 +46,7 @@ static void test_string_append_empty_append(void **state)
         const char *expected_string = "Test";
         char *first_string = string_init(expected_string);
 
-        assert_int_equal(0, string_append(&first_string, ""));
+        assert_int_equal(NO_ERROR, string_append(&first_string, ""));
         assert_string_equal(expected_string, first_string);
         assert_int_equal('\0', first_string[strlen(first_string)]);
 
@@ -58,7 +59,7 @@ static void test_string_append_empty_destination(void **state)
         char *first_string = string_init("");
         char *second_string = string_init(expected_string);
 
-        assert_int_equal(0, string_append(&first_string, second_string));
+        assert_int_equal(NO_ERROR, string_append(&first_string, second_string));
         assert_string_equal(expected_string, first_string);
         assert_int_equal('\0', first_string[strlen(first_string)]);
 

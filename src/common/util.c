@@ -14,35 +14,6 @@
 #include "util.h"
 
 /*
- * Takes a pointer to a heap allocated string and appends another string to the
- * end of it, making sure to add the null terminator to the end. The resulting
- * string is reallocated in place of the first argument, so it must be freed
- */
-int string_append(char **destination, const char *append)
-{
-        char *tmp = NULL;
-        size_t destination_size = strlen(*destination);
-        size_t append_size = strlen(append);
-        size_t result_size = destination_size + append_size;
-
-        tmp = realloc(*destination, result_size + 1);
-
-        if (tmp == NULL) {
-                free(*destination);
-
-                return -1;
-        }
-
-        *destination = tmp;
-
-        strncpy(*destination + destination_size, append, append_size);
-
-        (*destination)[result_size] = '\0';
-
-        return 0;
-}
-
-/*
  * Takes a pointer to a heap allocated string and appends a single char to the
  * end of it, making sure to add a null terminator to the end. The resulting
  * string is reallocated in place of the first argument, so it must be freed

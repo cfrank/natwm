@@ -9,3 +9,4 @@
 #include "error.h"
 
 char *string_init(const char *string);
+enum natwm_error string_append(char **destination, const char *append);
