@@ -11,6 +11,7 @@
 
 #include <common/constants.h>
 #include <common/logger.h>
+#include <common/string.h>
 #include <common/util.h>
 #include "config.h"
 
@@ -478,13 +479,13 @@ static char *get_config_path(void)
         char *config_path = NULL;
 
         if ((base_directory = getenv("XDG_CONFIG_HOME")) != NULL) {
-                config_path = alloc_string(base_directory);
+                config_path = string_init(base_directory);
 
                 return config_path;
         }
 
         if ((base_directory = getenv("HOME")) != NULL) {
-                config_path = alloc_string(base_directory);
+                config_path = string_init(base_directory);
                 string_append(&config_path, "/.config/");
 
                 return config_path;
@@ -497,7 +498,7 @@ static char *get_config_path(void)
                 return NULL;
         }
 
-        config_path = alloc_string(db->pw_dir);
+        config_path = string_init(db->pw_dir);
         string_append(&config_path, "/.config/");
 
         return config_path;
