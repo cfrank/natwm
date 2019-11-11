@@ -14,26 +14,6 @@
 #include "util.h"
 
 /*
- * Duplicates a stack allocated string to a heap allocated string. This allows
- * for mutating/building upon a string with for instance the string_append
- * function
- */
-ATTR_NONNULL char *alloc_string(const char *string)
-{
-        size_t length = strlen(string) + 1;
-
-        char *result = malloc(length);
-
-        if (result == NULL) {
-                return NULL;
-        }
-
-        memcpy(result, string, length);
-
-        return result;
-}
-
-/*
  * Takes a pointer to a heap allocated string and appends another string to the
  * end of it, making sure to add the null terminator to the end. The resulting
  * string is reallocated in place of the first argument, so it must be freed
