@@ -61,6 +61,11 @@ static enum config_token_types char_to_token(char c)
         }
 }
 
+/**
+ * This is purely for use by the map holding config values
+ *
+ * a config_value_destroy is exposed below
+ */
 static void internal_config_value_destroy(void *data)
 {
         struct config_value *value = (struct config_value *)data;
@@ -74,7 +79,7 @@ static void internal_config_value_destroy(void *data)
         free(value);
 }
 
-static struct config_value *create_number(char *key, intmax_t number)
+static struct config_value *create_number_value(char *key, intmax_t number)
 {
         struct config_value *value = malloc(sizeof(struct config_value));
 
@@ -89,7 +94,7 @@ static struct config_value *create_number(char *key, intmax_t number)
         return value;
 }
 
-static struct config_value *create_string(char *key, char *string)
+static struct config_value *create_string_value(char *key, char *string)
 {
         struct config_value *value = malloc(sizeof(struct config_value));
 
@@ -217,7 +222,7 @@ static struct config_value *config_value_from_string(char *key, char *value)
                         return NULL;
                 }
 
-                return create_number(key, number);
+                return create_number_value(key, number);
         }
 
         size_t value_len = strlen(value);
@@ -228,22 +233,24 @@ static struct config_value *config_value_from_string(char *key, char *value)
                 return NULL;
         }
 
-        char *string_value = NULL;
+        char *value_stripped = NULL;
+        size_t size = 0;
 
-        string_splice(value, &string_value, 1, (ssize_t)(value_len - 1));
+        enum natwm_error err = string_splice(
+                value, 1, (value_len - 1), &value_stripped, &size);
 
-        if (string_value == NULL) {
+        if (err != NO_ERROR) {
                 return NULL;
         }
 
-        return create_string(key, string_value);
+        return create_string_value(key, value_stripped);
 }
 
 static struct config_value *
 variable_from_config_value(char *key, struct config_value *variable)
 {
         if (variable->type == NUMBER) {
-                return create_number(key, variable->data.number);
+                return create_number_value(key, variable->data.number);
         }
 
         // Copy variable
@@ -261,7 +268,7 @@ variable_from_config_value(char *key, struct config_value *variable)
 
         memcpy(string, variable->data.string, length + 1);
 
-        return create_string(key, string);
+        return create_string_value(key, string);
 }
 
 static struct config_value *resolve_variable(struct parser_context *context,
@@ -321,6 +328,7 @@ static struct config_value *resolve_variable(struct parser_context *context,
 static struct config_value *handle_context_value(struct parser_context *context)
 {
         const char *string = context->buffer + context->pos;
+        enum natwm_error err = GENERIC_ERROR;
 
         if (char_to_token(string[0]) != ALPHA_CHAR) {
                 LOG_ERROR(natwm_logger,
@@ -334,31 +342,53 @@ static struct config_value *handle_context_value(struct parser_context *context)
 
         char *key = NULL;
         char *key_stripped = NULL;
-        ssize_t equal_pos = string_get_delimiter(string, '=', &key, false);
+        size_t equal_pos = 0;
+        err = string_get_delimiter(string, '=', &key, &equal_pos, false);
 
-        if (string_strip_surrounding_spaces(key, &key_stripped) < 0) {
+        if (err != NO_ERROR) {
+                LOG_ERROR(natwm_logger,
+                          "Invalid variable - Line: %zu Col: %zu",
+                          context->line_num,
+                          context->col_num);
+
+                return NULL;
+        }
+
+        err = string_strip_surrounding_spaces(key, &key_stripped, NULL);
+
+        if (err != NO_ERROR) {
                 LOG_ERROR(natwm_logger,
                           "Invalid value key - Line: %zu Col: %zu",
                           context->line_num,
                           context->col_num);
 
-                // Since we didn't check for the success of get_delim
-                // this could be NULL - free anyway
                 free(key);
 
                 return NULL;
         }
 
-        parser_context_move(context, (size_t)equal_pos);
+        parser_context_move(context, equal_pos);
 
         // Skip EQUAL char
         const char *value_start = context->buffer + context->pos + 1;
         char *value = NULL;
         char *value_stripped = NULL;
-        ssize_t end_pos
-                = string_get_delimiter(value_start, '\n', &value, false);
+        size_t end_pos = 0;
 
-        if (string_strip_surrounding_spaces(value, &value_stripped) < 0) {
+        err = string_get_delimiter(value_start, '\n', &value, &end_pos, false);
+
+        if (err != NO_ERROR) {
+                LOG_ERROR(natwm_logger,
+                          "Invalid value - Line: %zu Col: %zu",
+                          context->line_num,
+                          context->col_num);
+
+                return NULL;
+        }
+
+        err = string_strip_surrounding_spaces(value, &value_stripped, NULL);
+
+        if (err != NO_ERROR) {
                 LOG_ERROR(natwm_logger,
                           "Invalid value - Line: %zu Col: %zu",
                           context->line_num,
@@ -387,7 +417,7 @@ static struct config_value *handle_context_value(struct parser_context *context)
         }
 
         // Update context
-        parser_context_move(context, (size_t)end_pos);
+        parser_context_move(context, end_pos);
 
         // Free everything not contained in the value
         free(key);
