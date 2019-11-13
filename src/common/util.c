@@ -2,6 +2,7 @@
 // Licensed under BSD-3-Clause
 // Refer to the license.txt file included in the root of the project
 
+#include <stdint.h>
 #include <unistd.h>
 
 #include "util.h"
