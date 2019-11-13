@@ -8,6 +8,8 @@
 #include <string.h>
 
 #include <cmocka.h>
+
+#include <common/error.h>
 #include <core/map.h>
 
 /*
@@ -90,7 +92,7 @@ static void test_map_insert(void **state)
         struct map *map = *(struct map **)state;
         const char *expected_key = "test";
         uint32_t expected_value = 123;
-        enum map_error err = GENERIC_ERROR;
+        enum natwm_error err = GENERIC_ERROR;
 
         err = map_insert(map, expected_key, &expected_value);
 
@@ -137,7 +139,7 @@ static void test_map_insert_load_factor_disabled(void **state)
         assert_int_equal(MAP_MIN_LENGTH, map->length);
         assert_int_equal(4, map->bucket_count);
 
-        assert_int_equal(MAP_IS_FULL_ERROR, map_insert(map, "test5", "value"));
+        assert_int_equal(CAPACITY_ERROR, map_insert(map, "test5", "value"));
 }
 
 static void test_map_insert_load_factor(void **state)
@@ -238,7 +240,7 @@ static void test_map_delete(void **state)
         struct map *map = *(struct map **)state;
         const char *expected_key = "test";
         uint32_t expected_value = 123;
-        enum map_error err = GENERIC_ERROR;
+        enum natwm_error err = GENERIC_ERROR;
 
         map_insert(map, expected_key, &expected_value);
 
@@ -265,7 +267,7 @@ static void test_map_delete_unknown(void **state)
 
         map_insert(map, "test", "value");
 
-        assert_int_equal(ENTRY_NOT_FOUND_ERROR, map_delete(map, "unknown"));
+        assert_int_equal(NOT_FOUND_ERROR, map_delete(map, "unknown"));
 }
 
 static void test_map_delete_resize(void **state)
@@ -289,7 +291,7 @@ static void test_map_delete_duplicate(void **state)
         struct map *map = *(struct map **)state;
         const char *expected_key = "testKey2";
         uint32_t expected_value = 123;
-        enum map_error err = GENERIC_ERROR;
+        enum natwm_error err = GENERIC_ERROR;
 
         map_insert(map, expected_key, "value");
         map_insert(map, expected_key, &expected_value);

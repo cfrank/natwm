@@ -10,6 +10,8 @@
 #include <pthread.h>
 #endif
 
+#include <common/error.h>
+
 /**
  * The following is a implementation of a simple hash map.
  *
@@ -60,14 +62,6 @@ enum map_events {
         EVENT_FLAG_ITERATING = 1 << 2, // Map is currently iterating
 };
 
-enum map_error {
-        MEMORY_ALLOCATION_ERROR = 1 << 0, // Failed to allocate memory
-        ENTRY_NOT_FOUND_ERROR = 1 << 1, // Entry was not found in map
-        MAP_IS_FULL_ERROR = 1 << 2, // No more room available
-        GENERIC_ERROR = 1 << 3, // For unknown errors
-        NO_ERROR = 1 << 4, // No error
-};
-
 // Represents an entry in the hash map
 struct map_entry {
         // Tradeoff: Getting DIB from hash instead of storing DIB in entry
@@ -92,19 +86,19 @@ struct map {
         enum map_events event_flags;
 };
 
-enum map_error entry_init(uint32_t hash, const char *key, void *value,
-                          struct map_entry **dest);
+enum natwm_error entry_init(uint32_t hash, const char *key, void *value,
+                            struct map_entry **dest);
 void map_entry_destroy(const struct map *map, struct map_entry *entry);
 
 struct map *map_init(void);
 void map_destroy(struct map *map);
-enum map_error map_insert(struct map *map, const char *key, void *value);
+enum natwm_error map_insert(struct map *map, const char *key, void *value);
 struct map_entry *map_get(const struct map *map, const char *key);
-enum map_error map_delete(struct map *map, const char *key);
+enum natwm_error map_delete(struct map *map, const char *key);
 
 int map_set_hash_function(struct map *map, map_hash_function_t function);
 void map_set_entry_free_function(struct map *map,
                                  map_entry_free_function_t function);
 
 uint32_t map_get_uint32(const struct map *map, const char *key,
-                        enum map_error *error);
+                        enum natwm_error *error);

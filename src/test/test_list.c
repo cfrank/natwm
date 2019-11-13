@@ -9,6 +9,7 @@
 #include <stdlib.h>
 
 #include <cmocka.h>
+
 #include <core/list.h>
 
 static int test_setup(void **state)
@@ -369,4 +370,3 @@ int main(void)
 
         return cmocka_run_group_tests(tests, NULL, NULL);
 }
-
