@@ -13,7 +13,6 @@
 
 #include <common/error.h>
 #include <common/string.h>
-#include <common/util.h>
 
 static void test_string_init(void **state)
 {
