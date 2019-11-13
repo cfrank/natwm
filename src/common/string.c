@@ -326,7 +326,7 @@ enum natwm_error string_to_number(const char *number_string, intmax_t *dest)
 
         if (errno != 0) {
                 LOG_CRITICAL_LONG(natwm_logger,
-                                  "Unhandlable input recieved - Exiting...");
+                                  "Unhandleable input recieved - Exiting...");
 
                 exit(EXIT_FAILURE);
         }
