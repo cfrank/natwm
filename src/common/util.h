@@ -5,9 +5,10 @@
 #pragma once
 
 #include <stdbool.h>
-#include <stdint.h>
 #include <stdio.h>
 
+#include "error.h"
+
 // fs utils
-ssize_t get_file_size(FILE *file);
+enum natwm_error get_file_size(FILE *file, size_t *size);
 bool path_exists(const char *path);

@@ -11,19 +11,22 @@
  *
  * return -1 if we can't find the size
  */
-ssize_t get_file_size(FILE *file)
+enum natwm_error get_file_size(FILE *file, size_t *size_result)
 {
         fseek(file, 0L, SEEK_END);
 
-        ssize_t size = ftell(file);
+        int64_t size = ftell(file);
 
         if (size < 0) {
-                return -1;
+                // Specifics can be found from errno
+                return GENERIC_ERROR;
         }
 
         fseek(file, 0L, SEEK_SET);
 
-        return size;
+        *size_result = (size_t)size;
+
+        return NO_ERROR;
 }
 
 /*

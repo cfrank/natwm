@@ -735,13 +735,12 @@ struct map *config_initialize_path(const char *path)
                 return NULL;
         }
 
-        ssize_t ftell_result = get_file_size(file);
+        size_t file_size = 0;
 
-        if (ftell_result < 0) {
+        if (get_file_size(file, &file_size) != NO_ERROR) {
                 goto close_file_and_error;
         }
 
-        size_t file_size = (size_t)ftell_result;
         char *file_buffer = NULL;
 
         if (read_file_into_buffer(file, &file_buffer, file_size) != 0) {

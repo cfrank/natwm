@@ -73,4 +73,3 @@ ATTR_CONST uint32_t hash_murmur3_32(const void *data, size_t len, uint32_t seed)
 
         return hash;
 }
-
