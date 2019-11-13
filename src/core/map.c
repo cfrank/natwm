@@ -8,12 +8,13 @@
 #include <string.h>
 
 #include <common/constants.h>
+#include <common/error.h>
 #include <common/hash.h>
 #include "map.h"
 
 // Forward declarations
-static enum map_error map_insert_entry(struct map *map,
-                                       struct map_entry *entry);
+static enum natwm_error map_insert_entry(struct map *map,
+                                         struct map_entry *entry);
 
 // Default map hashing function
 // Uses Murmur v3 32bit
@@ -83,8 +84,8 @@ static int map_unlock(struct map *map)
 
 // Use the robin hood hashing method to probe the map for a sutable location to
 // place the provided entry
-static enum map_error map_probe(struct map *map, struct map_entry *entry,
-                                uint32_t initial_index)
+static enum natwm_error map_probe(struct map *map, struct map_entry *entry,
+                                  uint32_t initial_index)
 {
         // As we probe through the map these will continually get updated
         uint32_t probe_position = initial_index;
@@ -122,11 +123,11 @@ static enum map_error map_probe(struct map *map, struct map_entry *entry,
                 probe_position += 1;
         }
 
-        return MAP_IS_FULL_ERROR;
+        return CAPACITY_ERROR;
 }
 
-static enum map_error map_search(const struct map *map, const char *key,
-                                 uint32_t *index)
+static enum natwm_error map_search(const struct map *map, const char *key,
+                                   uint32_t *index)
 {
         if (key == NULL || index == NULL) {
                 return GENERIC_ERROR;
@@ -153,7 +154,7 @@ static enum map_error map_search(const struct map *map, const char *key,
                 return NO_ERROR;
         }
 
-        return ENTRY_NOT_FOUND_ERROR;
+        return NOT_FOUND_ERROR;
 }
 
 // Handle load factor for inserting/removing values
@@ -185,7 +186,7 @@ static int get_resize_direction(const struct map *map, double new_size)
 //
 // resize_direction == 1 -> Increase size
 // resize_direction == -1 -> Decrease size
-static enum map_error map_resize(struct map *map, int resize_direction)
+static enum natwm_error map_resize(struct map *map, int resize_direction)
 {
         uint32_t new_length = map->length;
 
@@ -238,7 +239,7 @@ static enum map_error map_resize(struct map *map, int resize_direction)
                         continue;
                 }
 
-                enum map_error error = map_insert_entry(map, entry);
+                enum natwm_error error = map_insert_entry(map, entry);
 
                 if (error != NO_ERROR) {
                         return error;
@@ -256,7 +257,8 @@ static enum map_error map_resize(struct map *map, int resize_direction)
 }
 
 // Inserts a pre-hashed entry into the map
-static enum map_error map_insert_entry(struct map *map, struct map_entry *entry)
+static enum natwm_error map_insert_entry(struct map *map,
+                                         struct map_entry *entry)
 {
         // Get the new initial idex
         uint32_t initial_index = entry->hash % map->length;
@@ -276,7 +278,8 @@ static enum map_error map_insert_entry(struct map *map, struct map_entry *entry)
                 = get_resize_direction(map, map->bucket_count + 1.0);
 
         if (resize_direction != 0) {
-                enum map_error resize_error = map_resize(map, resize_direction);
+                enum natwm_error resize_error
+                        = map_resize(map, resize_direction);
 
                 if (resize_error != NO_ERROR) {
                         return resize_error;
@@ -297,11 +300,11 @@ static enum map_error map_insert_entry(struct map *map, struct map_entry *entry)
         if ((map->bucket_count + 1) > map->length) {
                 map_entry_destroy(map, entry);
 
-                return MAP_IS_FULL_ERROR;
+                return CAPACITY_ERROR;
         }
 
         // Handle collision
-        enum map_error error = map_probe(map, entry, initial_index);
+        enum natwm_error error = map_probe(map, entry, initial_index);
 
         if (error != NO_ERROR) {
                 return error;
@@ -313,8 +316,8 @@ static enum map_error map_insert_entry(struct map *map, struct map_entry *entry)
 }
 
 // Given a hash, key, and value construct a map entry
-enum map_error entry_init(uint32_t hash, const char *key, void *value,
-                          struct map_entry **dest)
+enum natwm_error entry_init(uint32_t hash, const char *key, void *value,
+                            struct map_entry **dest)
 {
         if (key == NULL || dest == NULL) {
                 return GENERIC_ERROR;
@@ -404,7 +407,7 @@ void map_destroy(struct map *map)
 }
 
 // Insert an entry into a map
-enum map_error map_insert(struct map *map, const char *key, void *value)
+enum natwm_error map_insert(struct map *map, const char *key, void *value)
 {
         if (key == NULL) {
                 return GENERIC_ERROR;
@@ -412,7 +415,7 @@ enum map_error map_insert(struct map *map, const char *key, void *value)
 
         struct map_entry *entry = NULL;
         uint32_t hash = map->hash_function(key);
-        enum map_error error = entry_init(hash, key, value, &entry);
+        enum natwm_error error = entry_init(hash, key, value, &entry);
 
         if (error != NO_ERROR) {
                 return error;
@@ -433,10 +436,10 @@ struct map_entry *map_get(const struct map *map, const char *key)
 }
 
 // TODO: Add resize when threshold goes below MAP_LOAD_FACTOR_LOW
-enum map_error map_delete(struct map *map, const char *key)
+enum natwm_error map_delete(struct map *map, const char *key)
 {
         uint32_t dest_index = 0;
-        enum map_error err = map_search(map, key, &dest_index);
+        enum natwm_error err = map_search(map, key, &dest_index);
 
         if (err != NO_ERROR) {
                 return err;
@@ -513,12 +516,12 @@ void map_set_entry_free_function(struct map *map,
  * Type specific getters
  */
 uint32_t map_get_uint32(const struct map *map, const char *key,
-                        enum map_error *error)
+                        enum natwm_error *error)
 {
         struct map_entry *entry = map_get(map, key);
 
         if (entry == NULL) {
-                *error = ENTRY_NOT_FOUND_ERROR;
+                *error = NOT_FOUND_ERROR;
         }
 
         *error = NO_ERROR;

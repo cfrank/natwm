@@ -9,6 +9,7 @@
 #include <stdlib.h>
 
 #include <cmocka.h>
+
 #include <core/list.h>
 
 static int test_setup(void **state)
