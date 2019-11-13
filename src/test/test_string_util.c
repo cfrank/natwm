@@ -10,6 +10,7 @@
 #include <string.h>
 
 #include <cmocka.h>
+
 #include <common/error.h>
 #include <common/string.h>
 #include <common/util.h>
@@ -116,26 +117,24 @@ static void test_string_find_char(void **state)
 
 static void test_string_find_char_not_found(void **state)
 {
-        ssize_t expected_error = NOT_FOUND_ERROR;
         const char *string = "Not Found";
 
-        assert_int_equal(expected_error, string_find_char(string, '!', NULL));
+        assert_int_equal(NOT_FOUND_ERROR, string_find_char(string, '!', NULL));
 }
 
 static void test_string_find_char_empty_string(void **state)
 {
-        ssize_t expected_error = NOT_FOUND_ERROR;
         const char *string = "";
 
-        assert_int_equal(expected_error, string_find_char(string, '!', NULL));
+        assert_int_equal(NOT_FOUND_ERROR, string_find_char(string, '!', NULL));
 }
 
 static void test_string_find_char_null_string(void **state)
 {
-        ssize_t expected_error = INVALID_INPUT_ERROR;
         const char *string = NULL;
 
-        assert_int_equal(expected_error, string_find_char(string, '!', NULL));
+        assert_int_equal(INVALID_INPUT_ERROR,
+                         string_find_char(string, '!', NULL));
 }
 
 static void test_string_find_first_nonspace(void **state)

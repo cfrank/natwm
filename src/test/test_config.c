@@ -9,6 +9,7 @@
 #include <string.h>
 
 #include <cmocka.h>
+
 #include <common/logger.h>
 #include <core/config.h>
 

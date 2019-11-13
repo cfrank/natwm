@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include <cmocka.h>
+
 #include <common/error.h>
 #include <core/map.h>
 
