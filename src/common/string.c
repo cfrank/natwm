@@ -123,10 +123,11 @@ enum natwm_error string_find_char(const char *haystack, char needle,
 }
 
 /**
- * Search a string for the first non whitespace character and return the
- * index of the character to the caller
+ * Search a string for the first non whitespace character and set the index
+ * of the character into the provided pointer
  *
- * If no non-whitespace characters are found in the supplied string return -1
+ * If no non-whitespace characters are found in the supplied string return
+ * NOT_FOUND_ERROR otherwise NO_ERROR
  */
 enum natwm_error string_find_first_nonspace(const char *string,
                                             size_t *index_result)
@@ -153,10 +154,11 @@ enum natwm_error string_find_first_nonspace(const char *string,
 }
 
 /**
- * Search a string for the last non whitespace character and return the index
- * of the character to the caller.
+ * Search a string for the last non whitespace character and place the index
+ * of the character in the provided pointer.
  *
- * If no non-whitespace character is found in the supplied string return -1
+ * If no non-whitespace character is found in the supplied string return
+ * NOT_FOUND_ERROR otherwise NO_ERROR
  */
 enum natwm_error string_find_last_nonspace(const char *string,
                                            size_t *index_result)
@@ -268,10 +270,12 @@ enum natwm_error string_splice(const char *string, size_t start, size_t end,
  * nonspace characters are found, the source string is then spliced and the
  * resulting characters are allocated into the supplied dest buffer.
  *
- * If there is an error during any step in the process a -1 is returned and the
- * dest remains unchanged. If there are no issues then the stripped string
- * is placed in the dest and the resulting strlen is returned. The dest
- * must be freed after use by the caller
+ * If there is an error during any step in the process that error is returned
+ * to the caller and the dest pointer remains unchanged. If there are no issues
+ * the stripped string is placed in the dest pointer and the resulting strlen
+ * is placed in the length pointer.
+ *
+ * If no errors are encountered NO_ERROR is returned
  */
 enum natwm_error string_strip_surrounding_spaces(const char *string,
                                                  char **dest, size_t *length)
@@ -301,11 +305,11 @@ enum natwm_error string_strip_surrounding_spaces(const char *string,
 }
 
 /**
- * Takes a string which correspondes to a base 10 number as well as a pointer
- * to intmax_t. If the number can be transformed successfully the destination
- * will point to the number and 0 is returned.
+ * Takes a string which corresponds to a base 10 number as well as a pointer
+ * to intmax_t. if the number can be transformed successfully the dest
+ * pointer will have the number placed into it.
  *
- * If there is an error then -1 is returned and the destination is unchanged
+ * If there is an error it will be returned. Otherwise NO_ERROR is returned
  */
 enum natwm_error string_to_number(const char *number_string, intmax_t *dest)
 {

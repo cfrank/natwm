@@ -10,7 +10,11 @@
 /**
  * Get size of a file
  *
- * return -1 if we can't find the size
+ * If the size of the file is able to be found it will be placed in the
+ * provided pointer and NO_ERROR will be returned
+ *
+ * Otherwise GENERIC_ERROR will be returned and the errno will provide more
+ * context
  */
 enum natwm_error get_file_size(FILE *file, size_t *size_result)
 {
