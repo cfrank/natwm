@@ -160,6 +160,7 @@ static bool is_other_wm_present(struct natwm_state *state)
 static int start_natwm(struct natwm_state *state, const char *config_path)
 {
         while (program_status & RUNNING) {
+                sleep(1);
 #ifdef USE_POSIX
                 if (program_status & RELOAD) {
                         LOG_INFO(natwm_logger, "Reloading natwm...");
