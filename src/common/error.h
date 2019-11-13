@@ -5,12 +5,12 @@
 #pragma once
 
 enum natwm_error {
-        MEMORY_ALLOCATION_ERROR = 1 << 0, // Failed to allocate memory
-        NOT_FOUND_ERROR = 1 << 1, // Failed to find what was requested
-        CAPACITY_ERROR = 1 << 2, // Capacity exceeded
-        INVALID_INPUT_ERROR = 1 << 3, // Bad input received
-        GENERIC_ERROR = 1 << 4, // Catch-all error
-        NO_ERROR = 1 << 5, // No error
+        MEMORY_ALLOCATION_ERROR = 1U << 0U, // Failed to allocate memory
+        NOT_FOUND_ERROR = 1U << 1U, // Failed to find what was requested
+        CAPACITY_ERROR = 1U << 2U, // Capacity exceeded
+        INVALID_INPUT_ERROR = 1U << 3U, // Bad input received
+        GENERIC_ERROR = 1U << 4U, // Catch-all error
+        NO_ERROR = 1U << 5U, // No error
 };
 
 const char *error_to_string(enum natwm_error error);
