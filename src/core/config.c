@@ -214,7 +214,7 @@ static struct config_value *config_value_from_string(char *key, char *value)
                 // TODO: Handle double values
                 intmax_t number = 0;
 
-                if (string_to_number(value, &number) != 0) {
+                if (string_to_number(value, &number) != NO_ERROR) {
                         LOG_ERROR(natwm_logger,
                                   "Invalid number '%s' found",
                                   value);

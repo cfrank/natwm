@@ -25,3 +25,4 @@ enum natwm_error string_splice(const char *string, size_t start, size_t end,
                                char **destination, size_t *size);
 enum natwm_error string_strip_surrounding_spaces(const char *string,
                                                  char **dest, size_t *length);
+enum natwm_error string_to_number(const char *number_string, intmax_t *dest);

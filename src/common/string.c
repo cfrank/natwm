@@ -3,10 +3,13 @@
 // Refer to the license.txt file included in the root of the project
 
 #include <ctype.h>
+#include <errno.h>
+#include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "constants.h"
+#include "logger.h"
 #include "string.h"
 
 // TODO: Move to common macro file if used again
@@ -295,4 +298,36 @@ enum natwm_error string_strip_surrounding_spaces(const char *string,
         SET_IF_NON_NULL(length, length_result);
 
         return err;
+}
+
+/**
+ * Takes a string which correspondes to a base 10 number as well as a pointer
+ * to intmax_t. If the number can be transformed successfully the destination
+ * will point to the number and 0 is returned.
+ *
+ * If there is an error then -1 is returned and the destination is unchanged
+ */
+enum natwm_error string_to_number(const char *number_string, intmax_t *dest)
+{
+        char *endptr = NULL;
+
+        // Reset errno to 0 so we can test for ERANGE
+        errno = 0;
+
+        intmax_t result = strtoimax(number_string, &endptr, 10);
+
+        if (errno == ERANGE || endptr == number_string || *endptr != '\0') {
+                return INVALID_INPUT_ERROR;
+        }
+
+        if (errno != 0) {
+                LOG_CRITICAL_LONG(natwm_logger,
+                                  "Unhandlable input recieved - Exiting...");
+
+                exit(EXIT_FAILURE);
+        }
+
+        *dest = result;
+
+        return NO_ERROR;
 }

@@ -272,9 +272,7 @@ static void test_string_to_number(void **state)
         intmax_t expected_number = 1520;
         intmax_t destination = 0;
 
-        int result = string_to_number(input, &destination);
-
-        assert_int_equal(0, result);
+        assert_int_equal(NO_ERROR, string_to_number(input, &destination));
         assert_int_equal(expected_number, destination);
 }
 
@@ -284,71 +282,57 @@ static void test_string_to_number_negative(void **state)
         intmax_t expected_number = -3455;
         intmax_t destination = 0;
 
-        int result = string_to_number(input, &destination);
-
-        assert_int_equal(0, result);
+        assert_int_equal(NO_ERROR, string_to_number(input, &destination));
         assert_int_equal(expected_number, destination);
 }
 
 static void test_string_to_number_invalid_char(void **state)
 {
         const char *input = "123abc";
-        int expected_number = -1;
         intmax_t destination = 0;
 
-        int result = string_to_number(input, &destination);
-
-        assert_int_equal(expected_number, result);
+        assert_int_equal(INVALID_INPUT_ERROR,
+                         string_to_number(input, &destination));
         assert_int_equal(0, destination);
 }
 
 static void test_string_to_number_empty(void **state)
 {
         const char *input = "";
-        int expected_number = -1;
         intmax_t destination = 0;
 
-        int result = string_to_number(input, &destination);
-
-        assert_int_equal(expected_number, result);
+        assert_int_equal(INVALID_INPUT_ERROR,
+                         string_to_number(input, &destination));
         assert_int_equal(0, destination);
 }
 
 static void test_string_to_number_zero(void **state)
 {
         const char *input = "0";
-        int expected_result = 0;
-        intmax_t expected_number = 0;
         intmax_t destination = 0;
+        intmax_t expected_number = 0;
 
-        int result = string_to_number(input, &destination);
+        assert_int_equal(NO_ERROR, string_to_number(input, &destination));
 
-        assert_int_equal(expected_result, result);
         assert_int_equal(expected_number, destination);
 }
 
 static void test_string_to_number_single_char(void **state)
 {
         const char *input = "e";
-        int expected_result = -1;
         intmax_t destination = 0;
 
-        int result = string_to_number(input, &destination);
-
-        assert_int_equal(expected_result, result);
-        assert_int_equal(0, destination);
+        assert_int_equal(INVALID_INPUT_ERROR,
+                         string_to_number(input, &destination));
 }
 
 static void test_string_to_number_double(void **state)
 {
         const char *input = "55.5";
-        int expected_result = -1;
         intmax_t destination = 0;
 
-        int result = string_to_number(input, &destination);
-
-        assert_int_equal(expected_result, result);
-        assert_int_equal(0, destination);
+        assert_int_equal(INVALID_INPUT_ERROR,
+                         string_to_number(input, &destination));
 }
 
 static void test_string_splice(void **state)
