@@ -2,11 +2,6 @@
 // Licensed under BSD-3-Clause
 // Refer to the license.txt file included in the root of the project
 
-#ifdef USE_POSIX
-// Required for handling POSIX signals
-#define _POSIX_C_SOURCE 200809L
-#endif
-
 #include <getopt.h>
 #include <signal.h>
 #include <stdio.h>
@@ -30,9 +25,7 @@ struct argument_options {
 enum status {
         STOPPED = 1U << 0U,
         RUNNING = 1U << 1U,
-#ifdef USE_POSIX
         RELOAD = 1U << 2U,
-#endif
 };
 
 static enum status program_status = STOPPED;
@@ -85,20 +78,18 @@ static xcb_connection_t *make_connection(const char *screen, int *screen_num)
 
 static void signal_handler(int signum)
 {
-#ifdef USE_POSIX
         if (signum == SIGHUP) {
                 // Perform a reload
                 program_status |= RELOAD;
 
                 return;
         }
-#endif
+
         program_status = STOPPED;
 }
 
 static int install_signal_handlers(void)
 {
-#ifdef USE_POSIX
         struct sigaction action;
 
         action.sa_handler = &signal_handler;
@@ -119,23 +110,6 @@ static int install_signal_handlers(void)
         }
 
         return 0;
-#else
-        // Install interupt handler using ansi signals
-
-        if (signal(SIGINT, signal_handler) == SIG_ERR) {
-                LOG_ERROR(natwm_logger, "Failed to handle SIGINT");
-
-                return -1;
-        }
-
-        if (signal(SIGTERM, signal_handler) == SIG_ERR) {
-                LOG_ERROR(natwm_logger, "Failed to handle SIGTERM");
-
-                return -1;
-        }
-
-        return 0;
-#endif
 }
 
 static bool is_other_wm_present(struct natwm_state *state)
@@ -160,12 +134,8 @@ static bool is_other_wm_present(struct natwm_state *state)
 static int start_natwm(struct natwm_state *state, const char *config_path)
 {
         while (program_status & RUNNING) {
-                struct config_value *val = config_find(state->config, "author");
-
-                LOG_INFO(natwm_logger, val->data.string);
-
                 sleep(1);
-#ifdef USE_POSIX
+
                 if (program_status & RELOAD) {
                         LOG_INFO(natwm_logger, "Reloading natwm...");
 
@@ -185,9 +155,8 @@ static int start_natwm(struct natwm_state *state, const char *config_path)
 
                         state->config = new_config;
 
-                        program_status &= (unsigned int)~RELOAD;
+                        program_status &= (uint8_t)~RELOAD;
                 }
-#endif
         }
 
         // Event loop stopped disconnect from x
@@ -283,8 +252,6 @@ int main(int argc, char **argv)
 
                 exit(EXIT_FAILURE);
         }
-
-        LOG_INFO(natwm_logger, "Initializing with screen: %d", screen_num);
 
         state->screen_num = screen_num;
 

@@ -21,24 +21,17 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
     add_compile_definitions(IS_DEBUG_BUILD=0)
 else()
-    message(STATUS "No CMAKE_BUILD_TYPE specified - Defaulting to \"Debug\"")
+    message(STATUS "Defauling CMAKE_BUILD_TYPE to \"Debug\"")
     set(CMAKE_BUILD_TYPE "Debug")
     add_compile_definitions(IS_DEBUG_BUILD=1)
 endif()
 
 option(ENABLE_TESTING "Enable automated testing" OFF)
 
-option(USE_POSIX "Enable POSIX 2001 extensions" ON)
-
-if(USE_POSIX)
-    add_compile_definitions(USE_POSIX=1)
-endif()
-
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
 set(CMAKE_SRCS_DIRECTORY ${PROJECT_SOURCE_DIR}/src)
 
 # Clang Format target
-
 set(CLANG_FORMAT_POSTFIX "-7.0")
 find_program(CLANG_FORMAT
     NAMES clang-format${CLANG_FORMAT_POSTFIX}
@@ -55,31 +48,6 @@ else()
 endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-# Compilation flags
-
-string(APPEND CMAKE_C_FLAGS_DEBUG " -g3"
-    " -O")
-
-string(APPEND CMAKE_C_FLAGS_RELEASE " -O2"
-    " -march=native"
-    " -mtune=native"
-    " -fsanitize=address"
-    " -ftree-vectorize")
-
-string(APPEND CMAKE_C_FLAGS " -Wall"
-    " -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2"
-    " -Wextra -Wcast-align -Wcast-qual -Wpointer-arith"
-    " -Wunreachable-code -Wfloat-equal"
-    " -Wformat=2 -Wredundant-decls -Wundef"
-    " -Wdisabled-optimization -Wshadow -Wmissing-braces"
-    " -Wstrict-aliasing=2 -Wstrict-overflow=5 -Wconversion"
-    " -Wno-unused-parameter"
-    " -pedantic")
-
-# Linker flags
-
-string(APPEND CMAKE_LINK_FLAGS_RELEASE " -fsanitize=address")
 
 if(ENABLE_TESTING)
     include(CTest)

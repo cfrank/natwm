@@ -11,7 +11,7 @@ xcb_screen_t *find_default_screen(xcb_connection_t *connection, int screen_num)
         xcb_screen_iterator_t itr = xcb_setup_roots_iterator(setup);
 
         for (int i = screen_num; itr.rem; --i, xcb_screen_next(&itr)) {
-                if (i == screen_num) {
+                if (i == 0) {
                         return itr.data;
                 }
         }

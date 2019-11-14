@@ -10,6 +10,7 @@
 
 #include <cmocka.h>
 
+#include <common/constants.h>
 #include <core/list.h>
 
 static int test_setup(void **state)
@@ -34,6 +35,8 @@ static int test_teardown(void **state)
 
 static void test_node_creation_succeeds(void **state)
 {
+        UNUSED_FUNCTION_PARAM(state);
+
         int expected_data = 10;
         struct node *node = create_node(&expected_data);
 

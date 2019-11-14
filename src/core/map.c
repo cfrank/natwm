@@ -57,11 +57,10 @@ static int map_lock(struct map *map)
                 return 0;
         }
 
-#ifdef USE_POSIX
         if (pthread_mutex_lock(&map->mutex) != 0) {
                 return -1;
         }
-#endif
+
         return 0;
 }
 
@@ -74,11 +73,10 @@ static int map_unlock(struct map *map)
                 return 0;
         }
 
-#ifdef USE_POSIX
         if (pthread_mutex_unlock(&map->mutex) != 0) {
                 return -1;
         }
-#endif
+
         return 0;
 }
 
@@ -372,11 +370,10 @@ struct map *map_init(void)
                 return NULL;
         }
 
-#ifdef USE_POSIX
         if (pthread_mutex_init(&map->mutex, NULL) != 0) {
                 return NULL;
         }
-#endif
+
         map->hash_function = default_key_hash;
         map->free_function = NULL;
         map->setting_flags = MAP_FLAG_IGNORE_THRESHOLDS_EMPTY;

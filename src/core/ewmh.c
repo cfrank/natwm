@@ -8,6 +8,8 @@
 #include "ewmh.h"
 
 // Create a simple window for the _NET_SUPPORTING_WM_CHECK property
+//
+// Return the ID of the created window
 static xcb_window_t create_supporting_window(const struct natwm_state *state)
 {
         xcb_window_t win = xcb_generate_id(state->xcb);
@@ -54,12 +56,13 @@ xcb_ewmh_connection_t *ewmh_create(xcb_connection_t *xcb_connection)
 void ewmh_init(const struct natwm_state *state)
 {
         // Base info
-        uint32_t pid = (uint32_t)getpid(); // set_wm_pid expects uint32_t
+        pid_t pid = getpid();
+        size_t wm_name_len = strlen(NATWM_VERSION_STRING);
 
-        xcb_ewmh_set_wm_pid(state->ewmh, state->screen->root, pid);
+        xcb_ewmh_set_wm_pid(state->ewmh, state->screen->root, (uint32_t)pid);
         xcb_ewmh_set_wm_name(state->ewmh,
                              state->screen->root,
-                             strlen(NATWM_VERSION_STRING),
+                             (uint32_t)wm_name_len,
                              NATWM_VERSION_STRING);
 
         // A list of supported atoms
@@ -108,9 +111,10 @@ void ewmh_init(const struct natwm_state *state)
                 state->ewmh->_NET_WM_STATE_DEMANDS_ATTENTION,
         };
 
-        uint32_t len = (uint32_t)(sizeof(net_atoms) / sizeof(xcb_atom_t));
+        size_t len = (sizeof(net_atoms) / sizeof(xcb_atom_t));
 
-        xcb_ewmh_set_supported(state->ewmh, state->screen_num, len, net_atoms);
+        xcb_ewmh_set_supported(
+                state->ewmh, state->screen_num, (uint32_t)len, net_atoms);
 
         xcb_window_t supporting_win = create_supporting_window(state);
 
@@ -120,7 +124,7 @@ void ewmh_init(const struct natwm_state *state)
         // Set the WM name on the supporting win
         xcb_ewmh_set_wm_name(state->ewmh,
                              supporting_win,
-                             strlen(NATWM_VERSION_STRING),
+                             (uint32_t)wm_name_len,
                              NATWM_VERSION_STRING);
 }
 

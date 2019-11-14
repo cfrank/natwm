@@ -10,6 +10,7 @@
 
 #include <cmocka.h>
 
+#include <common/constants.h>
 #include <common/logger.h>
 #include <core/config.h>
 
@@ -18,6 +19,8 @@
  */
 static int global_test_setup(void **state)
 {
+        UNUSED_FUNCTION_PARAM(state);
+
         initialize_logger(false);
 
         // Logs will now be noops
@@ -28,6 +31,8 @@ static int global_test_setup(void **state)
 
 static int global_test_teardown(void **state)
 {
+        UNUSED_FUNCTION_PARAM(state);
+
         destroy_logger(natwm_logger);
 
         return EXIT_SUCCESS;
@@ -35,6 +40,8 @@ static int global_test_teardown(void **state)
 
 static void test_config_simple_config(void **state)
 {
+        UNUSED_FUNCTION_PARAM(state);
+
         const char *expected_key = "name";
         const char *expected_value = "John";
         const char *config_string = "name = \"John\"\n";
@@ -54,6 +61,8 @@ static void test_config_simple_config(void **state)
 
 static void test_config_number_variable(void **state)
 {
+        UNUSED_FUNCTION_PARAM(state);
+
         const char *expected_key = "age";
         intmax_t expected_value = 100;
         const char *config_string = "$test = 100\nage = $test\n";
@@ -73,6 +82,8 @@ static void test_config_number_variable(void **state)
 
 static void test_config_string_variable(void **state)
 {
+        UNUSED_FUNCTION_PARAM(state);
+
         const char *expected_key = "name";
         const char *expected_value = "testing";
         const char *config_string = "$test = \"testing\"\nname = $test\n";
@@ -92,6 +103,8 @@ static void test_config_string_variable(void **state)
 
 static void test_config_comment(void **state)
 {
+        UNUSED_FUNCTION_PARAM(state);
+
         size_t expected_result = 0;
         const char *config_string = "// An example comment\n";
         size_t config_length = strlen(config_string);
@@ -106,6 +119,8 @@ static void test_config_comment(void **state)
 
 static void test_config_double_definition(void **state)
 {
+        UNUSED_FUNCTION_PARAM(state);
+
         const char *expected_key = "test";
         const char *expected_value = "first";
         const char *config_string
@@ -126,6 +141,8 @@ static void test_config_double_definition(void **state)
 
 static void test_config_unset_variable(void **state)
 {
+        UNUSED_FUNCTION_PARAM(state);
+
         const char *config_string = "test = $undefined\n";
         size_t config_length = strlen(config_string);
         struct map *config_map
@@ -136,6 +153,8 @@ static void test_config_unset_variable(void **state)
 
 static void test_config_invalid_number(void **state)
 {
+        UNUSED_FUNCTION_PARAM(state);
+
         const char *config_string = "$number = not a number\n";
         size_t config_length = strlen(config_string);
         struct map *config_map
@@ -146,6 +165,8 @@ static void test_config_invalid_number(void **state)
 
 static void test_config_invalid_single_quotes(void **state)
 {
+        UNUSED_FUNCTION_PARAM(state);
+
         const char *config_string = "$string = 'invalid'\n";
         size_t config_length = strlen(config_string);
         struct map *config_map
@@ -156,6 +177,8 @@ static void test_config_invalid_single_quotes(void **state)
 
 static void test_config_invalid_variable(void **state)
 {
+        UNUSED_FUNCTION_PARAM(state);
+
         const char *config_string = "$invalid =\n";
         size_t config_length = strlen(config_string);
         struct map *config_map
@@ -166,6 +189,8 @@ static void test_config_invalid_variable(void **state)
 
 static void test_config_invalid_item(void **state)
 {
+        UNUSED_FUNCTION_PARAM(state);
+
         const char *config_string = "invalid = \n";
         size_t config_length = strlen(config_string);
         struct map *config_map
@@ -176,6 +201,8 @@ static void test_config_invalid_item(void **state)
 
 static void test_config_invalid_double(void **state)
 {
+        UNUSED_FUNCTION_PARAM(state);
+
         const char *config_string = "$number = 2.3\n";
         size_t config_length = strlen(config_string);
         struct map *config_map

@@ -5,7 +5,7 @@ readonly BUILD="dev"
 readonly SYSTEM="system"
 
 function show_help() {
-    echo "Usage: ./run <$BUILD|$SYSTEM> <wxh>"
+    echo "Usage: ./run <$BUILD|$SYSTEM> <wxh> <wait?>"
 }
 
 readonly XEPHYR="Xephyr"
@@ -20,7 +20,7 @@ readonly SYSTEM_BIN_DIR="/usr/bin"
 readonly BUILD_BIN="$BUILD_BIN_DIR"/"$APP_NAME"
 readonly SYSTEM_BIN="$SYSTEM_BIN_DIR"/"$APP_NAME"
 
-if [ $# -lt 2 ]; then
+if [ $# -lt 2 ] || [ $# -gt 3 ]; then
     echo Invalid arguments count
 
     show_help
@@ -38,11 +38,17 @@ fi
 
 # Stupidly simple validation that this string at least contains an x
 if [[ "$2" != *"x"* ]]; then
-    echo Invalid argument: "$2" - Expected to be in the form \"800x600\"
+    echo Invalid argument: \""$2"\" - Expected to be in the form \"800x600\"
 
     show_help
 
     exit
+fi
+
+SHOULD_WAIT=false
+
+if [ $# -eq 3 ] && [ "$3" == "wait" ]; then
+    SHOULD_WAIT=true
 fi
 
 readonly EXEC_TYPE=$1
@@ -61,7 +67,12 @@ else
 fi
 
 $XEPHYR :14 -ac -nolisten tcp -screen $SCREEN_RES &
-sleep 5
+
+if [ $SHOULD_WAIT == true ]; then
+    sleep 5
+else
+    sleep 1
+fi
 
 export DISPLAY=:14
 $($BIN)
