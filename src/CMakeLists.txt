@@ -8,7 +8,7 @@ add_compile_options(
     -Wstrict-overflow
     -Wconversion
     -fno-strict-aliasing
-    -D_POSIX_C_SOURCE
+    -D_POSIX_C_SOURCE=200809L
     "$<$<CONFIG:DEBUG>:-g>"
     "$<$<CONFIG:DEBUG>:-Werror>"
     "$<$<CONFIG:DEBUG>:-Wshadow>"
