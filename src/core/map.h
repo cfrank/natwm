@@ -4,11 +4,8 @@
 
 #pragma once
 
-#include <stdint.h>
-
-#ifdef USE_POSIX
 #include <pthread.h>
-#endif
+#include <stdint.h>
 
 #include <common/error.h>
 
@@ -77,9 +74,7 @@ struct map {
         uint32_t length; // Length of the map (power of 2)
         uint32_t bucket_count;
         struct map_entry **entries;
-#ifdef USE_POSIX
         pthread_mutex_t mutex;
-#endif
         map_hash_function_t hash_function;
         map_entry_free_function_t free_function;
         enum map_settings setting_flags;

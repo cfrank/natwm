@@ -9,6 +9,7 @@
 
 #include <cmocka.h>
 
+#include <common/constants.h>
 #include <common/error.h>
 #include <core/map.h>
 
@@ -355,6 +356,8 @@ static void test_map_get_and_delete(void **state)
 
 static void test_map_destroy_null(void **state)
 {
+        UNUSED_FUNCTION_PARAM(state);
+
         map_destroy(NULL);
 }
 

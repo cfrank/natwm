@@ -16,4 +16,6 @@
 #define ATTR_INLINE inline
 #endif
 
+#define UNUSED_FUNCTION_PARAM(param) (void)(param)
+
 #define NATWM_CONFIG_FILE "natwm/config"
