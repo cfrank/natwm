@@ -140,10 +140,10 @@ static int start_natwm(struct natwm_state *state, const char *config_path)
                         LOG_INFO(natwm_logger, "Reloading natwm...");
 
                         // Destroy the old config
-                        config_destroy(state->config);
+                        config_destroy((struct map *)state->config);
 
                         // Re-initialize the new config
-                        struct map *new_config
+                        const struct map *new_config
                                 = config_initialize_path(config_path);
 
                         if (new_config == NULL) {
@@ -256,7 +256,8 @@ int main(int argc, char **argv)
         state->screen_num = screen_num;
 
         // Initialize config
-        struct map *config = config_initialize_path(arg_options->config_path);
+        const struct map *config
+                = config_initialize_path(arg_options->config_path);
 
         if (config == NULL) {
                 goto free_and_error;
