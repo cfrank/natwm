@@ -1,6 +1,8 @@
 add_library(core STATIC
     config.c
     config.h
+    event.c
+    event.h
     ewmh.c
     ewmh.h
     list.c
@@ -16,6 +18,7 @@ add_library(core STATIC
 target_link_libraries(core
     PRIVATE
         common
+        pthread
         xcb
         xcb-ewmh
 )

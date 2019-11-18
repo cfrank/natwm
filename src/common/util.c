@@ -2,7 +2,9 @@
 // Licensed under BSD-3-Clause
 // Refer to the license.txt file included in the root of the project
 
+#include <errno.h>
 #include <stdint.h>
+#include <sys/select.h>
 #include <unistd.h>
 
 #include "util.h"
@@ -44,4 +46,21 @@ bool path_exists(const char *path)
         }
 
         return true;
+}
+
+/**
+ * Sleep for a spcified number of miliseconds
+ */
+void millisecond_sleep(uint32_t miliseconds)
+{
+        struct timeval tv = {
+                0, // Seconds
+                (suseconds_t)(miliseconds * 1000L), // Microseconds
+        };
+
+        int ret = 0;
+
+        do {
+                ret = select(1, NULL, NULL, NULL, &tv);
+        } while ((ret == -1) && (errno == EINTR));
 }

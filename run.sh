@@ -75,6 +75,7 @@ else
 fi
 
 export DISPLAY=:14
+xterm &
 $($BIN)
 
 killall $XEPHYR

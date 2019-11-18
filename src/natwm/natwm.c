@@ -1,8 +1,8 @@
-// Copyright 2019 Chris Frank
 // Licensed under BSD-3-Clause
 // Refer to the license.txt file included in the root of the project
 
 #include <getopt.h>
+#include <pthread.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,7 +10,9 @@
 #include <xcb/xcb.h>
 
 #include <common/logger.h>
+#include <common/util.h>
 #include <core/config.h>
+#include <core/event.h>
 #include <core/ewmh.h>
 #include <core/map.h>
 #include <core/screen.h>
@@ -131,38 +133,51 @@ static bool is_other_wm_present(struct natwm_state *state)
         return false;
 }
 
-static int start_natwm(struct natwm_state *state, const char *config_path)
+static void reload_natwm(struct natwm_state *state)
 {
+        LOG_INFO(natwm_logger, "Reloading natwm...");
+
+        const struct map *new_config
+                = config_initialize_path(state->config_path);
+
+        if (new_config == NULL) {
+                // Failing to reload the configuration does not cause an exit
+                // we just log and continue
+                LOG_WARNING(natwm_logger, "Failed to reload configuration");
+
+                return;
+        }
+
+        natwm_state_update_config(state, new_config);
+}
+
+static void *start_natwm(void *passed_state)
+{
+        struct natwm_state *state = (struct natwm_state *)passed_state;
+        xcb_generic_event_t *event = NULL;
+
         while (program_status & RUNNING) {
-                sleep(1);
+                event = xcb_poll_for_event(state->xcb);
 
-                if (program_status & RELOAD) {
-                        LOG_INFO(natwm_logger, "Reloading natwm...");
+                if (event) {
+                        event_handle(state, event);
 
-                        // Destroy the old config
-                        config_destroy(state->config);
+                        free(event);
+                } else {
+                        if (program_status & RELOAD) {
+                                reload_natwm(state);
 
-                        // Re-initialize the new config
-                        struct map *new_config
-                                = config_initialize_path(config_path);
-
-                        if (new_config == NULL) {
-                                LOG_ERROR(natwm_logger,
-                                          "Failed to reload configuarion!");
-
-                                return -1;
+                                program_status &= (uint8_t)~RELOAD;
+                        } else {
+                                millisecond_sleep(100);
                         }
-
-                        state->config = new_config;
-
-                        program_status &= (uint8_t)~RELOAD;
                 }
         }
 
         // Event loop stopped disconnect from x
         LOG_INFO(natwm_logger, "Disconnected...");
 
-        return 0;
+        return NULL;
 }
 
 static struct argument_options *parse_arguments(int argc, char **argv)
@@ -256,7 +271,10 @@ int main(int argc, char **argv)
         state->screen_num = screen_num;
 
         // Initialize config
-        struct map *config = config_initialize_path(arg_options->config_path);
+        if (arg_options->config_path) {
+                state->config_path = arg_options->config_path;
+        }
+        const struct map *config = config_initialize_path(state->config_path);
 
         if (config == NULL) {
                 goto free_and_error;
@@ -316,9 +334,11 @@ int main(int argc, char **argv)
 
         program_status = RUNNING;
 
-        if (start_natwm(state, arg_options->config_path) < 0) {
-                goto free_and_error;
-        }
+        // Start wm thread
+        pthread_t wm_thread;
+
+        pthread_create(&wm_thread, NULL, start_natwm, state);
+        pthread_join(wm_thread, NULL);
 
         free(arg_options);
         destroy_logger(natwm_logger);
