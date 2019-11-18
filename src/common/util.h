@@ -14,4 +14,4 @@ enum natwm_error get_file_size(FILE *file, size_t *size);
 bool path_exists(const char *path);
 
 // time utils
-void milisecond_sleep(uint32_t miliseconds);
+void millisecond_sleep(uint32_t miliseconds);

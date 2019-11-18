@@ -1,4 +1,3 @@
-// Copyright 2019 Chris Frank
 // Licensed under BSD-3-Clause
 // Refer to the license.txt file included in the root of the project
 
@@ -170,7 +169,7 @@ static void *start_natwm(void *passed_state)
 
                                 program_status &= (uint8_t)~RELOAD;
                         } else {
-                                milisecond_sleep(100);
+                                millisecond_sleep(100);
                         }
                 }
         }

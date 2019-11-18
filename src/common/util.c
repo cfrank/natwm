@@ -51,7 +51,7 @@ bool path_exists(const char *path)
 /**
  * Sleep for a spcified number of miliseconds
  */
-void milisecond_sleep(uint32_t miliseconds)
+void millisecond_sleep(uint32_t miliseconds)
 {
         struct timeval tv = {
                 0, // Seconds
