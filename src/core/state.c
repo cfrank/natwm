@@ -13,6 +13,11 @@ struct natwm_state *natwm_state_create(void)
                 return NULL;
         }
 
+        // Initialize mutex
+        if (pthread_mutex_init(&state->mutex, NULL) != 0) {
+                return NULL;
+        }
+
         return state;
 }
 
@@ -34,5 +39,17 @@ void natwm_state_destroy(struct natwm_state *state)
                 config_destroy((struct map *)state->config);
         }
 
+        pthread_mutex_destroy(&state->mutex);
+
         free(state);
+}
+
+void natwm_state_update_config(struct natwm_state *state,
+                               const struct map *new_config)
+{
+        pthread_mutex_lock(&state->mutex);
+
+        state->config = new_config;
+
+        pthread_mutex_unlock(&state->mutex);
 }

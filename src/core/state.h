@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <pthread.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_ewmh.h>
 
@@ -12,11 +13,14 @@
 struct natwm_state {
         int screen_num;
         xcb_connection_t *xcb;
-        xcb_screen_t *screen;
         xcb_ewmh_connection_t *ewmh;
+        xcb_screen_t *screen;
         const struct map *config;
         const char *config_path;
+        pthread_mutex_t mutex;
 };
 
 struct natwm_state *natwm_state_create(void);
 void natwm_state_destroy(struct natwm_state *state);
+void natwm_state_update_config(struct natwm_state *state,
+                               const struct map *new_config);

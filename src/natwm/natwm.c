@@ -131,29 +131,31 @@ static bool is_other_wm_present(struct natwm_state *state)
         return false;
 }
 
+static void reload_natwm(struct natwm_state *state)
+{
+        LOG_INFO(natwm_logger, "Reloading natwm...");
+
+        const struct map *new_config
+                = config_initialize_path(state->config_path);
+
+        if (new_config == NULL) {
+                // Failing to reload the configuration does not cause an exit
+                // we just log and continue
+                LOG_WARNING(natwm_logger, "Failed to reload configuration");
+
+                return;
+        }
+
+        natwm_state_update_config(state, new_config);
+}
+
 static int start_natwm(struct natwm_state *state)
 {
         while (program_status & RUNNING) {
                 sleep(1);
 
                 if (program_status & RELOAD) {
-                        LOG_INFO(natwm_logger, "Reloading natwm...");
-
-                        // Destroy the old config
-                        config_destroy((struct map *)state->config);
-
-                        // Re-initialize the new config
-                        const struct map *new_config
-                                = config_initialize_path(state->config_path);
-
-                        if (new_config == NULL) {
-                                LOG_ERROR(natwm_logger,
-                                          "Failed to reload configuarion!");
-
-                                return -1;
-                        }
-
-                        state->config = new_config;
+                        reload_natwm(state);
 
                         program_status &= (uint8_t)~RELOAD;
                 }
