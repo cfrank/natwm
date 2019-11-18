@@ -10,6 +10,7 @@
 #include <xcb/xcb.h>
 
 #include <common/logger.h>
+#include <common/util.h>
 #include <core/config.h>
 #include <core/ewmh.h>
 #include <core/map.h>
@@ -149,22 +150,33 @@ static void reload_natwm(struct natwm_state *state)
         natwm_state_update_config(state, new_config);
 }
 
-static int start_natwm(struct natwm_state *state)
+static void *start_natwm(void *passed_state)
 {
+        struct natwm_state *state = (struct natwm_state *)passed_state;
+        xcb_generic_event_t *event = NULL;
+
         while (program_status & RUNNING) {
-                sleep(1);
+                event = xcb_poll_for_event(state->xcb);
+
+                if (event) {
+                        LOG_INFO(natwm_logger, "Received an event!");
+                }
 
                 if (program_status & RELOAD) {
                         reload_natwm(state);
 
                         program_status &= (uint8_t)~RELOAD;
                 }
+
+                if (event == NULL) {
+                        milisecond_sleep(100);
+                }
         }
 
         // Event loop stopped disconnect from x
         LOG_INFO(natwm_logger, "Disconnected...");
 
-        return 0;
+        return NULL;
 }
 
 static struct argument_options *parse_arguments(int argc, char **argv)
@@ -321,9 +333,11 @@ int main(int argc, char **argv)
 
         program_status = RUNNING;
 
-        if (start_natwm(state) < 0) {
-                goto free_and_error;
-        }
+        // Start wm thread
+        pthread_t wm_thread;
+
+        pthread_create(&wm_thread, NULL, start_natwm, state);
+        pthread_join(wm_thread, NULL);
 
         free(arg_options);
         destroy_logger(natwm_logger);
