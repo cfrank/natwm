@@ -131,7 +131,7 @@ static bool is_other_wm_present(struct natwm_state *state)
         return false;
 }
 
-static int start_natwm(struct natwm_state *state, const char *config_path)
+static int start_natwm(struct natwm_state *state)
 {
         while (program_status & RUNNING) {
                 sleep(1);
@@ -144,7 +144,7 @@ static int start_natwm(struct natwm_state *state, const char *config_path)
 
                         // Re-initialize the new config
                         const struct map *new_config
-                                = config_initialize_path(config_path);
+                                = config_initialize_path(state->config_path);
 
                         if (new_config == NULL) {
                                 LOG_ERROR(natwm_logger,
@@ -256,8 +256,10 @@ int main(int argc, char **argv)
         state->screen_num = screen_num;
 
         // Initialize config
-        const struct map *config
-                = config_initialize_path(arg_options->config_path);
+        if (arg_options->config_path) {
+                state->config_path = arg_options->config_path;
+        }
+        const struct map *config = config_initialize_path(state->config_path);
 
         if (config == NULL) {
                 goto free_and_error;
@@ -317,7 +319,7 @@ int main(int argc, char **argv)
 
         program_status = RUNNING;
 
-        if (start_natwm(state, arg_options->config_path) < 0) {
+        if (start_natwm(state) < 0) {
                 goto free_and_error;
         }
 

@@ -15,6 +15,7 @@ struct natwm_state {
         xcb_screen_t *screen;
         xcb_ewmh_connection_t *ewmh;
         const struct map *config;
+        const char *config_path;
 };
 
 struct natwm_state *natwm_state_create(void);
