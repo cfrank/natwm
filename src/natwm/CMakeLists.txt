@@ -11,5 +11,6 @@ target_link_libraries(natwm
     PRIVATE
         common
         core
+        pthread
         xcb
 )
