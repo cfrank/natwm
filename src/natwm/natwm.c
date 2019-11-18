@@ -208,10 +208,8 @@ static struct argument_options *parse_arguments(int argc, char **argv)
                         printf("%s\n", NATWM_VERSION_STRING);
                         printf("-c <file>, Set the config file\n");
                         printf("-h,        Print this help message\n");
-                        printf("-s,        Specify specific screen for "
-                               "X\n");
-                        printf("-v,        Print version "
-                               "information\n");
+                        printf("-s,        Specify specific screen for X\n");
+                        printf("-v,        Print version information\n");
                         printf("-V,        Verbose mode\n");
 
                         goto exit_success;
@@ -221,8 +219,7 @@ static struct argument_options *parse_arguments(int argc, char **argv)
                 case 'v':
                         printf("%s\n", NATWM_VERSION_STRING);
                         printf("Copywrite (c) 2019 Chris Frank\n");
-                        printf("Released under the Revised BSD "
-                               "License\n");
+                        printf("Released under the Revised BSD License\n");
 
                         goto exit_success;
                 case 'V':
@@ -231,8 +228,7 @@ static struct argument_options *parse_arguments(int argc, char **argv)
                 default:
                         // Handle invalid opt
                         fprintf(stderr,
-                                "Recieved invalid command line "
-                                "argument '%c'\n",
+                                "Recieved invalid command line argument '%c'\n",
                                 optopt);
 
                         free(arg_options);
