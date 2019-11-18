@@ -3,6 +3,7 @@
 // Refer to the license.txt file included in the root of the project
 
 #include <getopt.h>
+#include <pthread.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,6 +13,7 @@
 #include <common/logger.h>
 #include <common/util.h>
 #include <core/config.h>
+#include <core/event.h>
 #include <core/ewmh.h>
 #include <core/map.h>
 #include <core/screen.h>
@@ -159,17 +161,17 @@ static void *start_natwm(void *passed_state)
                 event = xcb_poll_for_event(state->xcb);
 
                 if (event) {
-                        LOG_INFO(natwm_logger, "Received an event!");
-                }
+                        event_handle(state, event);
 
-                if (program_status & RELOAD) {
-                        reload_natwm(state);
+                        free(event);
+                } else {
+                        if (program_status & RELOAD) {
+                                reload_natwm(state);
 
-                        program_status &= (uint8_t)~RELOAD;
-                }
-
-                if (event == NULL) {
-                        milisecond_sleep(100);
+                                program_status &= (uint8_t)~RELOAD;
+                        } else {
+                                milisecond_sleep(100);
+                        }
                 }
         }
 
@@ -206,8 +208,10 @@ static struct argument_options *parse_arguments(int argc, char **argv)
                         printf("%s\n", NATWM_VERSION_STRING);
                         printf("-c <file>, Set the config file\n");
                         printf("-h,        Print this help message\n");
-                        printf("-s,        Specify specific screen for X\n");
-                        printf("-v,        Print version information\n");
+                        printf("-s,        Specify specific screen for "
+                               "X\n");
+                        printf("-v,        Print version "
+                               "information\n");
                         printf("-V,        Verbose mode\n");
 
                         goto exit_success;
@@ -217,7 +221,8 @@ static struct argument_options *parse_arguments(int argc, char **argv)
                 case 'v':
                         printf("%s\n", NATWM_VERSION_STRING);
                         printf("Copywrite (c) 2019 Chris Frank\n");
-                        printf("Released under the Revised BSD License\n");
+                        printf("Released under the Revised BSD "
+                               "License\n");
 
                         goto exit_success;
                 case 'V':
@@ -226,7 +231,8 @@ static struct argument_options *parse_arguments(int argc, char **argv)
                 default:
                         // Handle invalid opt
                         fprintf(stderr,
-                                "Recieved invalid command line argument '%c'\n",
+                                "Recieved invalid command line "
+                                "argument '%c'\n",
                                 optopt);
 
                         free(arg_options);
@@ -283,9 +289,9 @@ int main(int argc, char **argv)
 
         // Catch and handle signals
         if (install_signal_handlers() < 0) {
-                LOG_ERROR(
-                        natwm_logger,
-                        "Failed to handle signals - This may cause problems!");
+                LOG_ERROR(natwm_logger,
+                          "Failed to handle signals - This may cause "
+                          "problems!");
         }
 
         // Initialize x
@@ -315,7 +321,8 @@ int main(int argc, char **argv)
         // Check if another window manager is present
         if (is_other_wm_present(state)) {
                 LOG_ERROR(natwm_logger,
-                          "Failed to initialize: Other window manager found");
+                          "Failed to initialize: Other window manager "
+                          "found");
 
                 goto free_and_error;
         }

@@ -1,6 +1,8 @@
 add_library(core STATIC
     config.c
     config.h
+    event.c
+    event.h
     ewmh.c
     ewmh.h
     list.c
