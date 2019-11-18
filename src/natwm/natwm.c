@@ -285,9 +285,9 @@ int main(int argc, char **argv)
 
         // Catch and handle signals
         if (install_signal_handlers() < 0) {
-                LOG_ERROR(natwm_logger,
-                          "Failed to handle signals - This may cause "
-                          "problems!");
+                LOG_ERROR(
+                        natwm_logger,
+                        "Failed to handle signals - This may cause problems!");
         }
 
         // Initialize x
@@ -317,8 +317,7 @@ int main(int argc, char **argv)
         // Check if another window manager is present
         if (is_other_wm_present(state)) {
                 LOG_ERROR(natwm_logger,
-                          "Failed to initialize: Other window manager "
-                          "found");
+                          "Failed to initialize: Other window manager found");
 
                 goto free_and_error;
         }
