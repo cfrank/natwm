@@ -12,7 +12,7 @@ add_compile_options(
     "$<$<CONFIG:DEBUG>:-g>"
     "$<$<CONFIG:DEBUG>:-Werror>"
     "$<$<CONFIG:DEBUG>:-Wshadow>"
-    "$<$<CONFIG:RELEASE>:-O3 -Os>"
+    "$<$<CONFIG:RELEASE>:-O3>"
 )
 
 set(CMAKE_C_STANDARD 99)
