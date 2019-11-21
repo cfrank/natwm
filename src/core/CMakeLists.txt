@@ -9,10 +9,14 @@ add_library(core STATIC
     list.h
     map.c
     map.h
+    randr.c
+    randr.h
     screen.c
     screen.h
     state.c
     state.h
+    xinerama.c
+    xinerama.h
 )
 
 target_link_libraries(core
@@ -21,4 +25,6 @@ target_link_libraries(core
         pthread
         xcb
         xcb-ewmh
+        xcb-randr
+        xcb-xinerama
 )
