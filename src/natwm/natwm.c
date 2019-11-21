@@ -322,7 +322,7 @@ int main(int argc, char **argv)
         pthread_create(&wm_events_thread, NULL, start_wm_events_thread, state);
         pthread_join(wm_events_thread, &wm_events_result);
 
-        if ((int)wm_events_result != 0) {
+        if ((intptr_t)wm_events_result != 0) {
                 goto free_and_error;
         }
 
