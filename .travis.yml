@@ -18,6 +18,7 @@ addons:
         packages:
             - cmake
             - libxcb-randr0-dev
+            - libxcb-xinerama0-dev
             - libxcb-keysyms1-dev
             - libxcb-ewmh-dev
             - libxcb-icccm4-dev
