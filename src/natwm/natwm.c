@@ -1,3 +1,4 @@
+// Copyright 2019 Chris Frank
 // Licensed under BSD-3-Clause
 // Refer to the license.txt file included in the root of the project
 
@@ -9,6 +10,7 @@
 #include <unistd.h>
 #include <xcb/xcb.h>
 
+#include <common/constants.h>
 #include <common/logger.h>
 #include <common/util.h>
 #include <core/config.h>
@@ -27,7 +29,6 @@ struct argument_options {
 enum status {
         STOPPED = 1U << 0U,
         RUNNING = 1U << 1U,
-        RELOAD = 1U << 2U,
 };
 
 static enum status program_status = STOPPED;
@@ -80,12 +81,7 @@ static xcb_connection_t *make_connection(const char *screen, int *screen_num)
 
 static void signal_handler(int signum)
 {
-        if (signum == SIGHUP) {
-                // Perform a reload
-                program_status |= RELOAD;
-
-                return;
-        }
+        UNUSED_FUNCTION_PARAM(signum);
 
         program_status = STOPPED;
 }
@@ -114,70 +110,47 @@ static int install_signal_handlers(void)
         return 0;
 }
 
-static bool is_other_wm_present(struct natwm_state *state)
+// In order to operate we need to subscribe to events on the root window.
+//
+// The event masks placed on the root window will provide us with events which
+// occur on our child windows
+static int root_window_subscribe(const struct natwm_state *state)
 {
-        // Only one x client can select substructure redirection on root
-        xcb_generic_error_t *error = NULL;
-        xcb_event_mask_t mask = XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT;
+        xcb_event_mask_t root_mask = XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY
+                | XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT;
         xcb_void_cookie_t cookie = xcb_change_window_attributes_checked(
-                state->xcb, state->screen->root, XCB_CW_EVENT_MASK, &mask);
-
-        error = xcb_request_check(state->xcb, cookie);
+                state->xcb, state->screen->root, XCB_CW_EVENT_MASK, &root_mask);
+        xcb_generic_error_t *error = xcb_request_check(state->xcb, cookie);
 
         if (error != NULL) {
+                // We will fail if there is already a window manager present
                 free(error);
 
-                return true;
+                return -1;
         }
 
-        return false;
+        return 0;
 }
 
-static void reload_natwm(struct natwm_state *state)
-{
-        LOG_INFO(natwm_logger, "Reloading natwm...");
-
-        const struct map *new_config
-                = config_initialize_path(state->config_path);
-
-        if (new_config == NULL) {
-                // Failing to reload the configuration does not cause an exit
-                // we just log and continue
-                LOG_WARNING(natwm_logger, "Failed to reload configuration");
-
-                return;
-        }
-
-        natwm_state_update_config(state, new_config);
-}
-
-static void *start_natwm(void *passed_state)
+static void *start_wm_events_thread(void *passed_state)
 {
         struct natwm_state *state = (struct natwm_state *)passed_state;
         xcb_generic_event_t *event = NULL;
 
         while (program_status & RUNNING) {
-                event = xcb_poll_for_event(state->xcb);
+                event = xcb_wait_for_event(state->xcb);
 
                 if (event) {
                         event_handle(state, event);
 
                         free(event);
-                } else {
-                        if (program_status & RELOAD) {
-                                reload_natwm(state);
-
-                                program_status &= (uint8_t)~RELOAD;
-                        } else {
-                                millisecond_sleep(100);
-                        }
                 }
         }
 
         // Event loop stopped disconnect from x
         LOG_INFO(natwm_logger, "Disconnected...");
 
-        return NULL;
+        return (void *)0;
 }
 
 static struct argument_options *parse_arguments(int argc, char **argv)
@@ -274,6 +247,7 @@ int main(int argc, char **argv)
         if (arg_options->config_path) {
                 state->config_path = arg_options->config_path;
         }
+
         const struct map *config = config_initialize_path(state->config_path);
 
         if (config == NULL) {
@@ -283,7 +257,7 @@ int main(int argc, char **argv)
         state->config = config;
 
         // Catch and handle signals
-        if (install_signal_handlers() < 0) {
+        if (install_signal_handlers() != 0) {
                 LOG_ERROR(
                         natwm_logger,
                         "Failed to handle signals - This may cause problems!");
@@ -313,10 +287,11 @@ int main(int argc, char **argv)
 
         state->screen = default_screen;
 
-        // Check if another window manager is present
-        if (is_other_wm_present(state)) {
+        // Attempt to register for substructure events
+        if (root_window_subscribe(state) != 0) {
                 LOG_ERROR(natwm_logger,
-                          "Failed to initialize: Other window manager found");
+                          "Failed to subscribe to root events: Other window "
+                          "manager is present");
 
                 goto free_and_error;
         }
@@ -335,10 +310,15 @@ int main(int argc, char **argv)
         program_status = RUNNING;
 
         // Start wm thread
-        pthread_t wm_thread;
+        void *wm_events_result = NULL;
+        pthread_t wm_events_thread;
 
-        pthread_create(&wm_thread, NULL, start_natwm, state);
-        pthread_join(wm_thread, NULL);
+        pthread_create(&wm_events_thread, NULL, start_wm_events_thread, state);
+        pthread_join(wm_events_thread, &wm_events_result);
+
+        if ((int)wm_events_result != 0) {
+                goto free_and_error;
+        }
 
         free(arg_options);
         destroy_logger(natwm_logger);
