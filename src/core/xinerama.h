@@ -12,4 +12,6 @@
 #include "state.h"
 
 bool xinerama_is_active(xcb_connection_t *connection);
-enum natwm_error xinerama_get_screens(const struct natwm_state *state);
+enum natwm_error xinerama_get_screens(const struct natwm_state *state,
+                                      xcb_rectangle_t **destination,
+                                      size_t *length);

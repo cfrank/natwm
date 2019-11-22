@@ -288,8 +288,6 @@ int main(int argc, char **argv)
         state->screen = default_screen;
 
         if (screen_setup(state) != NO_ERROR) {
-                LOG_ERROR(natwm_logger, "Failed to setup screen(s)");
-
                 goto free_and_error;
         }
 

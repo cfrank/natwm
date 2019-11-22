@@ -34,7 +34,9 @@ bool xinerama_is_active(xcb_connection_t *connection)
         return is_active;
 }
 
-enum natwm_error xinerama_get_screens(const struct natwm_state *state)
+enum natwm_error xinerama_get_screens(const struct natwm_state *state,
+                                      xcb_rectangle_t **destination,
+                                      size_t *length)
 {
         xcb_generic_error_t *err = XCB_NONE;
 
@@ -52,8 +54,8 @@ enum natwm_error xinerama_get_screens(const struct natwm_state *state)
                 return GENERIC_ERROR;
         }
 
-        // xcb_xinerama_screen_info_t *screens_info =
-        // xcb_xinerama_query_screens_screen_info(query_screens_reply);
+        xcb_xinerama_screen_info_t *screens_info
+                = xcb_xinerama_query_screens_screen_info(query_screens_reply);
 
         int screens_length = xcb_xinerama_query_screens_screen_info_length(
                 query_screens_reply);
@@ -61,6 +63,28 @@ enum natwm_error xinerama_get_screens(const struct natwm_state *state)
         assert(screens_length > 0);
 
         LOG_INFO(natwm_logger, "Found %d xinerama screen(s)", screens_length);
+
+        xcb_rectangle_t *screen_rects
+                = malloc(sizeof(xcb_rectangle_t) * (size_t)screens_length);
+
+        if (screen_rects == NULL) {
+                return MEMORY_ALLOCATION_ERROR;
+        }
+
+        for (size_t i = 0; i < (size_t)screens_length; ++i) {
+                xcb_xinerama_screen_info_t screen_info = screens_info[i];
+                xcb_rectangle_t screen_rect = {
+                        .x = screen_info.x_org,
+                        .y = screen_info.y_org,
+                        .width = screen_info.width,
+                        .height = screen_info.height,
+                };
+
+                screen_rects[i] = screen_rect;
+        }
+
+        *destination = screen_rects;
+        *length = (size_t)screens_length;
 
         free(query_screens_reply);
 
