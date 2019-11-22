@@ -21,6 +21,8 @@ enum natwm_error randr_get_screens(const struct natwm_state *state)
                         state->xcb, resources_cookie, &err);
 
         if (err != XCB_NONE) {
+                LOG_ERROR(natwm_logger, "Failed to get randr screens");
+
                 free(resources_reply);
 
                 return GENERIC_ERROR;

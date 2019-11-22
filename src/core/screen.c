@@ -40,7 +40,7 @@ enum natwm_error screen_setup(const struct natwm_state *state)
         if (supported_extension == RANDR) {
                 randr_get_screens(state);
         } else if (supported_extension == XINERAMA) {
-                LOG_INFO(natwm_logger, "Implement xinerama support");
+                xinerama_get_screens(state);
         } else {
                 LOG_INFO(natwm_logger, "Implement general support");
         }
