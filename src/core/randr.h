@@ -4,9 +4,13 @@
 
 #pragma once
 
+#include <xcb/xcb.h>
+
 #include <common/error.h>
 
 #include "state.h"
 
-enum natwm_error randr_get_screens(const struct natwm_state *state);
+enum natwm_error randr_get_screens(const struct natwm_state *state,
+                                   xcb_rectangle_t **destination,
+                                   size_t *count);
 

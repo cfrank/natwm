@@ -19,8 +19,6 @@ bool xinerama_is_active(xcb_connection_t *connection)
                 = xcb_xinerama_is_active_reply(
                         connection, is_active_cookie, &err);
 
-        LOG_INFO(natwm_logger, "Testing is xinerama is active");
-
         if (err != XCB_NONE) {
                 free(is_active_reply);
 
@@ -36,7 +34,7 @@ bool xinerama_is_active(xcb_connection_t *connection)
 
 enum natwm_error xinerama_get_screens(const struct natwm_state *state,
                                       xcb_rectangle_t **destination,
-                                      size_t *length)
+                                      size_t *count)
 {
         xcb_generic_error_t *err = XCB_NONE;
 
@@ -57,21 +55,25 @@ enum natwm_error xinerama_get_screens(const struct natwm_state *state,
         xcb_xinerama_screen_info_t *screens_info
                 = xcb_xinerama_query_screens_screen_info(query_screens_reply);
 
-        int screens_length = xcb_xinerama_query_screens_screen_info_length(
+        if (screens_info == NULL) {
+                LOG_INFO(natwm_logger, "Failed to get xinerama screen info");
+
+                return GENERIC_ERROR;
+        }
+
+        int screen_count = xcb_xinerama_query_screens_screen_info_length(
                 query_screens_reply);
 
-        assert(screens_length > 0);
-
-        LOG_INFO(natwm_logger, "Found %d xinerama screen(s)", screens_length);
+        assert(screen_count > 0);
 
         xcb_rectangle_t *screen_rects
-                = malloc(sizeof(xcb_rectangle_t) * (size_t)screens_length);
+                = malloc(sizeof(xcb_rectangle_t) * (size_t)screen_count);
 
         if (screen_rects == NULL) {
                 return MEMORY_ALLOCATION_ERROR;
         }
 
-        for (size_t i = 0; i < (size_t)screens_length; ++i) {
+        for (size_t i = 0; i < (size_t)screen_count; ++i) {
                 xcb_xinerama_screen_info_t screen_info = screens_info[i];
                 xcb_rectangle_t screen_rect = {
                         .x = screen_info.x_org,
@@ -84,7 +86,7 @@ enum natwm_error xinerama_get_screens(const struct natwm_state *state,
         }
 
         *destination = screen_rects;
-        *length = (size_t)screens_length;
+        *count = (size_t)screen_count;
 
         free(query_screens_reply);
 

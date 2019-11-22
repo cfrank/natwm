@@ -75,7 +75,7 @@ enum natwm_error screen_setup(const struct natwm_state *state)
         size_t rects_length = 0;
 
         if (supported_extension == RANDR) {
-                randr_get_screens(state);
+                err = randr_get_screens(state, &rects, &rects_length);
         } else if (supported_extension == XINERAMA) {
                 err = xinerama_get_screens(state, &rects, &rects_length);
         } else {
