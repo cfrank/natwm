@@ -63,6 +63,27 @@ const char *screen_extension_to_string(enum screen_extension extension)
         return "";
 }
 
+static enum natwm_error x_get_screens(const struct natwm_state *state,
+                                      xcb_rectangle_t **destination,
+                                      size_t *length)
+{
+        xcb_rectangle_t *rects = malloc(sizeof(xcb_rectangle_t));
+
+        xcb_rectangle_t rect = {
+                .x = 0,
+                .y = 0,
+                .width = state->screen->width_in_pixels,
+                .height = state->screen->height_in_pixels,
+        };
+
+        rects[0] = rect;
+
+        *destination = rects;
+        *length = 1;
+
+        return NO_ERROR;
+}
+
 enum natwm_error screen_setup(const struct natwm_state *state)
 {
         enum screen_extension supported_extension
@@ -79,7 +100,7 @@ enum natwm_error screen_setup(const struct natwm_state *state)
         } else if (supported_extension == XINERAMA) {
                 err = xinerama_get_screens(state, &rects, &rects_length);
         } else {
-                LOG_INFO(natwm_logger, "Implement general support");
+                err = x_get_screens(state, &rects, &rects_length);
         }
 
         if (err != NO_ERROR || rects == NULL || rects_length == 0) {
@@ -88,6 +109,15 @@ enum natwm_error screen_setup(const struct natwm_state *state)
                           screen_extension_to_string(supported_extension));
 
                 return err;
+        }
+
+        for (size_t i = 0; i < rects_length; ++i) {
+                LOG_INFO(natwm_logger,
+                         "Found screen: %zux%zu - %d:%d",
+                         rects[i].width,
+                         rects[i].height,
+                         rects[i].x,
+                         rects[i].y);
         }
 
         free(rects);

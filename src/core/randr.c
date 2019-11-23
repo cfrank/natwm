@@ -54,9 +54,9 @@ enum natwm_error randr_get_screens(const struct natwm_state *state,
                                 state->xcb, outputs[i], XCB_CURRENT_TIME);
                 xcb_randr_get_output_info_reply_t *output_info_reply
                         = xcb_randr_get_output_info_reply(
-                                state->xcb, cookie, NULL);
+                                state->xcb, cookie, &err);
 
-                if (output_info_reply == NULL) {
+                if (err != XCB_NONE || output_info_reply == NULL) {
                         LOG_WARNING(natwm_logger,
                                     "Failed to get info for a RANDR screen.");
 
@@ -69,9 +69,9 @@ enum natwm_error randr_get_screens(const struct natwm_state *state,
                                                   XCB_CURRENT_TIME);
                 xcb_randr_get_crtc_info_reply_t *crtc_info_reply
                         = xcb_randr_get_crtc_info_reply(
-                                state->xcb, crtc_info_cookie, NULL);
+                                state->xcb, crtc_info_cookie, &err);
 
-                if (crtc_info_reply == NULL) {
+                if (err != XCB_NONE || crtc_info_reply == NULL) {
                         LOG_WARNING(natwm_logger,
                                     "Failed to get info for a RANDR screen.");
 
