@@ -17,6 +17,7 @@ struct space {
         xcb_rectangle_t rect;
         bool is_visible;
         bool is_focused;
+        bool is_floating;
         // TODO Windows
 };
 

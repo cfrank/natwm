@@ -50,6 +50,7 @@ struct space *space_create(xcb_rectangle_t rect, size_t index)
         space->rect = rect;
         space->is_visible = false;
         space->is_focused = false;
+        space->is_floating = false;
 
         return space;
 }
