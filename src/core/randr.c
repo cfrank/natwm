@@ -45,10 +45,10 @@ enum natwm_error randr_get_screens(const struct natwm_state *state,
                 return MEMORY_ALLOCATION_ERROR;
         }
 
+        xcb_randr_output_t *outputs
+                = xcb_randr_get_screen_resources_outputs(resources_reply);
+
         for (size_t i = 0; i < (size_t)screen_count; ++i) {
-                xcb_randr_output_t *outputs
-                        = xcb_randr_get_screen_resources_outputs(
-                                resources_reply);
                 xcb_randr_get_output_info_cookie_t cookie
                         = xcb_randr_get_output_info(
                                 state->xcb, outputs[i], XCB_CURRENT_TIME);
