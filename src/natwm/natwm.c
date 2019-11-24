@@ -139,12 +139,24 @@ static void *start_wm_events_thread(void *passed_state)
         xcb_generic_event_t *event = NULL;
 
         while (program_status & RUNNING) {
+                xcb_flush(state->xcb);
+
                 event = xcb_wait_for_event(state->xcb);
 
                 if (event) {
                         event_handle(state, event);
 
                         free(event);
+
+                        continue;
+                }
+
+                if (xcb_connection_has_error(state->xcb)
+                    && program_status & RUNNING) {
+                        LOG_ERROR(natwm_logger,
+                                  "Connection to X server closed");
+
+                        program_status = STOPPED;
                 }
         }
 
