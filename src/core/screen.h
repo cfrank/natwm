@@ -6,4 +6,14 @@
 
 #include <xcb/xcb.h>
 
+#include "state.h"
+
+enum screen_extension {
+        RANDR,
+        XINERAMA,
+        NO_EXTENSION,
+};
+
 xcb_screen_t *find_default_screen(xcb_connection_t *connection, int screen_num);
+const char *screen_extension_to_string(enum screen_extension extension);
+enum natwm_error screen_setup(const struct natwm_state *state);
