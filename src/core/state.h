@@ -15,6 +15,7 @@ struct natwm_state {
         xcb_connection_t *xcb;
         xcb_ewmh_connection_t *ewmh;
         xcb_screen_t *screen;
+        struct workspace *workspace;
         const struct map *config;
         const char *config_path;
         pthread_mutex_t mutex;

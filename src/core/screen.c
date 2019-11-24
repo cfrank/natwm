@@ -84,7 +84,9 @@ const char *screen_extension_to_string(enum screen_extension extension)
         return "";
 }
 
-enum natwm_error screen_setup(const struct natwm_state *state)
+enum natwm_error screen_setup(const struct natwm_state *state,
+                              xcb_rectangle_t **rects_result,
+                              size_t *rects_length_result)
 {
         enum screen_extension supported_extension
                 = detect_screen_extension(state->xcb);
@@ -111,7 +113,8 @@ enum natwm_error screen_setup(const struct natwm_state *state)
                 return err;
         }
 
-        free(rects);
+        *rects_result = rects;
+        *rects_length_result = rects_length;
 
         return NO_ERROR;
 }

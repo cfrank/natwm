@@ -4,6 +4,7 @@
 
 #include "state.h"
 #include "ewmh.h"
+#include "workspace.h"
 
 struct natwm_state *natwm_state_create(void)
 {
@@ -33,6 +34,10 @@ void natwm_state_destroy(struct natwm_state *state)
 
         if (state->ewmh != NULL) {
                 ewmh_destroy(state->ewmh);
+        }
+
+        if (state->workspace != NULL) {
+                workspace_destroy(state->workspace);
         }
 
         if (state->config != NULL) {
