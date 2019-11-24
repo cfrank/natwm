@@ -70,4 +70,3 @@ void space_destroy(struct space *space)
 {
         free(space);
 }
-
