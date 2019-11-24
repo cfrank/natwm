@@ -19,6 +19,7 @@
 #include <core/map.h>
 #include <core/screen.h>
 #include <core/state.h>
+#include <core/workspace.h>
 
 struct argument_options {
         const char *config_path;
@@ -287,9 +288,25 @@ int main(int argc, char **argv)
 
         state->screen = default_screen;
 
-        if (screen_setup(state) != NO_ERROR) {
+        xcb_rectangle_t *screen_rects = XCB_NONE;
+        size_t screen_count = 0;
+        enum natwm_error err
+                = screen_setup(state, &screen_rects, &screen_count);
+
+        if (err != NO_ERROR) {
                 goto free_and_error;
         }
+
+        struct workspace *workspace
+                = workspace_create(screen_rects, screen_count);
+
+        if (workspace == NULL) {
+                LOG_ERROR(natwm_logger, "Failed to create workspace");
+
+                goto free_and_error;
+        }
+
+        state->workspace = workspace;
 
         // Attempt to register for substructure events
         if (root_window_subscribe(state) != 0) {

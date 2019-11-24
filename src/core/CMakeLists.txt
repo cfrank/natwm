@@ -15,6 +15,8 @@ add_library(core STATIC
     screen.h
     state.c
     state.h
+    workspace.c
+    workspace.h
     xinerama.c
     xinerama.h
 )
