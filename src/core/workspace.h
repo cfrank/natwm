@@ -7,9 +7,11 @@
 #include <stdbool.h>
 #include <xcb/xcb.h>
 
+#include "list.h"
+
 struct workspace {
         size_t length;
-        struct space **spaces;
+        struct list *spaces;
 };
 
 struct space {
@@ -17,8 +19,7 @@ struct space {
         xcb_rectangle_t rect;
         bool is_visible;
         bool is_focused;
-        bool is_floating;
-        // TODO Windows
+        struct list *clients;
 };
 
 struct workspace *workspace_create(xcb_rectangle_t *rects, size_t count);

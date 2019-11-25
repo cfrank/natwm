@@ -353,16 +353,16 @@ int main(int argc, char **argv)
                 goto free_and_error;
         }
 
+        natwm_state_destroy(state);
         free(arg_options);
         destroy_logger(natwm_logger);
-        natwm_state_destroy(state);
 
         return EXIT_SUCCESS;
 
 free_and_error:
+        natwm_state_destroy(state);
         free(arg_options);
         destroy_logger(natwm_logger);
-        natwm_state_destroy(state);
 
         return EXIT_FAILURE;
 }

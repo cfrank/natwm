@@ -68,9 +68,9 @@ fi
 
 #$XEPHYR :14 -ac -nolisten tcp -extension RANDR -screen $SCREEN_RES &
 #$XEPHYR :14 -ac -nolisten tcp -extension RANDR -screen $SCREEN_RES -screen $SCREEN_RES &
-#$XEPHYR :14 -ac -nolisten tcp +extension RANDR -screen $SCREEN_RES &
+$XEPHYR :14 -ac -nolisten tcp +extension RANDR -screen $SCREEN_RES &
 #$XEPHYR :14 -ac -nolisten tcp +extension RANDR -screen $SCREEN_RES -screen $SCREEN_RES &
-$XEPHYR -ac -nolisten tcp +xinerama -extension RANDR -screen 800x600+0+0 -screen 800x600+800+0 -origin 800,0 :14 &
+#$XEPHYR -ac -nolisten tcp +xinerama -extension RANDR -screen 800x600+0+0 -screen 800x600+800+0 -origin 800,0 :14 &
 
 if [ $SHOULD_WAIT == true ]; then
     sleep 5
@@ -79,7 +79,8 @@ else
 fi
 
 export DISPLAY=:14
-xterm &
+xeyes &
+xcalc &
 $($BIN)
 
 killall $XEPHYR
