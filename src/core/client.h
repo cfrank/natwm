@@ -4,6 +4,12 @@
 
 #pragma once
 
+#include <stdbool.h>
+#include <stdint.h>
+#include <xcb/xcb.h>
+
+#include "state.h"
+
 enum client_type {
         DOCK,
         TOOLBAR,
@@ -12,7 +18,8 @@ enum client_type {
 };
 
 struct client {
-        uint32_t workspace_index;
+        size_t space_index;
+        xcb_window_t window;
         xcb_rectangle_t rect;
         xcb_rectangle_t floating_rect;
         enum client_type type;
@@ -20,3 +27,6 @@ struct client {
         bool is_fullscreen;
         bool is_urgent;
 };
+
+struct client *client_register_window(const struct natwm_state *state,
+                                      xcb_window_t window);

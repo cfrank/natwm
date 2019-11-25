@@ -320,6 +320,8 @@ int main(int argc, char **argv)
 
         state->workspace = workspace;
 
+        workspace_set_focused_space(state->workspace, 0);
+
         // Attempt to register for substructure events
         if (root_window_subscribe(state) != 0) {
                 LOG_ERROR(natwm_logger,

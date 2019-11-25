@@ -80,7 +80,7 @@ fi
 
 export DISPLAY=:14
 xeyes &
-xcalc &
-$($BIN)
+urxvt &
+exec $($BIN)
 
 killall $XEPHYR

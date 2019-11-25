@@ -17,6 +17,7 @@ struct workspace *workspace_create(xcb_rectangle_t *rects, size_t count)
         }
 
         workspace->length = count;
+        workspace->focused_space = NULL;
         workspace->spaces = create_list();
 
         if (workspace->spaces == NULL) {
@@ -40,6 +41,26 @@ struct workspace *workspace_create(xcb_rectangle_t *rects, size_t count)
         free(rects);
 
         return workspace;
+}
+
+enum natwm_error workspace_set_focused_space(struct workspace *workspace,
+                                             size_t index)
+{
+        struct list *spaces = workspace->spaces;
+
+        for (struct node *node = spaces->head; node != NULL;
+             node = node->next) {
+                struct space *space = (struct space *)node->data;
+
+                if (space->index == index) {
+                        workspace->focused_space = space;
+                        space->is_focused = true;
+                }
+
+                return NO_ERROR;
+        }
+
+        return NOT_FOUND_ERROR;
 }
 
 struct space *space_create(xcb_rectangle_t rect, size_t index)

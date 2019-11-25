@@ -7,10 +7,13 @@
 #include <stdbool.h>
 #include <xcb/xcb.h>
 
+#include <common/error.h>
+
 #include "list.h"
 
 struct workspace {
         size_t length;
+        struct space *focused_space;
         struct list *spaces;
 };
 
@@ -24,5 +27,7 @@ struct space {
 
 struct workspace *workspace_create(xcb_rectangle_t *rects, size_t count);
 struct space *space_create(xcb_rectangle_t rect, size_t index);
+enum natwm_error workspace_set_focused_space(struct workspace *workspace,
+                                             size_t index);
 void workspace_destroy(struct workspace *workspace);
 void space_destroy(struct space *space);

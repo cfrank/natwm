@@ -1,4 +1,6 @@
 add_library(core STATIC
+    client.c
+    client.h
     config.c
     config.h
     event.c
