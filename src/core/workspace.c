@@ -63,6 +63,7 @@ void workspace_destroy(struct workspace *workspace)
                 }
         }
 
+        free(workspace->spaces);
         free(workspace);
 }
 
