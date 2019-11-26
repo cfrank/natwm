@@ -11,7 +11,7 @@
 
 #include <common/constants.h>
 #include <common/error.h>
-#include <core/map.h>
+#include <common/map.h>
 
 /*
  * Static functions for use in tests

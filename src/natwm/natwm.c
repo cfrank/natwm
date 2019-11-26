@@ -12,11 +12,11 @@
 
 #include <common/constants.h>
 #include <common/logger.h>
+#include <common/map.h>
 #include <common/util.h>
 #include <core/config.h>
 #include <core/event.h>
 #include <core/ewmh.h>
-#include <core/map.h>
 #include <core/screen.h>
 #include <core/state.h>
 #include <core/workspace.h>

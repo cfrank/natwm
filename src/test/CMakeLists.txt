@@ -23,7 +23,7 @@ add_natwm_test(test_list
     SOURCES test_list.c
     LINK_LIBRARIES
         ${CMOCKA_SHARED_LIBRARY}
-        core
+        common
     TEST_NAME LinkedListTest
 )
 
@@ -31,6 +31,6 @@ add_natwm_test(test_map
     SOURCES test_map.c
     LINK_LIBRARIES
         ${CMOCKA_SHARED_LIBRARY}
-        core
+        common
     TEST_NAME HashMapTest
 )
