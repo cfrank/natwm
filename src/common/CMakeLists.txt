@@ -10,6 +10,8 @@ add_library(common STATIC
     logger.h
     map.c
     map.h
+    stack.c
+    stack.h
     string.c
     string.h
     util.c
