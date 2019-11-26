@@ -303,6 +303,8 @@ int main(int argc, char **argv)
         if (workspace == NULL) {
                 LOG_ERROR(natwm_logger, "Failed to create workspace");
 
+                free(screen_rects);
+
                 goto free_and_error;
         }
 
