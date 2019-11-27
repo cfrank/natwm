@@ -62,6 +62,7 @@ void stack_enqueue_item(struct stack *stack, struct stack_item *item)
 {
         if (!stack_has_item(stack)) {
                 stack->head = item;
+                ++stack->length;
 
                 return;
         }
@@ -69,7 +70,7 @@ void stack_enqueue_item(struct stack *stack, struct stack_item *item)
         // Need to find last item
         struct stack_item *curr = stack->head;
 
-        while (curr != NULL) {
+        while (curr != NULL && curr->next != NULL) {
                 curr = curr->next;
         }
 
@@ -111,10 +112,14 @@ struct stack_item *stack_dequeue(struct stack *stack)
                 return NULL;
         }
 
+        if (stack->length == 1) {
+                return stack_pop(stack);
+        }
+
         struct stack_item *curr = stack->head;
         struct stack_item *prev = NULL;
 
-        while (curr != NULL) {
+        while (curr != NULL && curr->next != NULL) {
                 prev = curr;
                 curr = curr->next;
         }
@@ -133,6 +138,12 @@ void stack_item_destroy(struct stack_item *item)
 
 void stack_destroy(struct stack *stack)
 {
+        struct stack_item *curr = NULL;
+
+        while ((curr = stack_pop(stack)) != NULL) {
+                stack_item_destroy(curr);
+        }
+
         free(stack);
 }
 
