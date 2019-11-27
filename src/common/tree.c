@@ -85,13 +85,11 @@ static void leaf_remove(const struct leaf *leaf, struct leaf *parent,
                         bool is_left_side)
 {
         assert(parent->data == NULL);
-        assert(leaf->left == NULL);
-        assert(leaf->right == NULL);
 
         if (is_left_side) {
-                parent->data = parent->right;
+                parent = parent->right;
         } else {
-                parent->data = parent->left;
+                parent = parent->left;
         }
 
         parent->left = NULL;
@@ -112,7 +110,10 @@ enum natwm_error tree_remove_leaf(struct tree *tree,
                 if (curr != NULL) {
                         stack_push(stack, curr);
 
-                        prev = curr;
+                        if (curr->data != NULL) {
+                                prev = curr;
+                        }
+
                         curr = curr->left;
                         is_left_side = true;
 
@@ -138,7 +139,10 @@ enum natwm_error tree_remove_leaf(struct tree *tree,
 
                 stack_item_destroy(stack_item);
 
-                prev = curr;
+                if (curr->data != NULL) {
+                        prev = curr;
+                }
+
                 curr = curr->right;
                 is_left_side = false;
         }
