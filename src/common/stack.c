@@ -150,4 +150,3 @@ void stack_destroy(struct stack *stack)
 
         free(stack);
 }
-
