@@ -5,10 +5,6 @@ add_library(core STATIC
     event.h
     ewmh.c
     ewmh.h
-    list.c
-    list.h
-    map.c
-    map.h
     randr.c
     randr.h
     screen.c
