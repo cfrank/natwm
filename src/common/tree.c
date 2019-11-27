@@ -81,8 +81,7 @@ enum natwm_error tree_insert(struct tree *tree, const void *data,
         return NO_ERROR;
 }
 
-static void leaf_remove(const struct leaf *leaf, struct leaf *parent,
-                        bool is_left_side)
+static void leaf_remove(struct leaf *parent, bool is_left_side)
 {
         assert(parent->data == NULL);
 
@@ -126,7 +125,7 @@ enum natwm_error tree_remove_leaf(struct tree *tree,
 
                 if (compare_callback(curr)) {
                         // Remove this item
-                        leaf_remove(curr, prev, is_left_side);
+                        leaf_remove(prev, is_left_side);
 
                         free_function(curr);
 
