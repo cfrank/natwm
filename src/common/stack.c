@@ -42,6 +42,7 @@ void stack_push_item(struct stack *stack, struct stack_item *item)
         }
 
         stack->head = item;
+        ++stack->length;
 }
 
 enum natwm_error stack_push(struct stack *stack, void *data)
@@ -74,6 +75,7 @@ void stack_enqueue_item(struct stack *stack, struct stack_item *item)
 
         // curr should point to the last item now
         curr->next = item;
+        ++stack->length;
 }
 
 enum natwm_error stack_enqueue(struct stack *stack, void *data)
@@ -98,6 +100,7 @@ struct stack_item *stack_pop(struct stack *stack)
         struct stack_item *item = stack->head;
 
         stack->head = item->next;
+        --stack->length;
 
         return item;
 }
@@ -118,6 +121,7 @@ struct stack_item *stack_dequeue(struct stack *stack)
 
         // curr should now point to the last item
         prev->next = NULL;
+        --stack->length;
 
         return curr;
 }
