@@ -37,7 +37,7 @@ static void test_stack_creation(void **state)
 {
         struct stack *stack = *(struct stack **)state;
 
-        assert_int_equal(0, stack->length);
+        assert_false(stack_has_item(stack));
         assert_null(stack->head);
 }
 
@@ -192,7 +192,7 @@ static void test_stack_pop(void **state)
 
         struct stack_item *item = stack_pop(stack);
 
-        assert_int_equal(0, stack->length);
+        assert_false(stack_has_item(stack));
         assert_null(stack->head);
         assert_int_equal(expected_data, *(size_t *)item->data);
 
@@ -219,7 +219,7 @@ static void test_stack_pop_multiple(void **state)
 
         struct stack_item *item_second = stack_pop(stack);
 
-        assert_int_equal(0, stack->length);
+        assert_false(stack_has_item(stack));
         assert_null(stack->head);
         assert_non_null(item_first);
         assert_non_null(item_first->next);
@@ -236,9 +236,9 @@ static void test_stack_pop_empty(void **state)
 {
         struct stack *stack = *(struct stack **)state;
 
-        assert_int_equal(0, stack->length);
+        assert_false(stack_has_item(stack));
         assert_null(stack_pop(stack));
-        assert_int_equal(0, stack->length);
+        assert_false(stack_has_item(stack));
 }
 
 static void test_stack_dequeue(void **state)
@@ -251,7 +251,7 @@ static void test_stack_dequeue(void **state)
 
         struct stack_item *item = stack_dequeue(stack);
 
-        assert_int_equal(0, stack->length);
+        assert_false(stack_has_item(stack));
         assert_non_null(item);
         assert_null(stack->head);
         assert_null(item->next);
@@ -280,7 +280,7 @@ static void test_stack_dequeue_multiple(void **state)
 
         struct stack_item *item_second = stack_dequeue(stack);
 
-        assert_int_equal(0, stack->length);
+        assert_false(stack_has_item(stack));
         assert_null(stack->head);
         assert_null(item_second->next);
         assert_int_equal(expected_data_first, *(size_t *)item_first->data);
@@ -294,9 +294,9 @@ static void test_stack_dequeue_empty(void **state)
 {
         struct stack *stack = *(struct stack **)state;
 
-        assert_int_equal(0, stack->length);
+        assert_false(stack_has_item(stack));
         assert_null(stack_dequeue(stack));
-        assert_int_equal(0, stack->length);
+        assert_false(stack_has_item(stack));
 }
 
 int main(void)
