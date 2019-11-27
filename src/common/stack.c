@@ -10,6 +10,10 @@ struct stack *stack_create(void)
 {
         struct stack *stack = malloc(sizeof(struct stack));
 
+        if (stack == NULL) {
+                return NULL;
+        }
+
         stack->length = 0;
         stack->head = NULL;
 
