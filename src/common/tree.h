@@ -4,7 +4,10 @@
 
 #pragma once
 
+#include <stdbool.h>
 #include <stdint.h>
+
+#include "error.h"
 
 struct leaf {
         struct leaf *left;

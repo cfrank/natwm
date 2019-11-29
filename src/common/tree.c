@@ -24,7 +24,12 @@ struct tree *tree_create(const void *data)
                 return NULL;
         }
 
-        tree->size = 1;
+        // A tree with a root node of NULL has a size of 0
+        if (data) {
+                tree->size = 1;
+        } else {
+                tree->size = 0;
+        }
 
         return tree;
 }
@@ -57,6 +62,8 @@ enum natwm_error tree_insert(struct tree *tree, const void *data,
         if (append->data == NULL) {
                 append->data = data;
 
+                ++tree->size;
+
                 return NO_ERROR;
         }
 
@@ -76,12 +83,14 @@ enum natwm_error tree_insert(struct tree *tree, const void *data,
 
         append->data = NULL;
 
+        ++tree->size;
+
         *affected_leaf = append;
 
         return NO_ERROR;
 }
 
-static void leaf_remove(struct leaf *parent, bool is_left_side)
+static void leaf_parent_reposition(struct leaf *parent, bool is_left_side)
 {
         assert(parent->data == NULL);
 
@@ -124,14 +133,15 @@ enum natwm_error tree_remove_leaf(struct tree *tree,
                 curr = (struct leaf *)stack_item->data;
 
                 if (compare_callback(curr)) {
-                        // Remove this item
-                        leaf_remove(prev, is_left_side);
+                        leaf_parent_reposition(prev, is_left_side);
 
                         free_function(curr);
 
                         leaf_destroy(curr);
 
                         *affected_leaf = prev;
+
+                        --tree->size;
 
                         return NO_ERROR;
                 }
