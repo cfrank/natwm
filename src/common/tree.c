@@ -50,8 +50,7 @@ struct leaf *leaf_create(const void *data)
 }
 
 enum natwm_error tree_insert(struct tree *tree, const void *data,
-                             struct leaf *append_under,
-                             const struct leaf **affected_leaf)
+                             struct leaf *append_under)
 {
         struct leaf *append = tree->root;
 
@@ -84,8 +83,6 @@ enum natwm_error tree_insert(struct tree *tree, const void *data,
         append->data = NULL;
 
         ++tree->size;
-
-        *affected_leaf = append;
 
         return NO_ERROR;
 }
@@ -182,12 +179,16 @@ void tree_iterate(struct tree *tree, struct leaf *start,
 
                 curr = (struct leaf *)stack_item->data;
 
-                stack_item_destroy(stack_item);
-
-                callback(curr);
+                struct leaf *tmp = curr;
 
                 curr = curr->right;
+
+                callback(tmp);
+
+                stack_item_destroy(stack_item);
         }
+
+        stack_destroy(stack);
 }
 
 void tree_destroy(struct tree *tree, leaf_callback_t free_function)

@@ -10,6 +10,7 @@
 
 #include <cmocka.h>
 
+#include <common/constants.h>
 #include <common/tree.h>
 
 int test_setup(void **state)
@@ -36,7 +37,61 @@ static void test_tree_create(void **state)
 {
         struct tree *tree = *(struct tree **)state;
 
+        assert_non_null(tree);
+        assert_non_null(tree->root);
         assert_int_equal(0, tree->size);
+        assert_null(tree->root->data);
+        assert_null(tree->root->left);
+        assert_null(tree->root->right);
+}
+
+static void test_tree_create_initial_data(void **state)
+{
+        // We will not initialize this test case with a tree
+        UNUSED_FUNCTION_PARAM(state);
+
+        size_t expected_data = 14;
+        struct tree *tree = tree_create(&expected_data);
+
+        assert_int_equal(1, tree->size);
+        assert_non_null(tree->root);
+        assert_non_null(tree->root->data);
+        assert_ptr_equal(&expected_data, tree->root->data);
+        assert_int_equal(expected_data, *(size_t *)tree->root->data);
+
+        tree_destroy(tree, NULL);
+}
+
+static void test_leaf_create(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        size_t expected_data = 14;
+        struct leaf *leaf = leaf_create(&expected_data);
+
+        assert_non_null(leaf);
+        assert_non_null(leaf->data);
+        assert_null(leaf->left);
+        assert_null(leaf->right);
+        assert_ptr_equal(&expected_data, leaf->data);
+        assert_int_equal(expected_data, *(size_t *)leaf->data);
+
+        leaf_destroy(leaf);
+}
+
+static void test_tree_insert(void **state)
+{
+        size_t expected_data = 14;
+        struct tree *tree = *(struct tree **)state;
+
+        tree_insert(tree, &expected_data, NULL);
+
+        assert_int_equal(1, tree->size);
+        assert_non_null(tree->root->data);
+        assert_null(tree->root->left);
+        assert_null(tree->root->right);
+        assert_ptr_equal(&expected_data, tree->root->data);
+        assert_int_equal(expected_data, *(size_t *)tree->root->data);
 }
 
 int main(void)
@@ -44,6 +99,10 @@ int main(void)
         const struct CMUnitTest tests[] = {
                 cmocka_unit_test_setup_teardown(
                         test_tree_create, test_setup, test_teardown),
+                cmocka_unit_test(test_tree_create_initial_data),
+                cmocka_unit_test(test_leaf_create),
+                cmocka_unit_test_setup_teardown(
+                        test_tree_insert, test_setup, test_teardown),
         };
 
         return cmocka_run_group_tests(tests, NULL, NULL);
