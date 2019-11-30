@@ -58,12 +58,22 @@ enum natwm_error tree_insert(struct tree *tree, const void *data,
                 append = append_under;
         }
 
-        if (append->data == NULL) {
+        if (append->data == NULL && append->left == NULL
+            && append->right == NULL) {
                 append->data = data;
 
                 ++tree->size;
 
                 return NO_ERROR;
+        }
+
+        // In our use case you should not be able to insert a leaf under a leaf
+        // which is not either empty or able to accept a new leaf to it's right
+        // or left
+        // If this is attempted return an error
+        if ((append->data == NULL)
+            && (append->left != NULL || append->right != NULL)) {
+                return CAPACITY_ERROR;
         }
 
         append->left = leaf_create(append->data);
