@@ -108,18 +108,18 @@ enum natwm_error tree_insert(struct tree *tree, struct leaf *append_under,
         return NO_ERROR;
 }
 
-static void leaf_parent_reposition(struct leaf *parent, bool is_left_side)
+static void leaf_parent_reposition(struct leaf *parent)
 {
         assert(parent->data == NULL);
+        assert(parent->left == NULL || parent->right == NULL);
 
-        if (is_left_side) {
-                parent = parent->right;
-        } else {
+        if (parent->left != NULL) {
                 parent = parent->left;
+                parent->left = NULL;
+        } else {
+                parent = parent->right;
+                parent->right = NULL;
         }
-
-        parent->left = NULL;
-        parent->right = NULL;
 }
 
 enum natwm_error tree_remove_leaf(struct tree *tree,
@@ -130,7 +130,6 @@ enum natwm_error tree_remove_leaf(struct tree *tree,
         struct stack *stack = stack_create();
         struct leaf *curr = tree->root;
         struct leaf *prev = NULL;
-        bool is_left_side = false;
 
         while (stack_has_item(stack) || curr != NULL) {
                 if (curr != NULL) {
@@ -141,7 +140,6 @@ enum natwm_error tree_remove_leaf(struct tree *tree,
                         }
 
                         curr = curr->left;
-                        is_left_side = true;
 
                         continue;
                 }
@@ -151,7 +149,7 @@ enum natwm_error tree_remove_leaf(struct tree *tree,
                 curr = (struct leaf *)stack_item->data;
 
                 if (compare_callback(curr)) {
-                        leaf_parent_reposition(prev, is_left_side);
+                        leaf_parent_reposition(prev);
 
                         free_function(curr);
 
@@ -171,7 +169,6 @@ enum natwm_error tree_remove_leaf(struct tree *tree,
                 }
 
                 curr = curr->right;
-                is_left_side = false;
         }
 
         return NOT_FOUND_ERROR;
