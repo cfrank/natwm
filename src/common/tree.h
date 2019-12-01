@@ -26,8 +26,8 @@ typedef bool (*leaf_compare_callback_t)(struct leaf *leaf);
 struct tree *tree_create(const void *data);
 struct leaf *leaf_create(const void *data);
 
-enum natwm_error tree_insert(struct tree *tree, const void *data,
-                             struct leaf *append_under);
+enum natwm_error tree_insert(struct tree *tree, struct leaf *append_under,
+                             const void *data);
 enum natwm_error tree_remove_leaf(struct tree *tree,
                                   leaf_compare_callback_t compare_callback,
                                   leaf_callback_t free_function,

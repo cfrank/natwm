@@ -84,7 +84,7 @@ static void test_tree_insert(void **state)
         size_t expected_data = 14;
         struct tree *tree = *(struct tree **)state;
 
-        assert_int_equal(NO_ERROR, tree_insert(tree, &expected_data, NULL));
+        assert_int_equal(NO_ERROR, tree_insert(tree, NULL, &expected_data));
         assert_int_equal(1, tree->size);
         assert_non_null(tree->root->data);
         assert_null(tree->root->left);
@@ -100,9 +100,9 @@ static void test_tree_insert_non_empty(void **state)
         size_t expected_data_second = 2;
 
         assert_int_equal(NO_ERROR,
-                         tree_insert(tree, &expected_data_first, NULL));
+                         tree_insert(tree, NULL, &expected_data_first));
         assert_int_equal(NO_ERROR,
-                         tree_insert(tree, &expected_data_second, NULL));
+                         tree_insert(tree, NULL, &expected_data_second));
 
         assert_int_equal(2, tree->size);
         assert_null(tree->root->data);
@@ -121,9 +121,9 @@ static void test_tree_insert_full_error(void **state)
         size_t expected_data_second = 2;
 
         assert_int_equal(NO_ERROR,
-                         tree_insert(tree, &expected_data_first, NULL));
+                         tree_insert(tree, NULL, &expected_data_first));
         assert_int_equal(NO_ERROR,
-                         tree_insert(tree, &expected_data_second, NULL));
+                         tree_insert(tree, NULL, &expected_data_second));
         assert_int_equal(CAPACITY_ERROR, tree_insert(tree, NULL, NULL));
 }
 
@@ -135,12 +135,12 @@ static void test_tree_insert_under_leaf(void **state)
         size_t expected_data_third = 3;
 
         assert_int_equal(NO_ERROR,
-                         tree_insert(tree, &expected_data_first, NULL));
+                         tree_insert(tree, NULL, &expected_data_first));
         assert_int_equal(NO_ERROR,
-                         tree_insert(tree, &expected_data_second, NULL));
+                         tree_insert(tree, NULL, &expected_data_second));
         assert_int_equal(
                 NO_ERROR,
-                tree_insert(tree, &expected_data_third, tree->root->left));
+                tree_insert(tree, tree->root->left, &expected_data_third));
 
         assert_null(tree->root->data);
         assert_non_null(tree->root->left);

@@ -49,8 +49,14 @@ struct leaf *leaf_create(const void *data)
         return leaf;
 }
 
-enum natwm_error tree_insert(struct tree *tree, const void *data,
-                             struct leaf *append_under)
+// This function makes a big assumption - that we will never want to specify
+// where data will be placed. At this current time I am going to force the user
+// to split frame and if they don't like how it is laid out, manually swap the
+// frames so they are in the correct place.
+//
+// This might turn out to be annoying for the user - but it's an easy fix if so
+enum natwm_error tree_insert(struct tree *tree, struct leaf *append_under,
+                             const void *data)
 {
         struct leaf *append = tree->root;
 
@@ -58,8 +64,18 @@ enum natwm_error tree_insert(struct tree *tree, const void *data,
                 append = append_under;
         }
 
-        if (append->data == NULL && append->left == NULL
-            && append->right == NULL) {
+        // In our use case you should not be able to insert a leaf under a leaf
+        // which is not either empty or able to accept a new leaf to it's right
+        // or left
+        // If this is attempted return an error
+        if (append->data == NULL
+            && (append->left != NULL || append->right != NULL)) {
+                return CAPACITY_ERROR;
+        }
+
+        // At this point if we are appending into a node with no data then
+        // it's an empty node and we can just set the data on the node
+        if (append->data == NULL) {
                 append->data = data;
 
                 ++tree->size;
@@ -67,15 +83,10 @@ enum natwm_error tree_insert(struct tree *tree, const void *data,
                 return NO_ERROR;
         }
 
-        // In our use case you should not be able to insert a leaf under a leaf
-        // which is not either empty or able to accept a new leaf to it's right
-        // or left
-        // If this is attempted return an error
-        if ((append->data == NULL)
-            && (append->left != NULL || append->right != NULL)) {
-                return CAPACITY_ERROR;
-        }
-
+        // At this point we know that we have data directly on the leaf and
+        // both child leafs are empty.
+        // Move the data from the leaf to it's left child leaf and insert the
+        // new data onto it's right child leaf
         append->left = leaf_create(append->data);
 
         if (append->left == NULL) {
