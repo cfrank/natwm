@@ -156,6 +156,38 @@ static void test_tree_insert_under_leaf(void **state)
                          *(size_t *)tree->root->left->right->data);
 }
 
+static bool leaf_compare(struct leaf *one, struct leaf *two)
+{
+        function_called();
+
+        return one->data == two->data;
+}
+
+static void test_tree_find_parent(void **state)
+{
+        expect_function_call(leaf_compare);
+
+        struct tree *tree = *(struct tree **)state;
+        size_t expected_data_first = 1;
+        size_t expected_data_second = 2;
+        const struct leaf *parent = NULL;
+
+        assert_int_equal(NO_ERROR,
+                         tree_insert(tree, NULL, &expected_data_first));
+        assert_int_equal(NO_ERROR,
+                         tree_insert(tree, NULL, &expected_data_second));
+        assert_int_equal(2, tree->size);
+        assert_non_null(tree->root); // The parent we want
+        assert_non_null(tree->root->left); // Going to use this to find it
+        assert_int_equal(expected_data_first,
+                         *(size_t *)tree->root->left->data);
+        assert_int_equal(
+                NO_ERROR,
+                tree_find_parent(
+                        tree, tree->root->left, leaf_compare, &parent));
+        assert_ptr_equal(tree->root, parent);
+}
+
 int main(void)
 {
         const struct CMUnitTest tests[] = {
@@ -171,6 +203,8 @@ int main(void)
                         test_tree_insert_full_error, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(
                         test_tree_insert_under_leaf, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(
+                        test_tree_find_parent, test_setup, test_teardown),
         };
 
         return cmocka_run_group_tests(tests, NULL, NULL);

@@ -108,25 +108,14 @@ enum natwm_error tree_insert(struct tree *tree, struct leaf *append_under,
         return NO_ERROR;
 }
 
-static void leaf_parent_reposition(struct leaf *parent)
-{
-        assert(parent->data == NULL);
-        assert(parent->left == NULL || parent->right == NULL);
-
-        if (parent->left != NULL) {
-                parent = parent->left;
-                parent->left = NULL;
-        } else {
-                parent = parent->right;
-                parent->right = NULL;
-        }
-}
-
-enum natwm_error tree_remove_leaf(struct tree *tree,
+enum natwm_error tree_find_parent(struct tree *tree, struct leaf *leaf,
                                   leaf_compare_callback_t compare_callback,
-                                  leaf_callback_t free_function,
-                                  const struct leaf **affected_leaf)
+                                  const struct leaf **parent)
 {
+        if (leaf == NULL) {
+                return INVALID_INPUT_ERROR;
+        }
+
         struct stack *stack = stack_create();
         struct leaf *curr = tree->root;
         struct leaf *prev = NULL;
@@ -135,7 +124,9 @@ enum natwm_error tree_remove_leaf(struct tree *tree,
                 if (curr != NULL) {
                         stack_push(stack, curr);
 
-                        if (curr->data != NULL) {
+                        if (curr->data == NULL) {
+                                // If we don't have data then we have children,
+                                // so mark this leaf as a potential parent
                                 prev = curr;
                         }
 
@@ -145,31 +136,27 @@ enum natwm_error tree_remove_leaf(struct tree *tree,
                 }
 
                 struct stack_item *stack_item = stack_pop(stack);
+                struct leaf *stack_leaf = (struct leaf *)stack_item->data;
 
-                curr = (struct leaf *)stack_item->data;
+                if (compare_callback(leaf, stack_leaf)) {
+                        *parent = prev;
 
-                if (compare_callback(curr)) {
-                        leaf_parent_reposition(prev);
-
-                        free_function(curr);
-
-                        leaf_destroy(curr);
-
-                        *affected_leaf = prev;
-
-                        --tree->size;
+                        stack_item_destroy(stack_item);
+                        stack_destroy(stack);
 
                         return NO_ERROR;
                 }
 
-                stack_item_destroy(stack_item);
-
-                if (curr->data != NULL) {
-                        prev = curr;
+                if (stack_leaf->data == NULL) {
+                        prev = stack_leaf;
                 }
 
-                curr = curr->right;
+                curr = stack_leaf->right;
+
+                stack_item_destroy(stack_item);
         }
+
+        stack_destroy(stack);
 
         return NOT_FOUND_ERROR;
 }

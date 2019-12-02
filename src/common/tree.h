@@ -21,18 +21,16 @@ struct tree {
 };
 
 typedef void (*leaf_callback_t)(struct leaf *leaf);
-typedef bool (*leaf_compare_callback_t)(struct leaf *leaf);
+typedef bool (*leaf_compare_callback_t)(struct leaf *one, struct leaf *two);
 
 struct tree *tree_create(const void *data);
 struct leaf *leaf_create(const void *data);
 
 enum natwm_error tree_insert(struct tree *tree, struct leaf *append_under,
                              const void *data);
-enum natwm_error tree_remove_leaf(struct tree *tree,
+enum natwm_error tree_find_parent(struct tree *tree, struct leaf *leaf,
                                   leaf_compare_callback_t compare_callback,
-                                  leaf_callback_t free_function,
-                                  const struct leaf **affected_leaf);
-
+                                  const struct leaf **parent);
 void tree_iterate(struct tree *tree, struct leaf *start,
                   leaf_callback_t callback);
 
