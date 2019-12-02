@@ -185,7 +185,73 @@ static void test_tree_find_parent(void **state)
                 NO_ERROR,
                 tree_find_parent(
                         tree, tree->root->left, leaf_compare, &parent));
+        assert_non_null(parent);
         assert_ptr_equal(tree->root, parent);
+        assert_int_equal(expected_data_first, *(size_t *)parent->left->data);
+}
+
+static void test_tree_find_parent_root_single(void **state)
+{
+        struct tree *tree = *(struct tree **)state;
+        const struct leaf *parent = NULL;
+        size_t data = 14;
+
+        assert_int_equal(NO_ERROR, tree_insert(tree, NULL, &data));
+
+        expect_function_calls(leaf_compare, (int)tree->size);
+
+        assert_int_equal(
+                NOT_FOUND_ERROR,
+                tree_find_parent(tree, tree->root, leaf_compare, &parent));
+        assert_null(parent);
+}
+
+// When searching for a leaf that has no data we should return an error since
+// there is no data to compare.
+//
+// This is an assumption - but for the use cases I can think of right now, it
+// should be fine
+static void test_tree_find_parent_empty_data(void **state)
+{
+        struct tree *tree = *(struct tree **)state;
+        size_t data = 14;
+        const struct leaf *parent = NULL;
+
+        assert_int_equal(NO_ERROR, tree_insert(tree, NULL, &data));
+        assert_int_equal(NO_ERROR, tree_insert(tree, NULL, &data));
+        assert_int_equal(
+                INVALID_INPUT_ERROR,
+                tree_find_parent(tree, tree->root, leaf_compare, &parent));
+        assert_null(parent);
+}
+
+static void test_tree_find_parent_null(void **state)
+{
+        struct tree *tree = *(struct tree **)state;
+        size_t data = 14;
+        const struct leaf *parent = NULL;
+
+        assert_int_equal(NO_ERROR, tree_insert(tree, NULL, &data));
+        assert_int_equal(INVALID_INPUT_ERROR,
+                         tree_find_parent(tree, NULL, leaf_compare, &parent));
+        assert_null(parent);
+}
+
+static void test_tree_find_parent_null_compare(void **state)
+{
+        struct tree *tree = *(struct tree **)state;
+        size_t data = 14;
+        const struct leaf *parent = NULL;
+
+        assert_int_equal(NO_ERROR, tree_insert(tree, NULL, &data));
+        assert_int_equal(NO_ERROR, tree_insert(tree, NULL, &data));
+        assert_int_equal(NO_ERROR, tree_insert(tree, tree->root->left, &data));
+        assert_non_null(tree->root->left->left);
+        assert_non_null(tree->root->left->left->data);
+        assert_int_equal(
+                INVALID_INPUT_ERROR,
+                tree_find_parent(tree, tree->root->left->left, NULL, &parent));
+        assert_null(parent);
 }
 
 int main(void)
@@ -205,6 +271,20 @@ int main(void)
                         test_tree_insert_under_leaf, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(
                         test_tree_find_parent, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(
+                        test_tree_find_parent_root_single,
+                        test_setup,
+                        test_teardown),
+                cmocka_unit_test_setup_teardown(
+                        test_tree_find_parent_empty_data,
+                        test_setup,
+                        test_teardown),
+                cmocka_unit_test_setup_teardown(
+                        test_tree_find_parent_null, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(
+                        test_tree_find_parent_null_compare,
+                        test_setup,
+                        test_teardown),
         };
 
         return cmocka_run_group_tests(tests, NULL, NULL);

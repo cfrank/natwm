@@ -112,7 +112,7 @@ enum natwm_error tree_find_parent(struct tree *tree, struct leaf *leaf,
                                   leaf_compare_callback_t compare_callback,
                                   const struct leaf **parent)
 {
-        if (leaf == NULL) {
+        if (leaf == NULL || leaf->data == NULL || compare_callback == NULL) {
                 return INVALID_INPUT_ERROR;
         }
 
@@ -139,12 +139,14 @@ enum natwm_error tree_find_parent(struct tree *tree, struct leaf *leaf,
                 struct leaf *stack_leaf = (struct leaf *)stack_item->data;
 
                 if (compare_callback(leaf, stack_leaf)) {
-                        *parent = prev;
-
                         stack_item_destroy(stack_item);
-                        stack_destroy(stack);
 
-                        return NO_ERROR;
+                        if (prev == NULL) {
+                                // No parent was found - maybe searched for root
+                                break;
+                        }
+
+                        goto found_leaf;
                 }
 
                 if (stack_leaf->data == NULL) {
@@ -159,6 +161,13 @@ enum natwm_error tree_find_parent(struct tree *tree, struct leaf *leaf,
         stack_destroy(stack);
 
         return NOT_FOUND_ERROR;
+
+found_leaf:
+        stack_destroy(stack);
+
+        *parent = prev;
+
+        return NO_ERROR;
 }
 
 void tree_iterate(struct tree *tree, struct leaf *start,
