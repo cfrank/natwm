@@ -4,9 +4,35 @@
 
 #include <assert.h>
 #include <stdlib.h>
+#include <string.h>
 
+#include "constants.h"
 #include "stack.h"
 #include "tree.h"
+
+// When removing a leaf there are two possible options:
+//
+// 1) If the leaf's sibling contains data then we need to move that data to the
+// parent and destroy the leaf
+//
+// 2) If the leaf's sibling contains children then we need to replace the
+// parent with the sibling
+static void reposition_leaf(struct leaf *parent, struct leaf *child)
+{
+        if (child->data != NULL) {
+                parent->data = child->data;
+                parent->left = NULL;
+                parent->right = NULL;
+
+                leaf_destroy(child);
+        } else {
+                parent->data = NULL;
+                parent->left = child->left;
+                parent->right = child->right;
+
+                leaf_destroy(child);
+        }
+}
 
 struct tree *tree_create(const void *data)
 {
@@ -110,7 +136,7 @@ enum natwm_error tree_insert(struct tree *tree, struct leaf *append_under,
 
 enum natwm_error tree_find_parent(struct tree *tree, struct leaf *leaf,
                                   leaf_compare_callback_t compare_callback,
-                                  const struct leaf **parent)
+                                  struct leaf **parent)
 {
         if (leaf == NULL || leaf->data == NULL || compare_callback == NULL) {
                 return INVALID_INPUT_ERROR;
@@ -170,6 +196,55 @@ found_leaf:
         return NO_ERROR;
 }
 
+enum natwm_error tree_remove(struct tree *tree, struct leaf *leaf,
+                             leaf_compare_callback_t compare_callback,
+                             leaf_data_callback_t free_callback,
+                             struct leaf **affected_leaf)
+{
+        struct leaf *parent = NULL;
+        enum natwm_error err
+                = tree_find_parent(tree, leaf, compare_callback, &parent);
+
+        if (err != NO_ERROR) {
+                if (err == NOT_FOUND_ERROR && leaf->data == NULL) {
+                        // You cannot remove the root node if it contains
+                        // children
+                        return INVALID_INPUT_ERROR;
+                } else if (err == NOT_FOUND_ERROR && leaf->data != NULL) {
+                        if (free_callback) {
+                                free_callback(leaf->data);
+                        }
+
+                        leaf->data = NULL;
+
+                        --tree->size;
+                        *affected_leaf = leaf;
+
+                        return NO_ERROR;
+                }
+
+                return err;
+        }
+
+        if (memcmp(parent->left, leaf, sizeof(struct leaf)) == 0) {
+                reposition_leaf(parent, parent->right);
+        } else {
+                reposition_leaf(parent, parent->left);
+        }
+
+        if (free_callback) {
+                free_callback(leaf->data);
+        }
+
+        leaf_destroy(leaf);
+
+        *affected_leaf = parent;
+
+        --tree->size;
+
+        return NO_ERROR;
+}
+
 void tree_iterate(struct tree *tree, struct leaf *start,
                   leaf_callback_t callback)
 {
@@ -210,7 +285,7 @@ void tree_destroy(struct tree *tree, leaf_callback_t free_function)
         leaf_callback_t callback = leaf_destroy;
 
         if (free_function != NULL) {
-                callback = leaf_destroy;
+                callback = free_function;
         }
 
         tree_iterate(tree, tree->root, callback);

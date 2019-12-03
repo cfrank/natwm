@@ -170,7 +170,7 @@ static void test_tree_find_parent(void **state)
         struct tree *tree = *(struct tree **)state;
         size_t expected_data_first = 1;
         size_t expected_data_second = 2;
-        const struct leaf *parent = NULL;
+        struct leaf *parent = NULL;
 
         assert_int_equal(NO_ERROR,
                          tree_insert(tree, NULL, &expected_data_first));
@@ -186,14 +186,14 @@ static void test_tree_find_parent(void **state)
                 tree_find_parent(
                         tree, tree->root->left, leaf_compare, &parent));
         assert_non_null(parent);
-        assert_ptr_equal(tree->root, parent);
+        assert_ptr_equal(parent, tree->root);
         assert_int_equal(expected_data_first, *(size_t *)parent->left->data);
 }
 
 static void test_tree_find_parent_root_single(void **state)
 {
         struct tree *tree = *(struct tree **)state;
-        const struct leaf *parent = NULL;
+        struct leaf *parent = NULL;
         size_t data = 14;
 
         assert_int_equal(NO_ERROR, tree_insert(tree, NULL, &data));
@@ -215,7 +215,7 @@ static void test_tree_find_parent_empty_data(void **state)
 {
         struct tree *tree = *(struct tree **)state;
         size_t data = 14;
-        const struct leaf *parent = NULL;
+        struct leaf *parent = NULL;
 
         assert_int_equal(NO_ERROR, tree_insert(tree, NULL, &data));
         assert_int_equal(NO_ERROR, tree_insert(tree, NULL, &data));
@@ -229,7 +229,7 @@ static void test_tree_find_parent_null(void **state)
 {
         struct tree *tree = *(struct tree **)state;
         size_t data = 14;
-        const struct leaf *parent = NULL;
+        struct leaf *parent = NULL;
 
         assert_int_equal(NO_ERROR, tree_insert(tree, NULL, &data));
         assert_int_equal(INVALID_INPUT_ERROR,
@@ -241,7 +241,7 @@ static void test_tree_find_parent_null_compare(void **state)
 {
         struct tree *tree = *(struct tree **)state;
         size_t data = 14;
-        const struct leaf *parent = NULL;
+        struct leaf *parent = NULL;
 
         assert_int_equal(NO_ERROR, tree_insert(tree, NULL, &data));
         assert_int_equal(NO_ERROR, tree_insert(tree, NULL, &data));
@@ -252,6 +252,174 @@ static void test_tree_find_parent_null_compare(void **state)
                 INVALID_INPUT_ERROR,
                 tree_find_parent(tree, tree->root->left->left, NULL, &parent));
         assert_null(parent);
+}
+
+static void test_tree_remove(void **state)
+{
+        struct tree *tree = *(struct tree **)state;
+        size_t expected_data_first = 1;
+        size_t expected_data_second = 2;
+        size_t expected_data_third = 3;
+        struct leaf *affected_leaf = NULL;
+
+        assert_int_equal(NO_ERROR,
+                         tree_insert(tree, NULL, &expected_data_first));
+        assert_int_equal(NO_ERROR,
+                         tree_insert(tree, NULL, &expected_data_second));
+        assert_int_equal(
+                NO_ERROR,
+                tree_insert(tree, tree->root->left, &expected_data_third));
+        assert_int_equal(3, tree->size);
+
+        expect_function_call_any(leaf_compare);
+
+        assert_int_equal(NO_ERROR,
+                         tree_remove(tree,
+                                     tree->root->left->right,
+                                     leaf_compare,
+                                     NULL,
+                                     &affected_leaf));
+        assert_int_equal(2, tree->size);
+        assert_non_null(tree->root->left->data);
+        assert_null(tree->root->left->left);
+        assert_null(tree->root->left->right);
+        assert_int_equal(expected_data_first,
+                         *(size_t *)tree->root->left->data);
+        assert_int_equal(expected_data_second,
+                         *(size_t *)tree->root->right->data);
+        assert_non_null(affected_leaf);
+        assert_ptr_equal(affected_leaf, tree->root->left);
+}
+
+static void test_tree_remove_siblingless(void **state)
+{
+        struct tree *tree = *(struct tree **)state;
+        size_t expected_data_first = 1;
+        size_t expected_data_second = 2;
+        size_t expected_data_third = 3;
+        struct leaf *affected_leaf = NULL;
+
+        assert_int_equal(NO_ERROR,
+                         tree_insert(tree, NULL, &expected_data_first));
+        assert_int_equal(NO_ERROR,
+                         tree_insert(tree, NULL, &expected_data_second));
+        assert_int_equal(
+                NO_ERROR,
+                tree_insert(tree, tree->root->left, &expected_data_third));
+        assert_int_equal(3, tree->size);
+        assert_int_equal(expected_data_second,
+                         *(size_t *)tree->root->right->data);
+
+        expect_function_call_any(leaf_compare);
+
+        assert_int_equal(NO_ERROR,
+                         tree_remove(tree,
+                                     tree->root->right,
+                                     leaf_compare,
+                                     NULL,
+                                     &affected_leaf));
+        assert_int_equal(2, tree->size);
+        assert_non_null(tree->root->right);
+        assert_non_null(tree->root->right->data);
+        assert_int_equal(expected_data_third,
+                         *(size_t *)tree->root->right->data);
+        assert_ptr_equal(affected_leaf, tree->root);
+}
+
+static void test_tree_remove_childless_root(void **state)
+{
+        struct tree *tree = *(struct tree **)state;
+        size_t expected_data = 14;
+        struct leaf *affected_leaf = NULL;
+
+        assert_int_equal(NO_ERROR, tree_insert(tree, NULL, &expected_data));
+
+        expect_function_calls(leaf_compare, 1);
+
+        assert_int_equal(
+                NO_ERROR,
+                tree_remove(
+                        tree, tree->root, leaf_compare, NULL, &affected_leaf));
+        assert_int_equal(0, tree->size);
+        assert_null(tree->root->data);
+        assert_null(tree->root->left);
+        assert_null(tree->root->right);
+        assert_non_null(affected_leaf);
+        assert_ptr_equal(affected_leaf, tree->root);
+}
+
+static void test_tree_remove_parent_root(void **state)
+{
+        struct tree *tree = *(struct tree **)state;
+        size_t expected_data_first = 1;
+        size_t expected_data_second = 2;
+        struct leaf *affected_leaf = NULL;
+
+        assert_int_equal(NO_ERROR,
+                         tree_insert(tree, NULL, &expected_data_first));
+        assert_int_equal(NO_ERROR,
+                         tree_insert(tree, NULL, &expected_data_second));
+
+        assert_int_equal(
+                INVALID_INPUT_ERROR,
+                tree_remove(
+                        tree, tree->root, leaf_compare, NULL, &affected_leaf));
+        assert_int_equal(2, tree->size);
+        assert_null(tree->root->data);
+        assert_non_null(tree->root->left);
+        assert_non_null(tree->root->right);
+        assert_int_equal(expected_data_first,
+                         *(size_t *)tree->root->left->data);
+        assert_int_equal(expected_data_second,
+                         *(size_t *)tree->root->right->data);
+        assert_null(affected_leaf);
+}
+
+static void test_tree_remove_empty_tree(void **state)
+{
+        struct tree *tree = *(struct tree **)state;
+        struct leaf *affected_leaf = NULL;
+
+        assert_int_equal(
+                INVALID_INPUT_ERROR,
+                tree_remove(
+                        tree, tree->root, leaf_compare, NULL, &affected_leaf));
+        assert_non_null(tree->root);
+        assert_null(tree->root->data);
+        assert_null(tree->root->left);
+        assert_null(tree->root->right);
+        assert_null(affected_leaf);
+}
+
+static void test_tree_remove_invalid_leaf(void **state)
+{
+        struct tree *tree = *(struct tree **)state;
+        size_t expected_data_first = 1;
+        size_t expected_data_second = 2;
+        size_t expected_data_third = 3;
+        struct leaf *affected_leaf = NULL;
+
+        assert_int_equal(NO_ERROR,
+                         tree_insert(tree, NULL, &expected_data_first));
+        assert_int_equal(NO_ERROR,
+                         tree_insert(tree, NULL, &expected_data_second));
+        assert_int_equal(
+                NO_ERROR,
+                tree_insert(tree, tree->root->left, &expected_data_third));
+        assert_int_equal(INVALID_INPUT_ERROR,
+                         tree_remove(tree,
+                                     tree->root->right->left,
+                                     leaf_compare,
+                                     NULL,
+                                     &affected_leaf));
+        assert_int_equal(3, tree->size);
+        assert_int_equal(expected_data_first,
+                         *(size_t *)tree->root->left->left->data);
+        assert_int_equal(expected_data_third,
+                         *(size_t *)tree->root->left->right->data);
+        assert_int_equal(expected_data_second,
+                         *(size_t *)tree->root->right->data);
+        assert_null(affected_leaf);
 }
 
 int main(void)
@@ -285,6 +453,22 @@ int main(void)
                         test_tree_find_parent_null_compare,
                         test_setup,
                         test_teardown),
+                cmocka_unit_test_setup_teardown(
+                        test_tree_remove, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(test_tree_remove_siblingless,
+                                                test_setup,
+                                                test_teardown),
+                cmocka_unit_test_setup_teardown(test_tree_remove_childless_root,
+                                                test_setup,
+                                                test_teardown),
+                cmocka_unit_test_setup_teardown(test_tree_remove_parent_root,
+                                                test_setup,
+                                                test_teardown),
+                cmocka_unit_test_setup_teardown(
+                        test_tree_remove_empty_tree, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(test_tree_remove_invalid_leaf,
+                                                test_setup,
+                                                test_teardown),
         };
 
         return cmocka_run_group_tests(tests, NULL, NULL);
