@@ -7,11 +7,90 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include <cmocka.h>
 
 #include <common/constants.h>
 #include <common/tree.h>
+
+struct non_primitive_type {
+        const char *string;
+        size_t number;
+};
+
+static struct non_primitive_type *create_npt(const char *string, size_t number)
+{
+        struct non_primitive_type *npt
+                = malloc(sizeof(struct non_primitive_type));
+
+        if (npt == NULL) {
+                return NULL;
+        }
+
+        npt->string = string;
+        npt->number = number;
+
+        return npt;
+}
+
+static void non_primitive_type_free_data(const void *data)
+{
+        function_called();
+
+        if (!data) {
+                return;
+        }
+
+        struct non_primitive_type *type = (struct non_primitive_type *)data;
+
+        free(type);
+}
+
+static void non_primitive_leaf_free(struct leaf *leaf)
+{
+        function_called();
+
+        if (!leaf) {
+                return;
+        }
+
+        if (leaf->data) {
+                struct non_primitive_type *data
+                        = (struct non_primitive_type *)leaf->data;
+
+                free(data);
+        }
+
+        leaf_destroy(leaf);
+}
+
+static bool non_primitive_type_compare(struct leaf *one, struct leaf *two)
+{
+        function_called();
+
+        struct non_primitive_type *data_one
+                = (struct non_primitive_type *)one->data;
+        struct non_primitive_type *data_two
+                = (struct non_primitive_type *)two->data;
+
+        if (data_one == NULL || data_two == NULL) {
+                return false;
+        }
+
+        if (strncmp(data_one->string,
+                    data_two->string,
+                    strlen(data_one->string))
+            != 0) {
+                return false;
+        }
+
+        if (data_one->number != data_two->number) {
+                return false;
+        }
+
+        return true;
+}
 
 int test_setup(void **state)
 {
@@ -422,6 +501,38 @@ static void test_tree_remove_invalid_leaf(void **state)
         assert_null(affected_leaf);
 }
 
+static void test_tree_remove_non_primitive(void **state)
+{
+        // This test case will not be initialized with the setup functions
+        UNUSED_FUNCTION_PARAM(state);
+
+        struct tree *tree = tree_create(NULL);
+
+        assert_non_null(tree);
+
+        struct non_primitive_type *expected_data_first = create_npt("One", 1);
+        struct leaf *affected_leaf = NULL;
+
+        assert_non_null(expected_data_first);
+
+        assert_int_equal(NO_ERROR,
+                         tree_insert(tree, NULL, expected_data_first));
+
+        expect_function_calls(non_primitive_type_compare, 1);
+        expect_function_calls(non_primitive_type_free_data, 1);
+
+        assert_int_equal(NO_ERROR,
+                         tree_remove(tree,
+                                     tree->root,
+                                     non_primitive_type_compare,
+                                     non_primitive_type_free_data,
+                                     &affected_leaf));
+
+        expect_function_calls(non_primitive_leaf_free, 1);
+
+        tree_destroy(tree, non_primitive_leaf_free);
+}
+
 int main(void)
 {
         const struct CMUnitTest tests[] = {
@@ -469,6 +580,7 @@ int main(void)
                 cmocka_unit_test_setup_teardown(test_tree_remove_invalid_leaf,
                                                 test_setup,
                                                 test_teardown),
+                cmocka_unit_test(test_tree_remove_non_primitive),
         };
 
         return cmocka_run_group_tests(tests, NULL, NULL);

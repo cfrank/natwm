@@ -32,6 +32,9 @@ enum natwm_error tree_insert(struct tree *tree, struct leaf *append_under,
 enum natwm_error tree_find_parent(struct tree *tree, struct leaf *leaf,
                                   leaf_compare_callback_t compare_callback,
                                   struct leaf **parent);
+enum natwm_error tree_find_sibling(struct tree *tree, struct leaf *leaf,
+                                   leaf_compare_callback_t compare_callback,
+                                   struct leaf **sibling);
 enum natwm_error tree_remove(struct tree *tree, struct leaf *leaf,
                              leaf_compare_callback_t compare_callback,
                              leaf_data_callback_t free_callback,

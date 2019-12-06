@@ -196,6 +196,29 @@ found_leaf:
         return NO_ERROR;
 }
 
+enum natwm_error tree_find_sibling(struct tree *tree, struct leaf *leaf,
+                                   leaf_compare_callback_t compare_callback,
+                                   struct leaf **sibling)
+{
+        struct leaf *parent = NULL;
+        enum natwm_error err
+                = tree_find_parent(tree, leaf, compare_callback, &parent);
+
+        if (err != NO_ERROR) {
+                return err;
+        }
+
+        if (memcmp(parent->left, leaf, sizeof(struct leaf))) {
+                *sibling = parent->right;
+
+                return NO_ERROR;
+        }
+
+        *sibling = parent->left;
+
+        return NO_ERROR;
+}
+
 enum natwm_error tree_remove(struct tree *tree, struct leaf *leaf,
                              leaf_compare_callback_t compare_callback,
                              leaf_data_callback_t free_callback,
@@ -205,27 +228,28 @@ enum natwm_error tree_remove(struct tree *tree, struct leaf *leaf,
         enum natwm_error err
                 = tree_find_parent(tree, leaf, compare_callback, &parent);
 
-        if (err != NO_ERROR) {
-                if (err == NOT_FOUND_ERROR && leaf->data == NULL) {
-                        // You cannot remove the root node if it contains
-                        // children
-                        return INVALID_INPUT_ERROR;
-                } else if (err == NOT_FOUND_ERROR && leaf->data != NULL) {
-                        if (free_callback) {
-                                free_callback(leaf->data);
-                        }
-
-                        leaf->data = NULL;
-
-                        --tree->size;
-                        *affected_leaf = leaf;
-
-                        return NO_ERROR;
+        if (err == NOT_FOUND_ERROR && leaf->data == NULL) {
+                // You cannot remove the root node if it contains
+                // children
+                return INVALID_INPUT_ERROR;
+        } else if (err == NOT_FOUND_ERROR && leaf->data != NULL) {
+                // If this is the root node, and it contains data but no
+                // children then just remove it's data
+                if (free_callback) {
+                        free_callback(leaf->data);
                 }
 
+                leaf->data = NULL;
+
+                --tree->size;
+                *affected_leaf = leaf;
+
+                return NO_ERROR;
+        } else if (err != NO_ERROR) {
                 return err;
         }
 
+        // Find which side of the parent we are removing
         if (memcmp(parent->left, leaf, sizeof(struct leaf)) == 0) {
                 reposition_leaf(parent, parent->right);
         } else {
