@@ -241,7 +241,12 @@ enum natwm_error leaf_find_sibling(struct leaf *leaf, struct leaf **sibling)
         if (leaf == NULL) {
                 return INVALID_INPUT_ERROR;
         }
+
         struct leaf *parent = leaf->parent;
+
+        if (parent == NULL) {
+                return NOT_FOUND_ERROR;
+        }
 
         if (memcmp(parent->left, leaf, sizeof(struct leaf))) {
                 *sibling = parent->right;

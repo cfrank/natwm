@@ -206,51 +206,6 @@ static void test_tree_insert_under_leaf(void **state)
                          *(size_t *)tree->root->left->right->data);
 }
 
-static void test_leaf_find_parent(void **state)
-{
-        struct tree *tree = *(struct tree **)state;
-        size_t expected_data_first = 1;
-        size_t expected_data_second = 2;
-        struct leaf *parent = NULL;
-
-        assert_int_equal(NO_ERROR,
-                         tree_insert(tree, NULL, &expected_data_first));
-        assert_int_equal(NO_ERROR,
-                         tree_insert(tree, NULL, &expected_data_second));
-        assert_int_equal(2, tree->size);
-        assert_non_null(tree->root); // The parent we want
-        assert_non_null(tree->root->left); // Going to use this to find it
-        assert_int_equal(expected_data_first,
-                         *(size_t *)tree->root->left->data);
-        assert_int_equal(NO_ERROR, leaf_find_parent(tree->root->left, &parent));
-        assert_non_null(parent);
-        assert_ptr_equal(parent, tree->root);
-        assert_int_equal(expected_data_first, *(size_t *)parent->left->data);
-}
-
-static void test_leaf_find_parent_root_single(void **state)
-{
-        struct tree *tree = *(struct tree **)state;
-        struct leaf *parent = NULL;
-        size_t data = 14;
-
-        assert_int_equal(NO_ERROR, tree_insert(tree, NULL, &data));
-        assert_int_equal(NOT_FOUND_ERROR,
-                         leaf_find_parent(tree->root, &parent));
-        assert_null(parent);
-}
-
-static void test_leaf_find_parent_null(void **state)
-{
-        struct tree *tree = *(struct tree **)state;
-        size_t data = 14;
-        struct leaf *parent = NULL;
-
-        assert_int_equal(NO_ERROR, tree_insert(tree, NULL, &data));
-        assert_int_equal(INVALID_INPUT_ERROR, leaf_find_parent(NULL, &parent));
-        assert_null(parent);
-}
-
 static void test_tree_remove(void **state)
 {
         struct tree *tree = *(struct tree **)state;
@@ -468,6 +423,93 @@ static void test_tree_remove_non_primitive_multiple(void **state)
         tree_destroy(tree, non_primitive_leaf_free);
 }
 
+static void test_leaf_find_parent(void **state)
+{
+        struct tree *tree = *(struct tree **)state;
+        size_t expected_data_first = 1;
+        size_t expected_data_second = 2;
+        struct leaf *parent = NULL;
+
+        assert_int_equal(NO_ERROR,
+                         tree_insert(tree, NULL, &expected_data_first));
+        assert_int_equal(NO_ERROR,
+                         tree_insert(tree, NULL, &expected_data_second));
+        assert_int_equal(2, tree->size);
+        assert_non_null(tree->root); // The parent we want
+        assert_non_null(tree->root->left); // Going to use this to find it
+        assert_int_equal(expected_data_first,
+                         *(size_t *)tree->root->left->data);
+        assert_int_equal(NO_ERROR, leaf_find_parent(tree->root->left, &parent));
+        assert_non_null(parent);
+        assert_ptr_equal(parent, tree->root);
+        assert_int_equal(expected_data_first, *(size_t *)parent->left->data);
+}
+
+static void test_leaf_find_parent_root_single(void **state)
+{
+        struct tree *tree = *(struct tree **)state;
+        struct leaf *parent = NULL;
+        size_t data = 14;
+
+        assert_int_equal(NO_ERROR, tree_insert(tree, NULL, &data));
+        assert_int_equal(NOT_FOUND_ERROR,
+                         leaf_find_parent(tree->root, &parent));
+        assert_null(parent);
+}
+
+static void test_leaf_find_parent_null(void **state)
+{
+        struct tree *tree = *(struct tree **)state;
+        size_t data = 14;
+        struct leaf *parent = NULL;
+
+        assert_int_equal(NO_ERROR, tree_insert(tree, NULL, &data));
+        assert_int_equal(INVALID_INPUT_ERROR, leaf_find_parent(NULL, &parent));
+        assert_null(parent);
+}
+
+static void test_leaf_find_sibling(void **state)
+{
+        struct tree *tree = *(struct tree **)state;
+        size_t data_first = 1;
+        size_t data_second = 2;
+        size_t data_third = 3;
+        struct leaf *sibling = NULL;
+
+        assert_int_equal(NO_ERROR, tree_insert(tree, NULL, &data_first));
+        assert_int_equal(NO_ERROR, tree_insert(tree, NULL, &data_second));
+        assert_int_equal(NO_ERROR,
+                         tree_insert(tree, tree->root->left, &data_third));
+        assert_int_equal(3, tree->size);
+        assert_int_equal(NO_ERROR,
+                         leaf_find_sibling(tree->root->right, &sibling));
+        assert_ptr_equal(sibling, tree->root->right);
+}
+
+static void test_leaf_find_sibling_root(void **state)
+{
+        struct tree *tree = *(struct tree **)state;
+        size_t data = 14;
+        struct leaf *sibling = NULL;
+
+        assert_int_equal(NO_ERROR, tree_insert(tree, NULL, &data));
+        assert_int_equal(NOT_FOUND_ERROR,
+                         leaf_find_sibling(tree->root, &sibling));
+        assert_null(sibling);
+}
+
+static void test_leaf_find_sibling_null(void **state)
+{
+        // Will not be initialized with test setup
+        UNUSED_FUNCTION_PARAM(state);
+
+        struct leaf *sibling = NULL;
+
+        assert_int_equal(INVALID_INPUT_ERROR,
+                         leaf_find_sibling(NULL, &sibling));
+        assert_null(sibling);
+}
+
 int main(void)
 {
         const struct CMUnitTest tests[] = {
@@ -483,14 +525,6 @@ int main(void)
                         test_tree_insert_full_error, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(
                         test_tree_insert_under_leaf, test_setup, test_teardown),
-                cmocka_unit_test_setup_teardown(
-                        test_leaf_find_parent, test_setup, test_teardown),
-                cmocka_unit_test_setup_teardown(
-                        test_leaf_find_parent_root_single,
-                        test_setup,
-                        test_teardown),
-                cmocka_unit_test_setup_teardown(
-                        test_leaf_find_parent_null, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(
                         test_tree_remove, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(test_tree_remove_siblingless,
@@ -509,6 +543,19 @@ int main(void)
                                                 test_teardown),
                 cmocka_unit_test(test_tree_remove_non_primitive),
                 cmocka_unit_test(test_tree_remove_non_primitive_multiple),
+                cmocka_unit_test_setup_teardown(
+                        test_leaf_find_parent, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(
+                        test_leaf_find_parent_root_single,
+                        test_setup,
+                        test_teardown),
+                cmocka_unit_test_setup_teardown(
+                        test_leaf_find_parent_null, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(
+                        test_leaf_find_sibling, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(
+                        test_leaf_find_sibling_root, test_setup, test_teardown),
+                cmocka_unit_test(test_leaf_find_sibling_null),
         };
 
         return cmocka_run_group_tests(tests, NULL, NULL);
