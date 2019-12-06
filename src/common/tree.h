@@ -12,6 +12,7 @@
 struct leaf {
         struct leaf *left;
         struct leaf *right;
+        struct leaf *parent;
         const void *data;
 };
 
@@ -29,18 +30,13 @@ struct leaf *leaf_create(const void *data);
 
 enum natwm_error tree_insert(struct tree *tree, struct leaf *append_under,
                              const void *data);
-enum natwm_error tree_find_parent(struct tree *tree, struct leaf *leaf,
-                                  leaf_compare_callback_t compare_callback,
-                                  struct leaf **parent);
-enum natwm_error tree_find_sibling(struct tree *tree, struct leaf *leaf,
-                                   leaf_compare_callback_t compare_callback,
-                                   struct leaf **sibling);
 enum natwm_error tree_remove(struct tree *tree, struct leaf *leaf,
-                             leaf_compare_callback_t compare_callback,
                              leaf_data_callback_t free_callback,
                              struct leaf **affected_leaf);
 void tree_iterate(struct tree *tree, struct leaf *start,
                   leaf_callback_t callback);
+enum natwm_error leaf_find_parent(struct leaf *leaf, struct leaf **parent);
+enum natwm_error leaf_find_sibling(struct leaf *leaf, struct leaf **sibling);
 
 void tree_destroy(struct tree *tree, leaf_callback_t free_function);
 void leaf_destroy(struct leaf *leaf);

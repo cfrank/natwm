@@ -70,6 +70,7 @@ struct leaf *leaf_create(const void *data)
 
         leaf->left = NULL;
         leaf->right = NULL;
+        leaf->parent = NULL;
         leaf->data = data;
 
         return leaf;
@@ -114,12 +115,14 @@ enum natwm_error tree_insert(struct tree *tree, struct leaf *append_under,
         // Move the data from the leaf to it's left child leaf and insert the
         // new data onto it's right child leaf
         append->left = leaf_create(append->data);
+        append->left->parent = append;
 
         if (append->left == NULL) {
                 return MEMORY_ALLOCATION_ERROR;
         }
 
         append->right = leaf_create(data);
+        append->right->parent = append;
 
         if (append->right == NULL) {
                 free(append->left);
@@ -134,105 +137,21 @@ enum natwm_error tree_insert(struct tree *tree, struct leaf *append_under,
         return NO_ERROR;
 }
 
-enum natwm_error tree_find_parent(struct tree *tree, struct leaf *leaf,
-                                  leaf_compare_callback_t compare_callback,
-                                  struct leaf **parent)
-{
-        if (leaf == NULL || leaf->data == NULL || compare_callback == NULL) {
-                return INVALID_INPUT_ERROR;
-        }
-
-        struct stack *stack = stack_create();
-        struct leaf *curr = tree->root;
-        struct leaf *prev = NULL;
-
-        while (stack_has_item(stack) || curr != NULL) {
-                if (curr != NULL) {
-                        stack_push(stack, curr);
-
-                        if (curr->data == NULL) {
-                                // If we don't have data then we have children,
-                                // so mark this leaf as a potential parent
-                                prev = curr;
-                        }
-
-                        curr = curr->left;
-
-                        continue;
-                }
-
-                struct stack_item *stack_item = stack_pop(stack);
-                struct leaf *stack_leaf = (struct leaf *)stack_item->data;
-
-                if (compare_callback(leaf, stack_leaf)) {
-                        stack_item_destroy(stack_item);
-
-                        if (prev == NULL) {
-                                // No parent was found - maybe searched for root
-                                break;
-                        }
-
-                        goto found_leaf;
-                }
-
-                if (stack_leaf->data == NULL) {
-                        prev = stack_leaf;
-                }
-
-                curr = stack_leaf->right;
-
-                stack_item_destroy(stack_item);
-        }
-
-        stack_destroy(stack);
-
-        return NOT_FOUND_ERROR;
-
-found_leaf:
-        stack_destroy(stack);
-
-        *parent = prev;
-
-        return NO_ERROR;
-}
-
-enum natwm_error tree_find_sibling(struct tree *tree, struct leaf *leaf,
-                                   leaf_compare_callback_t compare_callback,
-                                   struct leaf **sibling)
-{
-        struct leaf *parent = NULL;
-        enum natwm_error err
-                = tree_find_parent(tree, leaf, compare_callback, &parent);
-
-        if (err != NO_ERROR) {
-                return err;
-        }
-
-        if (memcmp(parent->left, leaf, sizeof(struct leaf))) {
-                *sibling = parent->right;
-
-                return NO_ERROR;
-        }
-
-        *sibling = parent->left;
-
-        return NO_ERROR;
-}
-
 enum natwm_error tree_remove(struct tree *tree, struct leaf *leaf,
-                             leaf_compare_callback_t compare_callback,
                              leaf_data_callback_t free_callback,
                              struct leaf **affected_leaf)
 {
-        struct leaf *parent = NULL;
-        enum natwm_error err
-                = tree_find_parent(tree, leaf, compare_callback, &parent);
+        if (!leaf) {
+                return INVALID_INPUT_ERROR;
+        }
 
-        if (err == NOT_FOUND_ERROR && leaf->data == NULL) {
+        struct leaf *parent = leaf->parent;
+
+        if (parent == NULL && leaf->data == NULL) {
                 // You cannot remove the root node if it contains
                 // children
                 return INVALID_INPUT_ERROR;
-        } else if (err == NOT_FOUND_ERROR && leaf->data != NULL) {
+        } else if (parent == NULL && leaf->data != NULL) {
                 // If this is the root node, and it contains data but no
                 // children then just remove it's data
                 if (free_callback) {
@@ -245,8 +164,6 @@ enum natwm_error tree_remove(struct tree *tree, struct leaf *leaf,
                 *affected_leaf = leaf;
 
                 return NO_ERROR;
-        } else if (err != NO_ERROR) {
-                return err;
         }
 
         // Find which side of the parent we are removing
@@ -302,6 +219,39 @@ void tree_iterate(struct tree *tree, struct leaf *start,
         }
 
         stack_destroy(stack);
+}
+
+enum natwm_error leaf_find_parent(struct leaf *leaf, struct leaf **parent)
+{
+        if (leaf == NULL) {
+                return INVALID_INPUT_ERROR;
+        }
+
+        if (leaf->parent == NULL) {
+                return NOT_FOUND_ERROR;
+        }
+
+        *parent = leaf->parent;
+
+        return NO_ERROR;
+}
+
+enum natwm_error leaf_find_sibling(struct leaf *leaf, struct leaf **sibling)
+{
+        if (leaf == NULL) {
+                return INVALID_INPUT_ERROR;
+        }
+        struct leaf *parent = leaf->parent;
+
+        if (memcmp(parent->left, leaf, sizeof(struct leaf))) {
+                *sibling = parent->right;
+
+                return NO_ERROR;
+        }
+
+        *sibling = parent->left;
+
+        return NO_ERROR;
 }
 
 void tree_destroy(struct tree *tree, leaf_callback_t free_function)
