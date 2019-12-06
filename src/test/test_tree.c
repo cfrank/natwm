@@ -510,13 +510,12 @@ static void test_tree_remove_non_primitive(void **state)
 
         assert_non_null(tree);
 
-        struct non_primitive_type *expected_data_first = create_npt("One", 1);
+        struct non_primitive_type *expected_data = create_npt("Data", 14);
         struct leaf *affected_leaf = NULL;
 
-        assert_non_null(expected_data_first);
+        assert_non_null(expected_data);
 
-        assert_int_equal(NO_ERROR,
-                         tree_insert(tree, NULL, expected_data_first));
+        assert_int_equal(NO_ERROR, tree_insert(tree, NULL, expected_data));
 
         expect_function_calls(non_primitive_type_compare, 1);
         expect_function_calls(non_primitive_type_free_data, 1);
@@ -527,8 +526,55 @@ static void test_tree_remove_non_primitive(void **state)
                                      non_primitive_type_compare,
                                      non_primitive_type_free_data,
                                      &affected_leaf));
+        assert_ptr_equal(affected_leaf, tree->root);
 
         expect_function_calls(non_primitive_leaf_free, 1);
+
+        tree_destroy(tree, non_primitive_leaf_free);
+}
+
+static void test_tree_remove_non_primitive_multiple(void **state)
+{
+        // This test case will not be iniitialized with the setup functions
+        UNUSED_FUNCTION_PARAM(state);
+
+        struct tree *tree = tree_create(NULL);
+
+        assert_non_null(tree);
+
+        struct non_primitive_type *expected_data_first = create_npt("One", 1);
+        struct non_primitive_type *expected_data_second = create_npt("Two", 2);
+        struct non_primitive_type *expected_data_third = create_npt("Three", 3);
+        struct leaf *affected_leaf = NULL;
+
+        assert_non_null(expected_data_first);
+        assert_non_null(expected_data_second);
+        assert_non_null(expected_data_third);
+
+        assert_int_equal(NO_ERROR,
+                         tree_insert(tree, NULL, expected_data_first));
+        assert_int_equal(NO_ERROR,
+                         tree_insert(tree, NULL, expected_data_second));
+        assert_int_equal(
+                NO_ERROR,
+                tree_insert(tree, tree->root->left, expected_data_third));
+        assert_int_equal(3, tree->size);
+
+        expect_function_calls(non_primitive_type_compare, (int)tree->size);
+        expect_function_calls(non_primitive_type_free_data, 1);
+
+        assert_int_equal(NO_ERROR,
+                         tree_remove(tree,
+                                     tree->root->left->right,
+                                     non_primitive_type_compare,
+                                     non_primitive_type_free_data,
+                                     &affected_leaf));
+
+        assert_int_equal(2, tree->size);
+        assert_ptr_equal(affected_leaf, tree->root->left);
+
+        // Need to include the node with no data
+        expect_function_calls(non_primitive_leaf_free, (int)tree->size + 1);
 
         tree_destroy(tree, non_primitive_leaf_free);
 }
@@ -581,6 +627,7 @@ int main(void)
                                                 test_setup,
                                                 test_teardown),
                 cmocka_unit_test(test_tree_remove_non_primitive),
+                cmocka_unit_test(test_tree_remove_non_primitive_multiple),
         };
 
         return cmocka_run_group_tests(tests, NULL, NULL);
