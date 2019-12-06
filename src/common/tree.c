@@ -68,9 +68,9 @@ struct leaf *leaf_create(const void *data)
                 return NULL;
         }
 
+        leaf->parent = NULL;
         leaf->left = NULL;
         leaf->right = NULL;
-        leaf->parent = NULL;
         leaf->data = data;
 
         return leaf;
@@ -147,6 +147,7 @@ enum natwm_error tree_remove(struct tree *tree, struct leaf *leaf,
 
         struct leaf *parent = leaf->parent;
 
+        // Handle both cases when there is no parent
         if (parent == NULL && leaf->data == NULL) {
                 // You cannot remove the root node if it contains
                 // children

@@ -10,9 +10,9 @@
 #include "error.h"
 
 struct leaf {
+        struct leaf *parent;
         struct leaf *left;
         struct leaf *right;
-        struct leaf *parent;
         const void *data;
 };
 
