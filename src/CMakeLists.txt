@@ -10,6 +10,7 @@ add_compile_options(
     -fno-strict-aliasing
     -D_POSIX_C_SOURCE=200809L
     "$<$<CONFIG:DEBUG>:-g>"
+    "$<$<CONFIG:DEBUG>:-pg>"
     "$<$<CONFIG:DEBUG>:-Werror>"
     "$<$<CONFIG:DEBUG>:-Wshadow>"
     "$<$<CONFIG:RELEASE>:-O3>"
