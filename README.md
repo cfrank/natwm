@@ -4,13 +4,13 @@ The purpose of this is to create a tiling window manager which one developer wou
 ## Installation
 Since this project is in constant development the only way to install is by building from source. This process should not be too difficult since this is a small project.
 
-The first step is to clone the project including submodules used to logging and testing.
+The first step is to clone the project including submodules used for logging and testing.
 
 ```
 git clone --recursive git@github.com:cfrank/natwm.git && cd natwm
 ```
 
-From there we need to build the projects
+From there we need to build the project
 
 ```
 mkdir build && cd build
@@ -33,6 +33,7 @@ Also if you want to build `natwm` with it's unit tests you can by doing:
 
 ### Troubleshooting
 
+#### No such file or direction
 If you recieve any errors that resemble the following:
 
 `fatal error: xcb/xcb_ewmh.h: No such file or directory`
@@ -42,6 +43,15 @@ This is letting you know that you are missing a xcb libary. You can usually find
 For example the solution to the above error (On Arch Linux) is:
 
 `sudo pacman -S xcb-util-wm`
+
+#### Failed to find configuration file at...
+If you receive the following error:
+
+`[NATWM:ERROR] - Failed to find configuration file at /home/<username>/.config/natwm/config`
+
+You need to create the following file: `/home/<YOUR_USERNAME>/.config/natwm/config`
+
+*This requirement will most likely be removed in the future. But for now it's required*
 
 
 ## Project Goals
