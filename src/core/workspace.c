@@ -8,7 +8,7 @@
 
 #include "workspace.h"
 
-struct workspace *workspace_create(xcb_rectangle_t *rects, size_t count)
+struct workspace *workspace_create(const xcb_rectangle_t *rects, size_t count)
 {
         struct workspace *workspace = malloc(sizeof(struct workspace));
 
@@ -21,8 +21,6 @@ struct workspace *workspace_create(xcb_rectangle_t *rects, size_t count)
         workspace->spaces = create_list();
 
         if (workspace->spaces == NULL) {
-                free(workspace);
-
                 return NULL;
         }
 
@@ -37,8 +35,6 @@ struct workspace *workspace_create(xcb_rectangle_t *rects, size_t count)
 
                 list_insert(workspace->spaces, space);
         }
-
-        free(rects);
 
         return workspace;
 }
