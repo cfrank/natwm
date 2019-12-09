@@ -93,6 +93,7 @@ static void test_tree_create(void **state)
         assert_non_null(tree->root);
         assert_int_equal(0, tree->size);
         assert_null(tree->root->data);
+        assert_null(tree->root->parent);
         assert_null(tree->root->left);
         assert_null(tree->root->right);
 }
@@ -123,6 +124,7 @@ static void test_leaf_create(void **state)
 
         assert_non_null(leaf);
         assert_non_null(leaf->data);
+        assert_null(leaf->parent);
         assert_null(leaf->left);
         assert_null(leaf->right);
         assert_ptr_equal(&expected_data, leaf->data);
@@ -139,6 +141,7 @@ static void test_tree_insert(void **state)
         assert_int_equal(NO_ERROR, tree_insert(tree, NULL, &expected_data));
         assert_int_equal(1, tree->size);
         assert_non_null(tree->root->data);
+        assert_null(tree->root->parent);
         assert_null(tree->root->left);
         assert_null(tree->root->right);
         assert_ptr_equal(&expected_data, tree->root->data);
@@ -157,8 +160,13 @@ static void test_tree_insert_non_empty(void **state)
                          tree_insert(tree, NULL, &expected_data_second));
         assert_int_equal(2, tree->size);
         assert_null(tree->root->data);
+        assert_null(tree->root->parent);
         assert_non_null(tree->root->left);
+        assert_non_null(tree->root->left->parent);
+        assert_ptr_equal(tree->root, tree->root->left->parent);
         assert_non_null(tree->root->right);
+        assert_non_null(tree->root->right->parent);
+        assert_ptr_equal(tree->root, tree->root->right->parent);
         assert_int_equal(expected_data_first,
                          *(size_t *)tree->root->left->data);
         assert_int_equal(expected_data_second,

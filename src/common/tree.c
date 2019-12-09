@@ -17,20 +17,20 @@
 //
 // 2) If the leaf's sibling contains children then we need to replace the
 // parent with the sibling
-static void reposition_leaf(struct leaf *parent, struct leaf *child)
+static void reposition_leaf(struct leaf *parent, struct leaf *sibling)
 {
-        if (child->data != NULL) {
-                parent->data = child->data;
+        if (sibling->data != NULL) {
+                parent->data = sibling->data;
                 parent->left = NULL;
                 parent->right = NULL;
 
-                leaf_destroy(child);
+                leaf_destroy(sibling);
         } else {
                 parent->data = NULL;
-                parent->left = child->left;
-                parent->right = child->right;
+                parent->left = sibling->left;
+                parent->right = sibling->right;
 
-                leaf_destroy(child);
+                leaf_destroy(sibling);
         }
 }
 
