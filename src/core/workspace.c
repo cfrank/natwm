@@ -94,7 +94,6 @@ void workspace_destroy(struct workspace *workspace)
         }
 
         destroy_list(workspace->spaces);
-
         free(workspace);
 }
 

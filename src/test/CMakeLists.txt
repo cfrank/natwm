@@ -1,10 +1,47 @@
 # Common
+# Common/List
+add_natwm_test(test_list
+    SOURCES test_list.c
+    LINK_LIBRARIES
+        ${CMOCKA_SHARED_LIBRARY}
+        common
+    TEST_NAME LinkedListTest
+)
+
+# Common/Map
+add_natwm_test(test_map
+    SOURCES test_map.c
+    LINK_LIBRARIES
+        ${CMOCKA_SHARED_LIBRARY}
+        common
+    TEST_NAME HashMapTest
+)
+
+# Common/String
 add_natwm_test(test_string_util
     SOURCES test_string_util.c
     LINK_LIBRARIES
         ${CMOCKA_SHARED_LIBRARY}
         common
     TEST_NAME StringUtilTest
+)
+
+# Common/Stack
+add_natwm_test(test_stack
+    SOURCES test_stack.c
+    LINK_LIBRARIES
+        ${CMOCKA_SHARED_LIBRARY}
+        common
+    TEST_NAME StackTest
+)
+
+# Common/Tree
+add_natwm_test(test_tree
+    SOURCES test_tree.c
+    LINK_LIBRARIES
+        ${CMOCKA_SHARED_LIBRARY}
+        common
+    TEST_NAME TreeTest
 )
 
 # Core
@@ -16,21 +53,4 @@ add_natwm_test(test_config
         common
         core
     TEST_NAME ConfigTest
-)
-
-# Core/List
-add_natwm_test(test_list
-    SOURCES test_list.c
-    LINK_LIBRARIES
-        ${CMOCKA_SHARED_LIBRARY}
-        core
-    TEST_NAME LinkedListTest
-)
-
-add_natwm_test(test_map
-    SOURCES test_map.c
-    LINK_LIBRARIES
-        ${CMOCKA_SHARED_LIBRARY}
-        core
-    TEST_NAME HashMapTest
 )

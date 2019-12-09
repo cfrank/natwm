@@ -12,11 +12,11 @@
 
 #include <common/constants.h>
 #include <common/logger.h>
+#include <common/map.h>
 #include <common/util.h>
 #include <core/config.h>
 #include <core/event.h>
 #include <core/ewmh.h>
-#include <core/map.h>
 #include <core/screen.h>
 #include <core/state.h>
 #include <core/workspace.h>
@@ -315,12 +315,16 @@ int main(int argc, char **argv)
         if (workspace == NULL) {
                 LOG_ERROR(natwm_logger, "Failed to create workspace");
 
+                free(screen_rects);
+
                 goto free_and_error;
         }
 
         state->workspace = workspace;
 
         workspace_set_focused_space(state->workspace, 0);
+
+        free(screen_rects);
 
         // Attempt to register for substructure events
         if (root_window_subscribe(state) != 0) {

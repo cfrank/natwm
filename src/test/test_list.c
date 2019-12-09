@@ -11,7 +11,7 @@
 #include <cmocka.h>
 
 #include <common/constants.h>
-#include <core/list.h>
+#include <common/list.h>
 
 static int test_setup(void **state)
 {

@@ -6,7 +6,7 @@
 
 #include <stdint.h>
 
-#include "map.h"
+#include <common/map.h>
 
 /**
  * The available data types for natwm configuration files
