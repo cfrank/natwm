@@ -755,6 +755,36 @@ struct config_value *config_find(const struct map *config_map, const char *key)
         return (struct config_value *)entry->value;
 }
 
+enum natwm_error config_find_number(const struct map *config_map,
+                                    const char *key, intmax_t *result)
+{
+        struct config_value *value = config_find(config_map, key);
+
+        if (value == NULL) {
+                return NOT_FOUND_ERROR;
+        }
+
+        if (value->type != NUMBER) {
+                return INVALID_INPUT_ERROR;
+        }
+
+        *result = value->data.number;
+
+        return NO_ERROR;
+}
+
+intmax_t config_find_number_fallback(const struct map *config_map,
+                                     const char *key, intmax_t fallback)
+{
+        intmax_t value = 0;
+
+        if (config_find_number(config_map, key, &value) != NO_ERROR) {
+                return fallback;
+        }
+
+        return value;
+}
+
 const char *config_find_string(const struct map *config_map, const char *key)
 {
         struct config_value *value = config_find(config_map, key);

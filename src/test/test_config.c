@@ -211,11 +211,54 @@ static void test_config_invalid_double(void **state)
         assert_null(config_map);
 }
 
+static void test_config_find_number(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        intmax_t expected_result = 14;
+        intmax_t result = 0;
+        const char *config_string = "test_number = 14\n";
+        size_t config_length = strlen(config_string);
+        struct map *config_map
+                = config_read_string(config_string, config_length);
+
+        assert_non_null(config_map);
+
+        assert_int_equal(
+                NO_ERROR,
+                config_find_number(config_map, "test_number", &result));
+
+        assert_int_equal(expected_result, result);
+
+        config_destroy(config_map);
+}
+
+static void test_config_find_number_string(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        intmax_t result = 0;
+        const char *config_string = "test_number = \"Not a number\"\n";
+        size_t config_length = strlen(config_string);
+        struct map *config_map
+                = config_read_string(config_string, config_length);
+
+        assert_non_null(config_map);
+
+        assert_int_equal(
+                INVALID_INPUT_ERROR,
+                config_find_number(config_map, "test_number", &result));
+
+        assert_int_equal(0, result);
+
+        config_destroy(config_map);
+}
+
 static void test_config_find_string(void **state)
 {
         UNUSED_FUNCTION_PARAM(state);
 
-        const char *expected_string = "Hello Test!";
+        const char *expected_result = "Hello Test!";
         const char *config_string = "test_string = \"Hello Test!\"\n";
         size_t config_length = strlen(config_string);
         struct map *config_map
@@ -226,7 +269,7 @@ static void test_config_find_string(void **state)
         const char *result = config_find_string(config_map, "test_string");
 
         assert_non_null(result);
-        assert_string_equal(expected_string, result);
+        assert_string_equal(expected_result, result);
 
         config_destroy(config_map);
 }
@@ -341,6 +384,8 @@ int main(void)
                 cmocka_unit_test(test_config_invalid_variable),
                 cmocka_unit_test(test_config_invalid_item),
                 cmocka_unit_test(test_config_invalid_double),
+                cmocka_unit_test(test_config_find_number),
+                cmocka_unit_test(test_config_find_number_string),
                 cmocka_unit_test(test_config_find_string),
                 cmocka_unit_test(test_config_find_string_number),
                 cmocka_unit_test(test_config_find_string_null),
