@@ -44,7 +44,7 @@ enum natwm_error workspace_set_focused_space(struct workspace *workspace,
 {
         struct list *spaces = workspace->spaces;
 
-        LIST_FOR_EACH(node, spaces)
+        LIST_FOR_EACH(spaces, node)
         {
                 struct space *space = (struct space *)node->data;
 
@@ -84,7 +84,7 @@ struct space *space_create(xcb_rectangle_t rect, size_t index)
 
 void workspace_destroy(struct workspace *workspace)
 {
-        LIST_FOR_EACH(space, workspace->spaces)
+        LIST_FOR_EACH(workspace->spaces, space)
         {
                 space_destroy((struct space *)space->data);
         }
@@ -95,7 +95,7 @@ void workspace_destroy(struct workspace *workspace)
 
 void space_destroy(struct space *space)
 {
-        LIST_FOR_EACH(client, space->clients)
+        LIST_FOR_EACH(space->clients, client)
         {
                 LOG_INFO(natwm_logger, "TODO: Free client");
         }

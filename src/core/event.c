@@ -5,29 +5,14 @@
 #include <common/constants.h>
 #include <common/logger.h>
 
-#include "client.h"
 #include "event.h"
-
-void handle_map_request(const struct natwm_state *state,
-                        xcb_map_request_event_t *event)
-{
-        LOG_INFO(natwm_logger, "Map request");
-
-        struct client *client = client_register_window(state, event->window);
-
-        xcb_map_window(state->xcb, event->window);
-
-        free(client);
-}
 
 enum natwm_error event_handle(const struct natwm_state *state,
                               xcb_generic_event_t *event)
 {
-        switch (event->response_type & ~0x80) {
-        case XCB_MAP_REQUEST:
-                handle_map_request(state, (xcb_map_request_event_t *)event);
+        UNUSED_FUNCTION_PARAM(state);
 
-                break;
+        switch (event->response_type & ~0x80) {
         default:
                 LOG_INFO(natwm_logger, "Received an event");
         }
