@@ -44,8 +44,8 @@ enum natwm_error workspace_set_focused_space(struct workspace *workspace,
 {
         struct list *spaces = workspace->spaces;
 
-        for (struct node *node = spaces->head; node != NULL;
-             node = node->next) {
+        LIST_FOR_EACH(node, spaces)
+        {
                 struct space *space = (struct space *)node->data;
 
                 if (space->index == index) {
@@ -84,8 +84,8 @@ struct space *space_create(xcb_rectangle_t rect, size_t index)
 
 void workspace_destroy(struct workspace *workspace)
 {
-        for (struct node *space = workspace->spaces->head; space != NULL;
-             space = space->next) {
+        LIST_FOR_EACH(space, workspace->spaces)
+        {
                 space_destroy((struct space *)space->data);
         }
 
@@ -95,8 +95,8 @@ void workspace_destroy(struct workspace *workspace)
 
 void space_destroy(struct space *space)
 {
-        for (struct node *client = space->clients->head; client != NULL;
-             client = client->next) {
+        LIST_FOR_EACH(client, space->clients)
+        {
                 LOG_INFO(natwm_logger, "TODO: Free client");
         }
 

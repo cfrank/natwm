@@ -18,6 +18,9 @@ struct list {
         size_t size;
 };
 
+#define LIST_FOR_EACH(item, list)                                              \
+        for (struct node *item = list->head; item != NULL; item = item->next)
+
 struct node *create_node(const void *data);
 void destroy_node(struct node *node);
 
