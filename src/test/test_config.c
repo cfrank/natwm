@@ -211,6 +211,233 @@ static void test_config_invalid_double(void **state)
         assert_null(config_map);
 }
 
+static void test_config_find_number(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        intmax_t expected_result = 14;
+        intmax_t result = 0;
+        const char *config_string = "test_number = 14\n";
+        size_t config_length = strlen(config_string);
+        struct map *config_map
+                = config_read_string(config_string, config_length);
+
+        assert_non_null(config_map);
+        assert_int_equal(
+                NO_ERROR,
+                config_find_number(config_map, "test_number", &result));
+        assert_int_equal(expected_result, result);
+
+        config_destroy(config_map);
+}
+
+static void test_config_find_number_string(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        intmax_t result = 0;
+        const char *config_string = "test_number = \"Not a number\"\n";
+        size_t config_length = strlen(config_string);
+        struct map *config_map
+                = config_read_string(config_string, config_length);
+
+        assert_non_null(config_map);
+        assert_int_equal(
+                INVALID_INPUT_ERROR,
+                config_find_number(config_map, "test_number", &result));
+        assert_int_equal(0, result);
+
+        config_destroy(config_map);
+}
+
+static void test_config_find_number_null(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        intmax_t result = 0;
+        const char *config_string = "test_number = 14\n";
+        size_t config_length = strlen(config_string);
+        struct map *config_map
+                = config_read_string(config_string, config_length);
+
+        assert_non_null(config_map);
+        assert_int_equal(NOT_FOUND_ERROR,
+                         config_find_number(config_map, NULL, &result));
+        assert_int_equal(0, result);
+
+        config_destroy(config_map);
+}
+
+static void test_config_find_number_not_found(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        intmax_t result = 0;
+        const char *config_string = "test_number = 14\n";
+        size_t config_length = strlen(config_string);
+        struct map *config_map
+                = config_read_string(config_string, config_length);
+
+        assert_non_null(config_map);
+        assert_int_equal(NOT_FOUND_ERROR,
+                         config_find_number(config_map, "not_found", &result));
+        assert_int_equal(0, result);
+
+        config_destroy(config_map);
+}
+
+static void test_config_find_number_fallback(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        intmax_t expected_result = 14;
+        const char *config_string = "test_number = 14\n";
+        size_t config_length = strlen(config_string);
+        struct map *config_map
+                = config_read_string(config_string, config_length);
+
+        assert_non_null(config_map);
+        assert_int_equal(expected_result,
+                         config_find_number_fallback(
+                                 config_map, "not_found", expected_result));
+
+        config_destroy(config_map);
+}
+
+static void test_config_find_number_fallback_found(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        intmax_t expected_result = 14;
+        const char *config_string = "test_number = 14\n";
+        size_t config_length = strlen(config_string);
+        struct map *config_map
+                = config_read_string(config_string, config_length);
+
+        assert_non_null(config_map);
+        assert_int_equal(
+                expected_result,
+                config_find_number_fallback(config_map, "test_number", 1000));
+
+        config_destroy(config_map);
+}
+
+static void test_config_find_string(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        const char *expected_result = "Hello Test!";
+        const char *config_string = "test_string = \"Hello Test!\"\n";
+        size_t config_length = strlen(config_string);
+        struct map *config_map
+                = config_read_string(config_string, config_length);
+
+        assert_non_null(config_map);
+
+        const char *result = config_find_string(config_map, "test_string");
+
+        assert_non_null(result);
+        assert_string_equal(expected_result, result);
+
+        config_destroy(config_map);
+}
+
+static void test_config_find_string_number(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        const char *config_string = "test_string = 14\n";
+        size_t config_length = strlen(config_string);
+        struct map *config_map
+                = config_read_string(config_string, config_length);
+
+        assert_non_null(config_map);
+
+        const char *result = config_find_string(config_map, "test_string");
+
+        assert_null(result);
+
+        config_destroy(config_map);
+}
+
+static void test_config_find_string_null(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        const char *config_string = "test_string = \"Hello\"\n";
+        size_t config_length = strlen(config_string);
+        struct map *config_map
+                = config_read_string(config_string, config_length);
+
+        assert_non_null(config_map);
+
+        const char *result = config_find_string(config_map, NULL);
+
+        assert_null(result);
+
+        config_destroy(config_map);
+}
+
+static void test_config_find_string_not_found(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        const char *config_string = "not_found = \"Hello\"\n";
+        size_t config_length = strlen(config_string);
+        struct map *config_map
+                = config_read_string(config_string, config_length);
+
+        assert_non_null(config_map);
+
+        const char *result = config_find_string(config_map, "found");
+
+        assert_null(result);
+
+        config_destroy(config_map);
+}
+
+static void test_config_find_string_fallback(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        const char *expected_result = "Fallback Value";
+        const char *config_string = "not_found = \"Hello\"\n";
+        size_t config_length = strlen(config_string);
+        struct map *config_map
+                = config_read_string(config_string, config_length);
+
+        assert_non_null(config_map);
+
+        const char *result = config_find_string_fallback(
+                config_map, "found", expected_result);
+
+        assert_non_null(result);
+        assert_string_equal(expected_result, result);
+
+        config_destroy(config_map);
+}
+
+static void test_config_find_string_fallback_found(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        const char *expected_result = "Hello String!";
+        const char *config_string = "found = \"Hello String!\"\n";
+        size_t config_length = strlen(config_string);
+        struct map *config_map
+                = config_read_string(config_string, config_length);
+
+        assert_non_null(config_map);
+
+        const char *result = config_find_string_fallback(
+                config_map, "found", "Fallback Value");
+
+        assert_non_null(result);
+        assert_string_equal(expected_result, result);
+
+        config_destroy(config_map);
+}
+
 int main(void)
 {
         const struct CMUnitTest tests[] = {
@@ -225,6 +452,18 @@ int main(void)
                 cmocka_unit_test(test_config_invalid_variable),
                 cmocka_unit_test(test_config_invalid_item),
                 cmocka_unit_test(test_config_invalid_double),
+                cmocka_unit_test(test_config_find_number),
+                cmocka_unit_test(test_config_find_number_string),
+                cmocka_unit_test(test_config_find_number_null),
+                cmocka_unit_test(test_config_find_number_not_found),
+                cmocka_unit_test(test_config_find_number_fallback),
+                cmocka_unit_test(test_config_find_number_fallback_found),
+                cmocka_unit_test(test_config_find_string),
+                cmocka_unit_test(test_config_find_string_number),
+                cmocka_unit_test(test_config_find_string_null),
+                cmocka_unit_test(test_config_find_string_not_found),
+                cmocka_unit_test(test_config_find_string_fallback),
+                cmocka_unit_test(test_config_find_string_fallback_found),
         };
 
         return cmocka_run_group_tests(
