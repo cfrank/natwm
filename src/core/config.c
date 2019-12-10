@@ -676,37 +676,15 @@ handle_error:
         return NULL;
 }
 
-struct config_value *config_find(const struct map *config_map, const char *key)
-{
-        struct map_entry *entry = map_get(config_map, key);
-
-        if (entry == NULL) {
-                return NULL;
-        }
-
-        return (struct config_value *)entry->value;
-}
-
-void config_destroy(struct map *config_map)
-{
-        map_destroy(config_map);
-}
-
-void config_value_destroy(struct config_value *value)
-{
-        internal_config_value_destroy(value);
-}
-
 /**
  * Initialize the configuration file using a string
  *
  * Takes a string buffer and uses it to return the key value pairs
  * of the config
  */
-struct map *config_read_string(const char *string, size_t config_size)
+struct map *config_read_string(const char *string, size_t size)
 {
-        struct parser_context *context
-                = parser_context_init(string, config_size);
+        struct parser_context *context = parser_context_init(string, size);
 
         if (context == NULL) {
                 return NULL;
@@ -764,4 +742,47 @@ close_file_and_error:
         fclose(file);
 
         return NULL;
+}
+
+struct config_value *config_find(const struct map *config_map, const char *key)
+{
+        struct map_entry *entry = map_get(config_map, key);
+
+        if (entry == NULL) {
+                return NULL;
+        }
+
+        return (struct config_value *)entry->value;
+}
+
+const char *config_find_string(const struct map *config_map, const char *key)
+{
+        struct config_value *value = config_find(config_map, key);
+
+        if (value == NULL || value->type != STRING) {
+                return NULL;
+        }
+
+        return value->data.string;
+}
+const char *config_find_string_fallback(const struct map *config_map,
+                                        const char *key, const char *fallback)
+{
+        const char *string = config_find_string(config_map, key);
+
+        if (string == NULL) {
+                return fallback;
+        }
+
+        return string;
+}
+
+void config_destroy(struct map *config_map)
+{
+        map_destroy(config_map);
+}
+
+void config_value_destroy(struct config_value *value)
+{
+        internal_config_value_destroy(value);
 }
