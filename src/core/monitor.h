@@ -34,6 +34,6 @@ const char *server_extension_to_string(enum server_extension extension);
 struct monitor *monitor_create(uint32_t id, enum server_extension extension,
                                xcb_rectangle_t rect, struct space *space);
 enum natwm_error monitor_setup(const struct natwm_state *state,
-                               struct list **result, size_t *length);
+                               struct list **result);
 void monitor_destroy(struct monitor *monitor);
 void monitor_list_destroy(struct list *monitor_list);

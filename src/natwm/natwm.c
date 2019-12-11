@@ -304,9 +304,7 @@ int main(int argc, char **argv)
         state->screen = default_screen;
 
         struct list *monitor_list = NULL;
-        size_t monitor_count = 0;
-        enum natwm_error err
-                = monitor_setup(state, &monitor_list, &monitor_count);
+        enum natwm_error err = monitor_setup(state, &monitor_list);
 
         if (err != NO_ERROR) {
                 goto free_and_error;

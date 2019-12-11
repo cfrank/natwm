@@ -33,8 +33,7 @@ detect_server_extension(xcb_connection_t *connection)
 }
 
 static enum natwm_error monitors_from_randr(const struct natwm_state *state,
-                                            struct list **result,
-                                            size_t *length)
+                                            struct list **result)
 {
         struct list *monitor_list = create_list();
 
@@ -48,13 +47,18 @@ static enum natwm_error monitors_from_randr(const struct natwm_state *state,
                 = randr_get_screens(state, &monitors, &monitor_length);
 
         if (err != NO_ERROR) {
+                destroy_list(monitor_list);
+
                 return err;
         }
 
         for (size_t i = 0; i < monitor_length; ++i) {
                 struct randr_monitor *randr_monitor = monitors[i];
 
-                if (!randr_monitor) {
+                // A NULL monitor is not an error, it just means RANDR reported
+                // n number of monitors and some were inactive so we were left
+                // with fewer. In this case just skip it.
+                if (randr_monitor == NULL) {
                         continue;
                 }
 
@@ -75,14 +79,12 @@ static enum natwm_error monitors_from_randr(const struct natwm_state *state,
         free(monitors);
 
         *result = monitor_list;
-        *length = monitor_length;
 
         return NO_ERROR;
 }
 
 static enum natwm_error monitor_from_xinerama(const struct natwm_state *state,
-                                              struct list **result,
-                                              size_t *length)
+                                              struct list **result)
 {
         struct list *monitor_list = create_list();
 
@@ -96,6 +98,8 @@ static enum natwm_error monitor_from_xinerama(const struct natwm_state *state,
                 = xinerama_get_screens(state, &rects, &monitor_length);
 
         if (err != NO_ERROR) {
+                destroy_list(monitor_list);
+
                 return err;
         }
 
@@ -105,6 +109,7 @@ static enum natwm_error monitor_from_xinerama(const struct natwm_state *state,
 
                 if (monitor == NULL) {
                         monitor_list_destroy(monitor_list);
+                        free(rects);
 
                         return MEMORY_ALLOCATION_ERROR;
                 }
@@ -112,17 +117,17 @@ static enum natwm_error monitor_from_xinerama(const struct natwm_state *state,
                 list_insert(monitor_list, monitor);
         }
 
+        free(rects);
+
         *result = monitor_list;
-        *length = monitor_length;
 
         return NO_ERROR;
 }
 
 static enum natwm_error monitor_from_x(const struct natwm_state *state,
-                                       struct list **result, size_t *length)
+                                       struct list **result)
 {
         struct list *monitor_list = create_list();
-        size_t monitor_length = 1;
 
         if (monitor_list == NULL) {
                 return MEMORY_ALLOCATION_ERROR;
@@ -146,7 +151,6 @@ static enum natwm_error monitor_from_x(const struct natwm_state *state,
         list_insert(monitor_list, monitor);
 
         *result = monitor_list;
-        *length = monitor_length;
 
         return NO_ERROR;
 }
@@ -185,25 +189,22 @@ struct monitor *monitor_create(uint32_t id, enum server_extension extension,
 }
 
 enum natwm_error monitor_setup(const struct natwm_state *state,
-                               struct list **result, size_t *length)
+                               struct list **result)
 {
         enum server_extension supported_extension
                 = detect_server_extension(state->xcb);
 
-        // No matter which extension we are dealing with we will end up
-        // with an error code, a list of rects, and a count of rects
+        // Resolve monitors from any extension into a linked list of generic
+        // monitors.
         enum natwm_error err = GENERIC_ERROR;
         struct list *monitor_list = NULL;
-        size_t monitor_length = 0;
 
         if (supported_extension == RANDR) {
-                err = monitors_from_randr(
-                        state, &monitor_list, &monitor_length);
+                err = monitors_from_randr(state, &monitor_list);
         } else if (supported_extension == XINERAMA) {
-                err = monitor_from_xinerama(
-                        state, &monitor_list, &monitor_length);
+                err = monitor_from_xinerama(state, &monitor_list);
         } else {
-                err = monitor_from_x(state, &monitor_list, &monitor_length);
+                err = monitor_from_x(state, &monitor_list);
         }
 
         if (err != NO_ERROR) {
@@ -214,7 +215,7 @@ enum natwm_error monitor_setup(const struct natwm_state *state,
                 return err;
         }
 
-        if (monitor_length == 0) {
+        if (monitor_list->size == 0) {
                 LOG_ERROR(natwm_logger,
                           "Failed to find a %s screen",
                           server_extension_to_string(supported_extension));
@@ -223,7 +224,6 @@ enum natwm_error monitor_setup(const struct natwm_state *state,
         }
 
         *result = monitor_list;
-        *length = monitor_length;
 
         return NO_ERROR;
 }
