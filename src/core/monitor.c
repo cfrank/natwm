@@ -31,8 +31,8 @@ static enum natwm_error monitors_from_randr(const struct natwm_state *state,
                 return MEMORY_ALLOCATION_ERROR;
         }
 
-        size_t monitor_length = 0;
         struct randr_monitor **monitors = NULL;
+        size_t monitor_length = 0;
         enum natwm_error err
                 = randr_get_screens(state, &monitors, &monitor_length);
 
