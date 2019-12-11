@@ -17,7 +17,7 @@
 #include <core/config.h>
 #include <core/event.h>
 #include <core/ewmh.h>
-#include <core/screen.h>
+#include <core/monitor.h>
 #include <core/state.h>
 #include <core/workspace.h>
 
@@ -78,6 +78,21 @@ static xcb_connection_t *make_connection(const char *screen, int *screen_num)
         }
 
         return connection;
+}
+
+static xcb_screen_t *find_default_screen(xcb_connection_t *connection,
+                                         int screen_num)
+{
+        const xcb_setup_t *setup = xcb_get_setup(connection);
+        xcb_screen_iterator_t itr = xcb_setup_roots_iterator(setup);
+
+        for (int i = screen_num; itr.rem; --i, xcb_screen_next(&itr)) {
+                if (i == 0) {
+                        return itr.data;
+                }
+        }
+
+        return NULL;
 }
 
 static void signal_handler(int signum)
@@ -288,29 +303,16 @@ int main(int argc, char **argv)
 
         state->screen = default_screen;
 
-        xcb_rectangle_t *screen_rects = XCB_NONE;
-        size_t screen_count = 0;
+        struct list *monitor_list = NULL;
+        size_t monitor_count = 0;
         enum natwm_error err
-                = screen_setup(state, &screen_rects, &screen_count);
+                = monitor_setup(state, &monitor_list, &monitor_count);
 
         if (err != NO_ERROR) {
                 goto free_and_error;
         }
 
-        struct workspace *workspace
-                = workspace_create(screen_rects, screen_count);
-
-        if (workspace == NULL) {
-                LOG_ERROR(natwm_logger, "Failed to create workspace");
-
-                free(screen_rects);
-
-                goto free_and_error;
-        }
-
-        state->workspace = workspace;
-
-        free(screen_rects);
+        monitor_list_destroy(monitor_list);
 
         // Attempt to register for substructure events
         if (root_window_subscribe(state) != 0) {
