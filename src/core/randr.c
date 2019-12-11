@@ -3,14 +3,29 @@
 // Refer to the license.txt file included in the root of the project
 
 #include <assert.h>
-#include <xcb/randr.h>
 
 #include <common/logger.h>
 
 #include "randr.h"
 
+static struct randr_monitor *randr_monitor_create(xcb_randr_crtc_t id,
+                                                  xcb_rectangle_t rect)
+{
+        struct randr_monitor *monitor = malloc(sizeof(struct randr_monitor));
+
+        if (monitor == NULL) {
+                return NULL;
+        }
+
+        monitor->id = id;
+        monitor->rect = rect;
+
+        return monitor;
+}
+
 enum natwm_error randr_get_screens(const struct natwm_state *state,
-                                   xcb_rectangle_t **destination, size_t *count)
+                                   struct randr_monitor ***result,
+                                   size_t *length)
 {
         xcb_generic_error_t *err = XCB_NONE;
 
@@ -22,7 +37,7 @@ enum natwm_error randr_get_screens(const struct natwm_state *state,
                         state->xcb, resources_cookie, &err);
 
         if (err != XCB_NONE || resources_reply == NULL) {
-                LOG_ERROR(natwm_logger, "Failed to get randr screens");
+                LOG_ERROR(natwm_logger, "Failed to get RANDR screens");
 
                 if (resources_reply != NULL) {
                         free(resources_reply);
@@ -36,10 +51,10 @@ enum natwm_error randr_get_screens(const struct natwm_state *state,
 
         assert(screen_count > 0);
 
-        xcb_rectangle_t *screen_rects
-                = malloc(sizeof(xcb_rectangle_t) * (size_t)screen_count);
+        struct randr_monitor **monitors
+                = calloc((size_t)screen_count, sizeof(struct randr_monitor *));
 
-        if (screen_rects == NULL) {
+        if (monitors == NULL) {
                 free(resources_reply);
 
                 return MEMORY_ALLOCATION_ERROR;
@@ -48,7 +63,7 @@ enum natwm_error randr_get_screens(const struct natwm_state *state,
         xcb_randr_output_t *outputs
                 = xcb_randr_get_screen_resources_outputs(resources_reply);
 
-        for (size_t i = 0; i < (size_t)screen_count; ++i) {
+        for (int i = 0; i < screen_count; ++i) {
                 xcb_randr_get_output_info_cookie_t cookie
                         = xcb_randr_get_output_info(
                                 state->xcb, outputs[i], XCB_CURRENT_TIME);
@@ -56,9 +71,11 @@ enum natwm_error randr_get_screens(const struct natwm_state *state,
                         = xcb_randr_get_output_info_reply(
                                 state->xcb, cookie, &err);
 
-                if (err != XCB_NONE || output_info_reply == NULL) {
+                if (err != XCB_NONE && output_info_reply == NULL) {
                         LOG_WARNING(natwm_logger,
                                     "Failed to get info for a RANDR screen.");
+
+                        free(err);
 
                         continue;
                 }
@@ -71,11 +88,11 @@ enum natwm_error randr_get_screens(const struct natwm_state *state,
                         = xcb_randr_get_crtc_info_reply(
                                 state->xcb, crtc_info_cookie, &err);
 
-                if (err != XCB_NONE || crtc_info_reply == NULL) {
-                        LOG_WARNING(natwm_logger,
-                                    "Failed to get info for a RANDR screen.");
-
+                if (err != XCB_NONE && crtc_info_reply == NULL) {
+                        // We encounter this when we find an inactive RANDR
+                        // screens
                         free(output_info_reply);
+                        free(err);
 
                         continue;
                 }
@@ -87,16 +104,37 @@ enum natwm_error randr_get_screens(const struct natwm_state *state,
                         .height = crtc_info_reply->height,
                 };
 
-                screen_rects[i] = screen_rect;
+                struct randr_monitor *monitor = randr_monitor_create(
+                        output_info_reply->crtc, screen_rect);
+
+                if (monitor == NULL) {
+                        // Mem error, need to free existing monitors
+                        for (int j = 0; j < i; ++j) {
+                                if (monitors[j] != NULL) {
+                                        randr_monitor_destroy(monitors[j]);
+                                }
+                        }
+
+                        free(monitors);
+
+                        return MEMORY_ALLOCATION_ERROR;
+                }
+
+                monitors[i] = monitor;
 
                 free(crtc_info_reply);
                 free(output_info_reply);
         }
 
-        *destination = screen_rects;
-        *count = (size_t)screen_count;
+        *result = monitors;
+        *length = (size_t)screen_count;
 
         free(resources_reply);
 
         return NO_ERROR;
+}
+
+void randr_monitor_destroy(struct randr_monitor *monitor)
+{
+        free(monitor);
 }

@@ -5,10 +5,10 @@ add_library(core STATIC
     event.h
     ewmh.c
     ewmh.h
+    monitor.c
+    monitor.h
     randr.c
     randr.h
-    screen.c
-    screen.h
     state.c
     state.h
     workspace.c
