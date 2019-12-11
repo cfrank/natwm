@@ -194,8 +194,6 @@ const char *server_extension_to_string(enum server_extension_type extension)
         default:
                 return "";
         }
-
-        return "";
 }
 
 struct monitor_list *monitor_list_create(struct server_extension *extension,
