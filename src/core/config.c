@@ -302,21 +302,149 @@ static struct config_value *resolve_variable(struct parser_context *context,
 }
 
 /**
+ * Handle the parsing of keys
+ *
+ * The context buffer will be pointing to the beginning of a string something
+ * like this:
+ *
+ * key = value
+ *
+ * We must pull out the key and then point the buffer to the EQUAL_CHAR
+ */
+static enum natwm_error handle_context_item_key(struct parser_context *context,
+                                                char **result, size_t *length)
+{
+        enum natwm_error err = GENERIC_ERROR;
+        const char *line = context->buffer + context->pos;
+
+        if (char_to_token(line[0]) != ALPHA_CHAR) {
+                LOG_ERROR(natwm_logger,
+                          "Invalid Key: '%c' - Line: %zu Col: %zu",
+                          line[0],
+                          context->line_num,
+                          context->col_num);
+
+                return INVALID_INPUT_ERROR;
+        }
+
+        // Find the EQUAL_CHAR which will allows us to know the bounds of the
+        // key
+        size_t equal_pos = 0;
+        char *key = NULL;
+
+        err = string_get_delimiter(line, '=', &key, &equal_pos, false);
+
+        if (err != NO_ERROR) {
+                LOG_ERROR(natwm_logger,
+                          "Missing '=' - Line: %zu",
+                          context->line_num);
+
+                return INVALID_INPUT_ERROR;
+        }
+
+        // We should now be able to strip the spaces around the key which will
+        // leave us with a valid key
+        char *stripped_key = NULL;
+        size_t stripped_key_length = 0;
+
+        err = string_strip_surrounding_spaces(
+                key, &stripped_key, &stripped_key_length);
+
+        if (err != NO_ERROR) {
+                LOG_ERROR(natwm_logger,
+                          "Invalid config value - Line %zu",
+                          context->line_num);
+
+                free(key);
+
+                return INVALID_INPUT_ERROR;
+        }
+
+        // Cleanup the intermediate key
+        free(key);
+
+        // Update the buffer position to the equal pos
+        parser_context_move(context, equal_pos);
+
+        // Now we can return our valid key and key length
+        *result = stripped_key;
+        *length = stripped_key_length;
+
+        return NO_ERROR;
+}
+
+/**
+ * Handle the parsing of a config item's value
+ *
+ * The context buffer will be pointing to the beginning of a string something
+ * like this:
+ *
+ * = <value>
+ *
+ * We will need to ignore the EQUAL_CHAR and stripped the spaces around the
+ * value. We will then return the string back to the caller who can deal with
+ * turning it into a config_value
+ */
+enum natwm_error handle_context_item_value(struct parser_context *context,
+                                           char **result, size_t *length)
+{
+        enum natwm_error err = GENERIC_ERROR;
+        // We need to ignore the EQUAL_CHAR
+        const char *line = (context->buffer + context->pos) + 1;
+        char *value = NULL;
+        size_t end_pos = 0;
+
+        // FIXME: Support multi line values
+        err = string_get_delimiter(line, '\n', &value, &end_pos, false);
+
+        if (err != NO_ERROR) {
+                LOG_ERROR(natwm_logger,
+                          "Failed to read item value - Line %zu Col: %zu",
+                          context->line_num,
+                          context->col_num);
+
+                return INVALID_INPUT_ERROR;
+        }
+
+        // Now we need to strip the surrounding spaces to be left with the value
+        // string
+
+        char *value_stripped = NULL;
+        size_t value_stripped_length = 0;
+
+        err = string_strip_surrounding_spaces(
+                value, &value_stripped, &value_stripped_length);
+
+        if (err != NO_ERROR) {
+                LOG_ERROR(natwm_logger,
+                          "Found invalid item value - Line %zu Col: %zu",
+                          context->line_num,
+                          context->col_num);
+
+                free(value);
+
+                return INVALID_INPUT_ERROR;
+        }
+
+        // Free intermediate values
+        free(value);
+
+        // Update the parser context to the end of the line
+        parser_context_move(context, end_pos);
+
+        *result = value_stripped;
+        *length = value_stripped_length;
+
+        return NO_ERROR;
+}
+
+/**
  * Handle creating a config_value from a string
  *
  * The context will be pointing to the beginning of a line containing a config
  * value in the format:
  *
  * config_key = config_value
- *
- * It is required that the first character pointed to by the context is a
- * ALPHA_CHAR
- *
- * After that the key is determined by parsing until a EQUAL char is found. The
- * key is then stripped of surrounding spaces and the result is the final key.
- *
- * The value is then determincontext_variableNEW_LINE char is found. The
- * value is then also stripped of surrounding spaces.
  *
  * If the value starts with VARIABLE_START then  a lookup is performed in the
  * existing variables. If something is found then the value is replaced by what
@@ -325,112 +453,49 @@ static struct config_value *resolve_variable(struct parser_context *context,
  * These are used to create the returned config_value. If there is an error
  * while parsing then NULL is returned and no memory is left allocated
  */
-static struct config_value *handle_context_value(struct parser_context *context)
+static struct config_value *handle_context_item(struct parser_context *context)
 {
-        const char *string = context->buffer + context->pos;
-        enum natwm_error err = GENERIC_ERROR;
-
-        if (char_to_token(string[0]) != ALPHA_CHAR) {
-                LOG_ERROR(natwm_logger,
-                          "Invalid Value: '%c' - Line: %zu Col: %zu",
-                          string[0],
-                          context->line_num,
-                          context->col_num);
-
-                return NULL;
-        }
-
         char *key = NULL;
-        char *key_stripped = NULL;
-        size_t equal_pos = 0;
-        err = string_get_delimiter(string, '=', &key, &equal_pos, false);
+        size_t key_length = 0;
 
-        if (err != NO_ERROR) {
-                LOG_ERROR(natwm_logger,
-                          "Invalid variable - Line: %zu Col: %zu",
-                          context->line_num,
-                          context->col_num);
-
+        if (handle_context_item_key(context, &key, &key_length) != NO_ERROR) {
                 return NULL;
         }
 
-        err = string_strip_surrounding_spaces(key, &key_stripped, NULL);
-
-        if (err != NO_ERROR) {
-                LOG_ERROR(natwm_logger,
-                          "Invalid value key - Line: %zu Col: %zu",
-                          context->line_num,
-                          context->col_num);
-
-                free(key);
-
-                return NULL;
-        }
-
-        parser_context_move(context, equal_pos);
-
-        // Skip EQUAL char
-        const char *value_start = context->buffer + context->pos + 1;
         char *value = NULL;
-        char *value_stripped = NULL;
-        size_t end_pos = 0;
+        size_t value_length = 0;
 
-        err = string_get_delimiter(value_start, '\n', &value, &end_pos, false);
-
-        if (err != NO_ERROR) {
-                LOG_ERROR(natwm_logger,
-                          "Invalid value - Line: %zu Col: %zu",
-                          context->line_num,
-                          context->col_num);
-
+        if (handle_context_item_value(context, &value, &value_length)
+            != NO_ERROR) {
                 return NULL;
-        }
-
-        err = string_strip_surrounding_spaces(value, &value_stripped, NULL);
-
-        if (err != NO_ERROR) {
-                LOG_ERROR(natwm_logger,
-                          "Invalid value - Line: %zu Col: %zu",
-                          context->line_num,
-                          context->col_num);
-
-                goto free_and_error;
         }
 
         struct config_value *ret = NULL;
 
-        if (char_to_token(value_stripped[0]) == VARIABLE_START) {
-                ret = resolve_variable(
-                        context, value_stripped + 1, key_stripped);
+        if (char_to_token(value[0]) == VARIABLE_START) {
+                ret = resolve_variable(context, value + 1, key);
         } else {
-                ret = config_value_from_string(key_stripped, value_stripped);
+                ret = config_value_from_string(key, value);
         }
 
         if (ret == NULL) {
                 LOG_ERROR(natwm_logger,
                           "Failed to save '%s' - Line %zu Col: %zu",
-                          key_stripped,
+                          key,
                           context->line_num,
                           context->col_num);
 
                 goto free_and_error;
         }
 
-        // Update context
-        parser_context_move(context, end_pos);
-
-        // Free everything not contained in the value
-        free(key);
+        // The value can be freed now since the config_value will have it's own
+        // copy
         free(value);
-        free(value_stripped);
 
         return ret;
 
 free_and_error:
-        free(key);
-        free(key_stripped);
         free(value);
-        free(value_stripped);
 
         return NULL;
 }
@@ -455,13 +520,15 @@ static int parse_context_variable(struct parser_context *context)
         // Skip VARIABLE_START
         parser_context_increment(context);
 
-        struct config_value *variable = handle_context_value(context);
+        struct config_value *value = handle_context_item(context);
 
-        if (variable == NULL) {
+        if (value == NULL) {
                 return -1;
         }
 
-        map_insert(context->variables, variable->key, variable);
+        if (map_insert(context->variables, value->key, value) != NO_ERROR) {
+                return -1;
+        }
 
         return 0;
 }
@@ -484,7 +551,7 @@ static int parse_context_variable(struct parser_context *context)
 static int parse_context_config_item(struct parser_context *context,
                                      struct map **config_map)
 {
-        struct config_value *item = handle_context_value(context);
+        struct config_value *item = handle_context_item(context);
 
         if (item == NULL || *config_map == NULL) {
                 return -1;
