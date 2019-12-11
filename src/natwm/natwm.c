@@ -303,14 +303,14 @@ int main(int argc, char **argv)
 
         state->screen = default_screen;
 
-        struct list *monitor_list = NULL;
+        struct monitor_list *monitor_list = NULL;
         enum natwm_error err = monitor_setup(state, &monitor_list);
 
         if (err != NO_ERROR) {
                 goto free_and_error;
         }
 
-        monitor_list_destroy(monitor_list);
+        state->monitors = monitor_list;
 
         // Attempt to register for substructure events
         if (root_window_subscribe(state) != 0) {

@@ -4,6 +4,7 @@
 
 #include "state.h"
 #include "ewmh.h"
+#include "monitor.h"
 #include "workspace.h"
 
 struct natwm_state *natwm_state_create(void)
@@ -13,6 +14,15 @@ struct natwm_state *natwm_state_create(void)
         if (state == NULL) {
                 return NULL;
         }
+
+        state->screen_num = -1;
+        state->xcb = NULL;
+        state->ewmh = NULL;
+        state->screen = NULL;
+        state->monitors = NULL;
+        state->workspace = NULL;
+        state->config = NULL;
+        state->config_path = NULL;
 
         // Initialize mutex
         if (pthread_mutex_init(&state->mutex, NULL) != 0) {
@@ -34,6 +44,10 @@ void natwm_state_destroy(struct natwm_state *state)
 
         if (state->ewmh != NULL) {
                 ewmh_destroy(state->ewmh);
+        }
+
+        if (state->monitors != NULL) {
+                monitor_list_destroy(state->monitors);
         }
 
         if (state->workspace != NULL) {

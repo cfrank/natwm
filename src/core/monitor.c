@@ -12,24 +12,14 @@
 #include "randr.h"
 #include "xinerama.h"
 
-static enum server_extension
-detect_server_extension(xcb_connection_t *connection)
+static void monitors_destroy(struct list *monitors)
 {
-        const xcb_query_extension_reply_t *cache = XCB_NONE;
+        LIST_FOR_EACH(monitors, item)
+        {
+                struct monitor *monitor = (struct monitor *)item->data;
 
-        cache = xcb_get_extension_data(connection, &xcb_randr_id);
-
-        if (cache && cache->present) {
-                return RANDR;
+                monitor_destroy(monitor);
         }
-
-        cache = xcb_get_extension_data(connection, &xcb_xinerama_id);
-
-        if ((cache && cache->present) && xinerama_is_active(connection)) {
-                return XINERAMA;
-        }
-
-        return NO_EXTENSION;
 }
 
 static enum natwm_error monitors_from_randr(const struct natwm_state *state,
@@ -63,10 +53,11 @@ static enum natwm_error monitors_from_randr(const struct natwm_state *state,
                 }
 
                 struct monitor *monitor = monitor_create(
-                        randr_monitor->id, RANDR, randr_monitor->rect, NULL);
+                        randr_monitor->id, randr_monitor->rect, NULL);
 
                 if (monitor == NULL) {
-                        monitor_list_destroy(monitor_list);
+                        monitors_destroy(monitor_list);
+                        destroy_list(monitor_list);
 
                         return MEMORY_ALLOCATION_ERROR;
                 }
@@ -83,8 +74,8 @@ static enum natwm_error monitors_from_randr(const struct natwm_state *state,
         return NO_ERROR;
 }
 
-static enum natwm_error monitor_from_xinerama(const struct natwm_state *state,
-                                              struct list **result)
+static enum natwm_error monitors_from_xinerama(const struct natwm_state *state,
+                                               struct list **result)
 {
         struct list *monitor_list = create_list();
 
@@ -105,10 +96,11 @@ static enum natwm_error monitor_from_xinerama(const struct natwm_state *state,
 
         for (size_t i = 0; i < monitor_length; ++i) {
                 struct monitor *monitor
-                        = monitor_create((uint32_t)i, XINERAMA, rects[i], NULL);
+                        = monitor_create((uint32_t)i, rects[i], NULL);
 
                 if (monitor == NULL) {
-                        monitor_list_destroy(monitor_list);
+                        monitors_destroy(monitor_list);
+                        destroy_list(monitor_list);
                         free(rects);
 
                         return MEMORY_ALLOCATION_ERROR;
@@ -140,7 +132,7 @@ static enum natwm_error monitor_from_x(const struct natwm_state *state,
                 .height = state->screen->height_in_pixels,
         };
 
-        struct monitor *monitor = monitor_create(0, NO_EXTENSION, rect, NULL);
+        struct monitor *monitor = monitor_create(0, rect, NULL);
 
         if (monitor == NULL) {
                 destroy_list(monitor_list);
@@ -155,7 +147,42 @@ static enum natwm_error monitor_from_x(const struct natwm_state *state,
         return NO_ERROR;
 }
 
-const char *server_extension_to_string(enum server_extension extension)
+struct server_extension *server_extension_detect(xcb_connection_t *connection)
+{
+        struct server_extension *extension
+                = malloc(sizeof(struct server_extension));
+
+        if (extension == NULL) {
+                return NULL;
+        }
+
+        const xcb_query_extension_reply_t *cache = XCB_NONE;
+
+        cache = xcb_get_extension_data(connection, &xcb_randr_id);
+
+        if (cache && cache->present) {
+                extension->type = RANDR;
+                extension->data_cache = cache;
+
+                return extension;
+        }
+
+        cache = xcb_get_extension_data(connection, &xcb_xinerama_id);
+
+        if ((cache && cache->present) && xinerama_is_active(connection)) {
+                extension->type = XINERAMA;
+                extension->data_cache = cache;
+
+                return extension;
+        }
+
+        extension->type = NO_EXTENSION;
+        extension->data_cache = NULL;
+
+        return extension;
+}
+
+const char *server_extension_to_string(enum server_extension_type extension)
 {
         switch (extension) {
         case RANDR:
@@ -171,8 +198,23 @@ const char *server_extension_to_string(enum server_extension extension)
         return "";
 }
 
-struct monitor *monitor_create(uint32_t id, enum server_extension extension,
-                               xcb_rectangle_t rect, struct space *space)
+struct monitor_list *monitor_list_create(struct server_extension *extension,
+                                         struct list *monitors)
+{
+        struct monitor_list *list = malloc(sizeof(struct monitor_list));
+
+        if (list == NULL) {
+                return NULL;
+        }
+
+        list->extension = extension;
+        list->monitors = monitors;
+
+        return list;
+}
+
+struct monitor *monitor_create(uint32_t id, xcb_rectangle_t rect,
+                               struct space *space)
 {
         struct monitor *monitor = malloc(sizeof(struct monitor));
 
@@ -181,7 +223,6 @@ struct monitor *monitor_create(uint32_t id, enum server_extension extension,
         }
 
         monitor->id = id;
-        monitor->extension = extension;
         monitor->rect = rect;
         monitor->space = space;
 
@@ -189,43 +230,69 @@ struct monitor *monitor_create(uint32_t id, enum server_extension extension,
 }
 
 enum natwm_error monitor_setup(const struct natwm_state *state,
-                               struct list **result)
+                               struct monitor_list **result)
 {
-        enum server_extension supported_extension
-                = detect_server_extension(state->xcb);
+        struct server_extension *extension
+                = server_extension_detect(state->xcb);
+
+        if (extension == NULL) {
+                return MEMORY_ALLOCATION_ERROR;
+        }
 
         // Resolve monitors from any extension into a linked list of generic
         // monitors.
         enum natwm_error err = GENERIC_ERROR;
-        struct list *monitor_list = NULL;
+        struct list *monitors = NULL;
 
-        if (supported_extension == RANDR) {
-                err = monitors_from_randr(state, &monitor_list);
-        } else if (supported_extension == XINERAMA) {
-                err = monitor_from_xinerama(state, &monitor_list);
+        if (extension->type == RANDR) {
+                err = monitors_from_randr(state, &monitors);
+        } else if (extension->type == XINERAMA) {
+                err = monitors_from_xinerama(state, &monitors);
         } else {
-                err = monitor_from_x(state, &monitor_list);
+                err = monitor_from_x(state, &monitors);
         }
 
         if (err != NO_ERROR) {
                 LOG_ERROR(natwm_logger,
                           "Failed to setup %s screen(s)",
-                          server_extension_to_string(supported_extension));
+                          server_extension_to_string(extension->type));
+
+                free(extension);
 
                 return err;
         }
 
-        if (monitor_list->size == 0) {
+        if (monitors->size == 0) {
                 LOG_ERROR(natwm_logger,
                           "Failed to find a %s screen",
-                          server_extension_to_string(supported_extension));
+                          server_extension_to_string(extension->type));
+
+                free(extension);
 
                 return INVALID_INPUT_ERROR;
+        }
+
+        struct monitor_list *monitor_list
+                = monitor_list_create(extension, monitors);
+
+        if (monitor_list == NULL) {
+                free(extension);
+                destroy_list(monitors);
+
+                return MEMORY_ALLOCATION_ERROR;
         }
 
         *result = monitor_list;
 
         return NO_ERROR;
+}
+
+void monitor_list_destroy(struct monitor_list *monitor_list)
+{
+        free(monitor_list->extension);
+        monitors_destroy(monitor_list->monitors);
+        destroy_list(monitor_list->monitors);
+        free(monitor_list);
 }
 
 void monitor_destroy(struct monitor *monitor)
@@ -235,16 +302,4 @@ void monitor_destroy(struct monitor *monitor)
         }
 
         free(monitor);
-}
-
-void monitor_list_destroy(struct list *monitor_list)
-{
-        LIST_FOR_EACH(monitor_list, item)
-        {
-                struct monitor *monitor = (struct monitor *)item->data;
-
-                monitor_destroy(monitor);
-        }
-
-        destroy_list(monitor_list);
 }

@@ -19,7 +19,8 @@ struct list {
 };
 
 #define LIST_FOR_EACH(list, item)                                              \
-        for (struct node *item = list->head; item != NULL; item = item->next)
+        for (struct node * (item) = (list)->head; (item) != NULL;              \
+             (item) = (item)->next)
 
 struct node *create_node(const void *data);
 void destroy_node(struct node *node);

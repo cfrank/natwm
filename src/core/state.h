@@ -8,13 +8,18 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_ewmh.h>
 
+#include <common/list.h>
+#include <common/map.h>
+
 #include "config.h"
+#include "workspace.h"
 
 struct natwm_state {
         int screen_num;
         xcb_connection_t *xcb;
         xcb_ewmh_connection_t *ewmh;
         xcb_screen_t *screen;
+        struct monitor_list *monitors;
         struct workspace *workspace;
         const struct map *config;
         const char *config_path;

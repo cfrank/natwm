@@ -19,5 +19,7 @@ struct randr_monitor {
 enum natwm_error randr_get_screens(const struct natwm_state *state,
                                    struct randr_monitor ***result,
                                    size_t *length);
+enum natwm_error randr_handle_event(const struct natwm_state *state,
+                                    xcb_randr_notify_event_t event);
 
 void randr_monitor_destroy(struct randr_monitor *monitor);
