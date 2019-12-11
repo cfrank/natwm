@@ -1,4 +1,6 @@
-# natwm [![Build Status](https://travis-ci.com/cfrank/natwm.svg?branch=dev)](https://travis-ci.com/cfrank/natwm) [![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/cfrank/natwm.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/cfrank/natwm/context:cpp)
+# natwm
+[![Build Status](https://travis-ci.com/cfrank/natwm.svg?branch=dev)](https://travis-ci.com/cfrank/natwm) [![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/cfrank/natwm.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/cfrank/natwm/context:cpp)
+
 The purpose of this is to create a tiling window manager which one developer would be able to wrap their head around.
 
 ## Installation
