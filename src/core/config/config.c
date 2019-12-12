@@ -13,192 +13,20 @@
 #include <common/logger.h>
 #include <common/string.h>
 #include <common/util.h>
+
 #include "config.h"
+#include "parser.h"
 
-struct parser_context {
-        const char *buffer;
-        size_t buffer_size;
-        size_t pos;
-        size_t line_num;
-        size_t col_num;
-        struct map *variables;
-};
-
-enum config_token_types {
-        ALPHA_CHAR,
-        COMMENT_START,
-        EQUAL,
-        NEW_LINE,
-        NUMERIC_CHAR,
-        QUOTE,
-        UNKNOWN,
-        VARIABLE_START,
-};
-
-static enum config_token_types char_to_token(char c)
-{
-        switch (c) {
-        case '/':
-                return COMMENT_START;
-        case '=':
-                return EQUAL;
-        case '\n':
-                return NEW_LINE;
-        case '"':
-                return QUOTE;
-        case '$':
-                return VARIABLE_START;
-        default:
-                if (isdigit(c)) {
-                        return NUMERIC_CHAR;
-                }
-
-                if (isalpha(c)) {
-                        return ALPHA_CHAR;
-                }
-
-                return UNKNOWN;
-        }
-}
-
-/**
- * This is purely for use by the map holding config values
- *
- * a config_value_destroy is exposed below
- */
-static void internal_config_value_destroy(void *data)
+static void hashmap_free_callback(void *data)
 {
         struct config_value *value = (struct config_value *)data;
 
-        if (value->type == STRING) {
-                // For strings we need to free the data as well
-                free(value->data.string);
-        }
-
-        free(value->key);
-        free(value);
-}
-
-static struct config_value *create_number_value(char *key, intmax_t number)
-{
-        struct config_value *value = malloc(sizeof(struct config_value));
-
-        if (value == NULL) {
-                return NULL;
-        }
-
-        value->key = key;
-        value->type = NUMBER;
-        value->data.number = number;
-
-        return value;
-}
-
-static struct config_value *create_string_value(char *key, char *string)
-{
-        struct config_value *value = malloc(sizeof(struct config_value));
-
-        if (value == NULL) {
-                return NULL;
-        }
-
-        value->key = key;
-        value->type = STRING;
-        value->data.string = string;
-
-        return value;
-}
-
-/**
- * Initialize the parser context with the file buffer.
- *
- * This will be used to track the position of the parser in the file.
- */
-static struct parser_context *parser_context_init(const char *buffer,
-                                                  size_t buffer_size)
-{
-        struct parser_context *context = malloc(sizeof(struct parser_context));
-
-        if (context == NULL) {
-                return NULL;
-        }
-
-        context->buffer = buffer;
-        context->buffer_size = buffer_size;
-        context->pos = 0;
-        context->line_num = 1;
-        context->col_num = 1;
-        context->variables = map_init();
-
-        if (context->variables == NULL) {
-                free(context);
-
-                return NULL;
-        }
-
-        // Set up hashmap
-        map_set_entry_free_function(context->variables,
-                                    internal_config_value_destroy);
-
-        return context;
-}
-
-static void parser_context_destroy(struct parser_context *context)
-{
-        if (context->variables != NULL) {
-                map_destroy(context->variables);
-        }
-
-        free(context);
-}
-
-/**
- * Increment the parser context one step. If the current position of the
- * context is a new line make sure to update the column and line numbers
- * to represent the new location
- */
-static void parser_context_increment(struct parser_context *context)
-{
-        if (context->pos > context->buffer_size) {
-                return;
-        }
-
-        if (context->buffer[context->pos] == '\n') {
-                ++context->line_num;
-                context->col_num = 1;
-        } else {
-                ++context->col_num;
-        }
-
-        ++context->pos;
-}
-
-/**
- * Move the parser context forward a specified number of bytes
- *
- * This makes sure that the parser positioning stays intact
- */
-static void parser_context_move(struct parser_context *context, size_t new_pos)
-{
-        for (size_t i = 0; i < new_pos; ++i) {
-                parser_context_increment(context);
-        }
-}
-
-/**
- * Consume the rest of a line in the configuration file.
- */
-static void parser_context_consume_line(struct parser_context *context)
-{
-        char c = '\0';
-        while ((c = context->buffer[context->pos]) != '\n' && c != '\0') {
-                parser_context_increment(context);
-        }
+        config_value_destroy(value);
 }
 
 /**
  * Once the variable has been parsed from the configuration file we need to
- * create the config_list item that will be passed into the context
+ * create the config_list item that will be passed into the parser
  *
  * The arguments supplied to this function are:
  *
@@ -222,7 +50,7 @@ static struct config_value *config_value_from_string(char *key, char *value)
                         return NULL;
                 }
 
-                return create_number_value(key, number);
+                return config_value_create_number(key, number);
         }
 
         size_t value_len = strlen(value);
@@ -243,14 +71,14 @@ static struct config_value *config_value_from_string(char *key, char *value)
                 return NULL;
         }
 
-        return create_string_value(key, value_stripped);
+        return config_value_create_string(key, value_stripped);
 }
 
 static struct config_value *
 variable_from_config_value(char *key, struct config_value *variable)
 {
         if (variable->type == NUMBER) {
-                return create_number_value(key, variable->data.number);
+                return config_value_create_number(key, variable->data.number);
         }
 
         // Copy variable
@@ -268,20 +96,19 @@ variable_from_config_value(char *key, struct config_value *variable)
 
         memcpy(string, variable->data.string, length + 1);
 
-        return create_string_value(key, string);
+        return config_value_create_string(key, string);
 }
 
-static struct config_value *resolve_variable(struct parser_context *context,
-                                             const char *variable_key,
-                                             char *new_key)
+static struct config_value *
+resolve_variable(struct parser *parser, const char *variable_key, char *new_key)
 {
-        struct map_entry *variable = map_get(context->variables, variable_key);
+        struct map_entry *variable = map_get(parser->variables, variable_key);
 
         if (variable == NULL) {
                 LOG_ERROR(natwm_logger,
                           "'%s' is not defined - Line: %zu",
                           variable_key,
-                          context->line_num);
+                          parser->line_num);
 
                 return NULL;
         }
@@ -293,7 +120,7 @@ static struct config_value *resolve_variable(struct parser_context *context,
                 LOG_ERROR(natwm_logger,
                           "Failed to resolve variable '%s' - Line: %zu",
                           variable_key,
-                          context->line_num);
+                          parser->line_num);
 
                 return NULL;
         }
@@ -304,25 +131,25 @@ static struct config_value *resolve_variable(struct parser_context *context,
 /**
  * Handle the parsing of keys
  *
- * The context buffer will be pointing to the beginning of a string something
+ * The parser buffer will be pointing to the beginning of a string something
  * like this:
  *
  * key = value
  *
  * We must pull out the key and then point the buffer to the EQUAL_CHAR
  */
-static enum natwm_error handle_context_item_key(struct parser_context *context,
+static enum natwm_error handle_context_item_key(struct parser *parser,
                                                 char **result, size_t *length)
 {
         enum natwm_error err = GENERIC_ERROR;
-        const char *line = context->buffer + context->pos;
+        const char *line = parser->buffer + parser->pos;
 
         if (char_to_token(line[0]) != ALPHA_CHAR) {
                 LOG_ERROR(natwm_logger,
                           "Invalid Key: '%c' - Line: %zu Col: %zu",
                           line[0],
-                          context->line_num,
-                          context->col_num);
+                          parser->line_num,
+                          parser->col_num);
 
                 return INVALID_INPUT_ERROR;
         }
@@ -337,7 +164,7 @@ static enum natwm_error handle_context_item_key(struct parser_context *context,
         if (err != NO_ERROR) {
                 LOG_ERROR(natwm_logger,
                           "Missing '=' - Line: %zu",
-                          context->line_num);
+                          parser->line_num);
 
                 return INVALID_INPUT_ERROR;
         }
@@ -353,9 +180,10 @@ static enum natwm_error handle_context_item_key(struct parser_context *context,
         if (err != NO_ERROR) {
                 LOG_ERROR(natwm_logger,
                           "Invalid config value - Line %zu",
-                          context->line_num);
+                          parser->line_num);
 
                 free(key);
+                free(stripped_key);
 
                 return INVALID_INPUT_ERROR;
         }
@@ -364,7 +192,7 @@ static enum natwm_error handle_context_item_key(struct parser_context *context,
         free(key);
 
         // Update the buffer position to the equal pos
-        parser_context_move(context, equal_pos);
+        parser_move(parser, equal_pos);
 
         // Now we can return our valid key and key length
         *result = stripped_key;
@@ -376,7 +204,7 @@ static enum natwm_error handle_context_item_key(struct parser_context *context,
 /**
  * Handle the parsing of a config item's value
  *
- * The context buffer will be pointing to the beginning of a string something
+ * The parser buffer will be pointing to the beginning of a string something
  * like this:
  *
  * = <value>
@@ -385,23 +213,22 @@ static enum natwm_error handle_context_item_key(struct parser_context *context,
  * value. We will then return the string back to the caller who can deal with
  * turning it into a config_value
  */
-enum natwm_error handle_context_item_value(struct parser_context *context,
-                                           char **result, size_t *length)
+static enum natwm_error handle_context_item_value(struct parser *parser,
+                                                  char **result, size_t *length)
 {
         enum natwm_error err = GENERIC_ERROR;
         // We need to ignore the EQUAL_CHAR
-        const char *line = (context->buffer + context->pos) + 1;
+        const char *line = (parser->buffer + parser->pos) + 1;
         char *value = NULL;
         size_t end_pos = 0;
 
-        // FIXME: Support multi line values
         err = string_get_delimiter(line, '\n', &value, &end_pos, false);
 
         if (err != NO_ERROR) {
                 LOG_ERROR(natwm_logger,
                           "Failed to read item value - Line %zu Col: %zu",
-                          context->line_num,
-                          context->col_num);
+                          parser->line_num,
+                          parser->col_num);
 
                 return INVALID_INPUT_ERROR;
         }
@@ -418,8 +245,8 @@ enum natwm_error handle_context_item_value(struct parser_context *context,
         if (err != NO_ERROR) {
                 LOG_ERROR(natwm_logger,
                           "Found invalid item value - Line %zu Col: %zu",
-                          context->line_num,
-                          context->col_num);
+                          parser->line_num,
+                          parser->col_num);
 
                 free(value);
 
@@ -429,8 +256,8 @@ enum natwm_error handle_context_item_value(struct parser_context *context,
         // Free intermediate values
         free(value);
 
-        // Update the parser context to the end of the line
-        parser_context_move(context, end_pos);
+        // Update the parser position to the end of the line
+        parser_move(parser, end_pos);
 
         *result = value_stripped;
         *length = value_stripped_length;
@@ -439,41 +266,223 @@ enum natwm_error handle_context_item_value(struct parser_context *context,
 }
 
 /**
+ * Here we will handle the parsing of a simple boolean value of the form:
+ *
+ * "true" or "false"
+ *
+ * No other "falsey" values will be parsed as boolean.
+ */
+static enum natwm_error parse_boolean_value_string(struct parser *parser,
+                                                   char *key, char *value,
+                                                   struct config_value **result)
+{
+        bool value_result = false;
+
+        if (string_no_case_compare(value, "true")) {
+                value_result = true;
+        } else if (string_no_case_compare(value, "false")) {
+                value_result = false;
+        } else {
+                LOG_ERROR(natwm_logger,
+                          "Invalid boolean value '%s' found - Line %zu",
+                          value,
+                          parser->line_num);
+
+                return INVALID_INPUT_ERROR;
+        }
+
+        // We found a valid boolean string. Store it in a config_value
+        struct config_value *config_value = malloc(sizeof(struct config_value));
+
+        if (config_value == NULL) {
+                return MEMORY_ALLOCATION_ERROR;
+        }
+
+        config_value->key = key;
+        config_value->type = BOOLEAN;
+        config_value->data.boolean = value_result;
+
+        *result = config_value;
+
+        return NO_ERROR;
+}
+
+/**
+ * Here we will handle parsing array values
+ *
+ * Arrays are different in that they support multi line value strings. The
+ * string we are going to receive into this function will terminate at the
+ * first '\n' so we need to create our own "array value string" from the
+ * parser
+ *
+ * That "array value string" will resemble something like this:
+ *
+ * [<value>,<value>,<value>]
+ *
+ * or
+ *
+ * [
+ *     <value>,
+ *     <value>,
+ *     <value>,
+ * ]
+ *
+ * Both of which should be treated the same and return the same result.
+ *
+ * The rules of arrays are:
+ *
+ * Each value must have the same data type. An array is invalid if any of the
+ * value types differ from their siblings.
+ *
+ * New lines are ignored, and since we don't allow newlines in strings they
+ * are invalid except for splitting the array items on different lines
+ *
+ * A commas followed by a ARRAY_END char is ignored
+ */
+static enum natwm_error parse_array_value_string(struct parser *parser,
+                                                 char *key, char *value,
+                                                 struct config_value **result)
+{
+        UNUSED_FUNCTION_PARAM(key);
+        UNUSED_FUNCTION_PARAM(result);
+
+        // Ignore ARRAY_START character
+        char *value_string = NULL;
+
+        // Allow handling of multiline array value strings
+        if (char_to_token(value[strlen(value) - 1]) != ARRAY_END) {
+                size_t end_pos = 0;
+                const char *line = parser->buffer + parser->pos;
+                enum natwm_error err = string_get_delimiter(
+                        line, ']', &value_string, &end_pos, true);
+
+                if (err != NO_ERROR) {
+                        LOG_ERROR(
+                                natwm_logger,
+                                "Could not find ']' in array value - Line %zu",
+                                parser->line_num);
+
+                        return INVALID_INPUT_ERROR;
+                }
+
+                // We found a valid multiline array value string. But now we
+                // need to update the parser position to point to the
+                // end of the array value string
+                parser_move(parser, end_pos);
+        } else {
+                // Our array exists on a single line
+                value_string = string_init(value);
+        }
+
+        char *array_items_string = NULL;
+        size_t array_items_string_size = 0;
+
+        if (string_splice(value_string,
+                          1,
+                          strlen(value_string) - 1,
+                          &array_items_string,
+                          &array_items_string_size)
+            != NO_ERROR) {
+                return GENERIC_ERROR;
+        }
+
+        free(value_string);
+
+        LOG_INFO(natwm_logger, "Array: %s", array_items_string);
+
+        free(array_items_string);
+
+        return NO_ERROR;
+}
+
+static enum natwm_error parse_value_string(struct parser *parser, char *key,
+                                           char *value,
+                                           struct config_value **result)
+{
+        UNUSED_FUNCTION_PARAM(parser);
+        UNUSED_FUNCTION_PARAM(key);
+        UNUSED_FUNCTION_PARAM(result);
+
+        struct config_value *config_value = NULL;
+
+        switch (char_to_token(value[0])) {
+        case ALPHA_CHAR: {
+                enum natwm_error err = parse_boolean_value_string(
+                        parser, key, value, &config_value);
+
+                if (err != NO_ERROR) {
+                        return err;
+                }
+
+                break;
+        }
+        case ARRAY_START: {
+                enum natwm_error err = parse_array_value_string(
+                        parser, key, value, &config_value);
+
+                if (err != NO_ERROR) {
+                        return err;
+                }
+
+                break;
+        }
+        case NUMERIC_CHAR:
+                LOG_INFO(natwm_logger, "Found number");
+                break;
+        case QUOTE:
+                LOG_INFO(natwm_logger, "Found string");
+                break;
+        case VARIABLE_START:
+                LOG_INFO(natwm_logger, "Found variable");
+                break;
+        default:
+                return INVALID_INPUT_ERROR;
+        }
+
+        return NO_ERROR;
+}
+
+/**
  * Handle creating a config_value from a string
  *
- * The context will be pointing to the beginning of a line containing a config
- * value in the format:
+ * The parser will be pointing to the beginning of a line containing a
+ * config value in the format:
  *
  * config_key = config_value
  *
- * If the value starts with VARIABLE_START then  a lookup is performed in the
- * existing variables. If something is found then the value is replaced by what
- * was found - otherwise -1 is returned
+ * If the value starts with VARIABLE_START then  a lookup is performed
+ * in the existing variables. If something is found then the value is
+ * replaced by what was found - otherwise -1 is returned
  *
- * These are used to create the returned config_value. If there is an error
- * while parsing then NULL is returned and no memory is left allocated
+ * These are used to create the returned config_value. If there is an
+ * error while parsing then NULL is returned and no memory is left
+ * allocated
  */
-static struct config_value *handle_context_item(struct parser_context *context)
+static struct config_value *handle_context_item(struct parser *parser)
 {
         char *key = NULL;
         size_t key_length = 0;
 
-        if (handle_context_item_key(context, &key, &key_length) != NO_ERROR) {
+        if (handle_context_item_key(parser, &key, &key_length) != NO_ERROR) {
                 return NULL;
         }
 
         char *value = NULL;
         size_t value_length = 0;
 
-        if (handle_context_item_value(context, &value, &value_length)
+        if (handle_context_item_value(parser, &value, &value_length)
             != NO_ERROR) {
+                free(key);
+
                 return NULL;
         }
+
+        parse_value_string(parser, key, value, NULL);
 
         struct config_value *ret = NULL;
 
         if (char_to_token(value[0]) == VARIABLE_START) {
-                ret = resolve_variable(context, value + 1, key);
+                ret = resolve_variable(parser, value + 1, key);
         } else {
                 ret = config_value_from_string(key, value);
         }
@@ -482,8 +491,8 @@ static struct config_value *handle_context_item(struct parser_context *context)
                 LOG_ERROR(natwm_logger,
                           "Failed to save '%s' - Line %zu Col: %zu",
                           key,
-                          context->line_num,
-                          context->col_num);
+                          parser->line_num,
+                          parser->col_num);
 
                 goto free_and_error;
         }
@@ -495,6 +504,7 @@ static struct config_value *handle_context_item(struct parser_context *context)
         return ret;
 
 free_and_error:
+        free(key);
         free(value);
 
         return NULL;
@@ -503,7 +513,7 @@ free_and_error:
 /**
  * Handle the creation of a variable in the configuration
  *
- * When this function is called the context will be pointing to the
+ * When this function is called the parser will be pointing to the
  * start of a variable declaration in the form of
  *
  * $variable_name = <variable_value>
@@ -511,22 +521,24 @@ free_and_error:
  * |
  * *-(parser->pos)
  *
- * Once the variable has been saved to the context, the context
+ * Once the variable has been saved to the parser, the parser positon
  * should also be updated to point to the '\n' of the current
  * line, so that the next line can be consumed
  */
-static int parse_context_variable(struct parser_context *context)
+static int parse_context_variable(struct parser *parser)
 {
         // Skip VARIABLE_START
-        parser_context_increment(context);
+        parser_increment(parser);
 
-        struct config_value *value = handle_context_item(context);
+        struct config_value *value = handle_context_item(parser);
 
         if (value == NULL) {
                 return -1;
         }
 
-        if (map_insert(context->variables, value->key, value) != NO_ERROR) {
+        if (map_insert(parser->variables, value->key, value) != NO_ERROR) {
+                config_value_destroy(value);
+
                 return -1;
         }
 
@@ -536,22 +548,22 @@ static int parse_context_variable(struct parser_context *context)
 /**
  * Handle the creation of a config item in the configuration
  *
- * When this function is called the context will be pointing to the start
- * of the configuration item in the form of
+ * When this function is called the parser position will be pointing to the
+ * start of the configuration item in the form of
  *
  * config_item = <value>
  * ^
  * |
  * *-(parser->pos)
  *
- * Once the config item has been saved to the context, the context will be
- * updated to point to the '\n' at the end of the current line, which will
+ * Once the config item has been saved to the parser, the parser position will
+ * be updated to point to the '\n' at the end of the current line, which will
  * allow for the next line to be consumed
  */
-static int parse_context_config_item(struct parser_context *context,
+static int parse_context_config_item(struct parser *parser,
                                      struct map **config_map)
 {
-        struct config_value *item = handle_context_item(context);
+        struct config_value *item = handle_context_item(parser);
 
         if (item == NULL || *config_map == NULL) {
                 return -1;
@@ -697,7 +709,7 @@ static int read_file_into_buffer(FILE *file, char **buffer, size_t file_size)
         return 0;
 }
 
-static struct map *read_context(struct parser_context *context)
+static struct map *read_context(struct parser *parser)
 {
         struct map *map = map_init();
 
@@ -709,28 +721,28 @@ static struct map *read_context(struct parser_context *context)
         }
 
         // Setup hash map
-        map_set_entry_free_function(map, internal_config_value_destroy);
+        map_set_entry_free_function(map, hashmap_free_callback);
 
         char c = '\0';
-        while ((c = context->buffer[context->pos]) != '\0') {
+        while ((c = parser->buffer[parser->pos]) != '\0') {
                 switch (char_to_token(c)) {
                 case COMMENT_START:
-                        parser_context_consume_line(context);
+                        parser_consume_line(parser);
                         break;
                 case VARIABLE_START:
-                        if (parse_context_variable(context) != 0) {
+                        if (parse_context_variable(parser) != 0) {
                                 goto handle_error;
                         }
                         break;
                 case ALPHA_CHAR:
-                        if (parse_context_config_item(context, &map) != 0) {
+                        if (parse_context_config_item(parser, &map) != 0) {
                                 goto handle_error;
                         }
                 default:
                         break;
                 }
 
-                parser_context_increment(context);
+                parser_increment(parser);
         }
 
         return map;
@@ -751,17 +763,20 @@ handle_error:
  */
 struct map *config_read_string(const char *string, size_t size)
 {
-        struct parser_context *context = parser_context_init(string, size);
+        struct parser *parser = parser_create(string, size);
 
-        if (context == NULL) {
+        if (parser == NULL) {
                 return NULL;
         }
 
-        struct map *map = read_context(context);
+        struct map *map = read_context(parser);
 
-        parser_context_destroy(context);
+        parser_destroy(parser);
 
-        // May be NULL
+        if (map == NULL) {
+                return NULL;
+        }
+
         return map;
 }
 
@@ -877,9 +892,4 @@ const char *config_find_string_fallback(const struct map *config_map,
 void config_destroy(struct map *config_map)
 {
         map_destroy(config_map);
-}
-
-void config_value_destroy(struct config_value *value)
-{
-        internal_config_value_destroy(value);
 }

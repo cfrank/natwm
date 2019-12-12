@@ -14,7 +14,7 @@
 #include <common/logger.h>
 #include <common/map.h>
 #include <common/util.h>
-#include <core/config.h>
+#include <core/config/config.h>
 #include <core/event.h>
 #include <core/ewmh.h>
 #include <core/monitor.h>

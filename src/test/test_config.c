@@ -12,7 +12,7 @@
 
 #include <common/constants.h>
 #include <common/logger.h>
-#include <core/config.h>
+#include <core/config/config.h>
 
 /**
  * Since config uses logs we need to silence them
@@ -106,7 +106,7 @@ static void test_config_comment(void **state)
         UNUSED_FUNCTION_PARAM(state);
 
         size_t expected_result = 0;
-        const char *config_string = "// An example comment\n";
+        const char *config_string = "# An example comment\n";
         size_t config_length = strlen(config_string);
         struct map *config_map
                 = config_read_string(config_string, config_length);
