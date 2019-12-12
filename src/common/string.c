@@ -233,6 +233,33 @@ enum natwm_error string_get_delimiter(const char *string, char delimiter,
 }
 
 /**
+ * Compare if two strings are equal without considering their case
+ *
+ * "TWO" == "two"
+ * "twO" == "TWo"
+ */
+bool string_no_case_compare(const char *one, const char *two)
+{
+        if (one == NULL || two == NULL || (strlen(one) != strlen(two))) {
+                return false;
+        }
+
+        char ch_one = '\0';
+        char ch_two = '\0';
+
+        while ((ch_one = *one) != '\0' && (ch_two = *two) != '\0') {
+                if (tolower(ch_one) != tolower(ch_two)) {
+                        return false;
+                }
+
+                ++one;
+                ++two;
+        }
+
+        return true;
+}
+
+/**
  * Extract a portion of a string into a destination buffer using the supplied
  * start and end indicies.
  *

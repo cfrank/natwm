@@ -311,87 +311,67 @@ static void test_string_get_delimiter_empty_string(void **state)
                 string_get_delimiter(input, '!', &destination, NULL, true));
 }
 
-static void test_string_to_number(void **state)
+static void test_string_no_case_compare(void **state)
 {
         UNUSED_FUNCTION_PARAM(state);
 
-        const char *input = "1520";
-        intmax_t expected_number = 1520;
-        intmax_t destination = 0;
-
-        assert_int_equal(NO_ERROR, string_to_number(input, &destination));
-        assert_int_equal(expected_number, destination);
+        assert_true(string_no_case_compare("TestString", "testString"));
 }
 
-static void test_string_to_number_negative(void **state)
+static void test_string_no_case_compare_wrong_length(void **state)
 {
         UNUSED_FUNCTION_PARAM(state);
 
-        const char *input = "-3455";
-        intmax_t expected_number = -3455;
-        intmax_t destination = 0;
-
-        assert_int_equal(NO_ERROR, string_to_number(input, &destination));
-        assert_int_equal(expected_number, destination);
+        assert_false(string_no_case_compare("OneTwoThree", "OneTwo"));
 }
 
-static void test_string_to_number_invalid_char(void **state)
+static void test_string_no_case_compare_not_equal(void **state)
 {
         UNUSED_FUNCTION_PARAM(state);
 
-        const char *input = "123abc";
-        intmax_t destination = 0;
-
-        assert_int_equal(INVALID_INPUT_ERROR,
-                         string_to_number(input, &destination));
-        assert_int_equal(0, destination);
+        assert_false(string_no_case_compare("Hello plant", "Hello world"));
 }
 
-static void test_string_to_number_empty(void **state)
+static void test_string_no_case_compare_single_character(void **state)
 {
         UNUSED_FUNCTION_PARAM(state);
 
-        const char *input = "";
-        intmax_t destination = 0;
-
-        assert_int_equal(INVALID_INPUT_ERROR,
-                         string_to_number(input, &destination));
-        assert_int_equal(0, destination);
+        assert_true(string_no_case_compare("a", "a"));
 }
 
-static void test_string_to_number_zero(void **state)
+static void test_string_no_case_compare_single_inequal_character(void **state)
 {
         UNUSED_FUNCTION_PARAM(state);
 
-        const char *input = "0";
-        intmax_t destination = 0;
-        intmax_t expected_number = 0;
-
-        assert_int_equal(NO_ERROR, string_to_number(input, &destination));
-
-        assert_int_equal(expected_number, destination);
+        assert_false(string_no_case_compare("b", "a"));
 }
 
-static void test_string_to_number_single_char(void **state)
+static void test_string_no_case_compare_single_empty(void **state)
 {
         UNUSED_FUNCTION_PARAM(state);
 
-        const char *input = "e";
-        intmax_t destination = 0;
-
-        assert_int_equal(INVALID_INPUT_ERROR,
-                         string_to_number(input, &destination));
+        assert_false(string_no_case_compare("", "Hi"));
 }
 
-static void test_string_to_number_double(void **state)
+static void test_string_no_case_compare_empty_strings(void **state)
 {
         UNUSED_FUNCTION_PARAM(state);
 
-        const char *input = "55.5";
-        intmax_t destination = 0;
+        assert_true(string_no_case_compare("", ""));
+}
 
-        assert_int_equal(INVALID_INPUT_ERROR,
-                         string_to_number(input, &destination));
+static void test_string_no_case_compare_nulls(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        assert_false(string_no_case_compare(NULL, NULL));
+}
+
+static void test_string_no_case_compare_single_null(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        assert_false(string_no_case_compare(NULL, "OneTwo"));
 }
 
 static void test_string_splice(void **state)
@@ -598,6 +578,89 @@ static void test_string_strip_surrounding_spaces_null_string(void **state)
                 string_strip_surrounding_spaces(input, &destination, NULL));
 }
 
+static void test_string_to_number(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        const char *input = "1520";
+        intmax_t expected_number = 1520;
+        intmax_t destination = 0;
+
+        assert_int_equal(NO_ERROR, string_to_number(input, &destination));
+        assert_int_equal(expected_number, destination);
+}
+
+static void test_string_to_number_negative(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        const char *input = "-3455";
+        intmax_t expected_number = -3455;
+        intmax_t destination = 0;
+
+        assert_int_equal(NO_ERROR, string_to_number(input, &destination));
+        assert_int_equal(expected_number, destination);
+}
+
+static void test_string_to_number_invalid_char(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        const char *input = "123abc";
+        intmax_t destination = 0;
+
+        assert_int_equal(INVALID_INPUT_ERROR,
+                         string_to_number(input, &destination));
+        assert_int_equal(0, destination);
+}
+
+static void test_string_to_number_empty(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        const char *input = "";
+        intmax_t destination = 0;
+
+        assert_int_equal(INVALID_INPUT_ERROR,
+                         string_to_number(input, &destination));
+        assert_int_equal(0, destination);
+}
+
+static void test_string_to_number_zero(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        const char *input = "0";
+        intmax_t destination = 0;
+        intmax_t expected_number = 0;
+
+        assert_int_equal(NO_ERROR, string_to_number(input, &destination));
+
+        assert_int_equal(expected_number, destination);
+}
+
+static void test_string_to_number_single_char(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        const char *input = "e";
+        intmax_t destination = 0;
+
+        assert_int_equal(INVALID_INPUT_ERROR,
+                         string_to_number(input, &destination));
+}
+
+static void test_string_to_number_double(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        const char *input = "55.5";
+        intmax_t destination = 0;
+
+        assert_int_equal(INVALID_INPUT_ERROR,
+                         string_to_number(input, &destination));
+}
+
 int main(void)
 {
         const struct CMUnitTest tests[] = {
@@ -620,17 +683,20 @@ int main(void)
                 cmocka_unit_test(test_string_find_last_nonspace_not_found),
                 cmocka_unit_test(test_string_find_last_nonspace_single_char),
                 cmocka_unit_test(test_string_find_last_nonspace_null_string),
+                cmocka_unit_test(test_string_no_case_compare),
+                cmocka_unit_test(test_string_no_case_compare_wrong_length),
+                cmocka_unit_test(test_string_no_case_compare_not_equal),
+                cmocka_unit_test(test_string_no_case_compare_single_character),
+                cmocka_unit_test(test_string_no_case_compare_empty_strings),
+                cmocka_unit_test(
+                        test_string_no_case_compare_single_inequal_character),
+                cmocka_unit_test(test_string_no_case_compare_single_empty),
+                cmocka_unit_test(test_string_no_case_compare_nulls),
+                cmocka_unit_test(test_string_no_case_compare_single_null),
                 cmocka_unit_test(test_string_get_delimiter),
                 cmocka_unit_test(test_string_get_delimiter_not_found),
                 cmocka_unit_test(test_string_get_delimiter_first_char),
                 cmocka_unit_test(test_string_get_delimiter_empty_string),
-                cmocka_unit_test(test_string_to_number),
-                cmocka_unit_test(test_string_to_number_negative),
-                cmocka_unit_test(test_string_to_number_invalid_char),
-                cmocka_unit_test(test_string_to_number_empty),
-                cmocka_unit_test(test_string_to_number_zero),
-                cmocka_unit_test(test_string_to_number_single_char),
-                cmocka_unit_test(test_string_to_number_double),
                 cmocka_unit_test(test_string_splice),
                 cmocka_unit_test(test_string_splice_null_string),
                 cmocka_unit_test(test_string_splice_large_start),
@@ -648,6 +714,13 @@ int main(void)
                         test_string_strip_surrounding_spaces_all_spaces),
                 cmocka_unit_test(
                         test_string_strip_surrounding_spaces_null_string),
+                cmocka_unit_test(test_string_to_number),
+                cmocka_unit_test(test_string_to_number_negative),
+                cmocka_unit_test(test_string_to_number_invalid_char),
+                cmocka_unit_test(test_string_to_number_empty),
+                cmocka_unit_test(test_string_to_number_zero),
+                cmocka_unit_test(test_string_to_number_single_char),
+                cmocka_unit_test(test_string_to_number_double),
         };
 
         return cmocka_run_group_tests(tests, NULL, NULL);
