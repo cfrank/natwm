@@ -315,7 +315,7 @@ enum natwm_error string_split(const char *string, char delimiter,
                                 goto free_and_error;
                         }
 
-                        list_insert_end(found_items, last_item);
+                        list_insert(found_items, last_item);
 
                         break;
                 } else if (err != NO_ERROR) {
@@ -323,7 +323,7 @@ enum natwm_error string_split(const char *string, char delimiter,
                         goto free_and_error;
                 }
 
-                list_insert_end(found_items, item);
+                list_insert(found_items, item);
 
                 string += ++delimiter_pos;
         }
@@ -334,17 +334,19 @@ enum natwm_error string_split(const char *string, char delimiter,
 
         // We should now have a list of items. We can now make an array of them
         char **items = malloc(sizeof(char *) * found_items->size);
-        size_t items_index = 0;
 
         if (items == NULL) {
                 goto free_and_error;
         }
 
+        // Walk the list backwards to store the strings in order
+        size_t items_index = (found_items->size - 1);
+
         LIST_FOR_EACH(found_items, item)
         {
                 items[items_index] = (char *)item->data;
 
-                ++items_index;
+                --items_index;
         }
 
         *result = items;
