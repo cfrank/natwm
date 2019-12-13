@@ -298,12 +298,13 @@ enum natwm_error string_split(const char *string, char delimiter,
 {
         // We will create a list of each item we find, then push them all
         // into an array once we find the total number
+        enum natwm_error err = GENERIC_ERROR;
         struct list *found_items = create_list();
 
         for (;;) {
                 char *item = NULL;
                 size_t delimiter_pos = 0;
-                enum natwm_error err = string_get_delimiter(
+                err = string_get_delimiter(
                         string, delimiter, &item, &delimiter_pos, false);
 
                 if (err == NOT_FOUND_ERROR) {
@@ -369,7 +370,7 @@ free_and_error:
 
         destroy_list(found_items);
 
-        return MEMORY_ALLOCATION_ERROR;
+        return err;
 }
 
 /**

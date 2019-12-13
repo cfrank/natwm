@@ -6,6 +6,7 @@
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -475,6 +476,134 @@ static void test_string_splice_zero_start_end(void **state)
         free(destination);
 }
 
+static void test_string_split(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        size_t expected_count = 4;
+        char *expected_strings[4] = {"test", "one", "two", "three"};
+        const char *input = "test,one,two,three";
+        char **strings = NULL;
+        size_t count = 0;
+
+        assert_int_equal(NO_ERROR, string_split(input, ',', &strings, &count));
+        assert_int_equal(expected_count, count);
+
+        for (size_t i = 0; i < expected_count; ++i) {
+                assert_string_equal(expected_strings[i], strings[i]);
+
+                // Each string is allocated
+                free(strings[i]);
+        }
+
+        free(strings);
+}
+
+static void test_string_split_trailing(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        size_t expected_count = 5;
+        char *expected_strings[5] = {"test", "one", "two", "three", ""};
+        const char *input = "test,one,two,three,";
+        char **strings = NULL;
+        size_t count = 0;
+
+        assert_int_equal(NO_ERROR, string_split(input, ',', &strings, &count));
+        assert_int_equal(expected_count, count);
+
+        for (size_t i = 0; i < expected_count; ++i) {
+                assert_string_equal(expected_strings[i], strings[i]);
+
+                // Each string is allocated
+                free(strings[i]);
+        }
+
+        free(strings);
+}
+
+static void test_string_split_single(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        size_t expected_count = 1;
+        char *expected_strings[1] = {"test"};
+        const char *input = "test";
+        char **strings = NULL;
+        size_t count = 0;
+
+        assert_int_equal(NO_ERROR, string_split(input, ',', &strings, &count));
+        assert_int_equal(expected_count, count);
+
+        for (size_t i = 0; i < expected_count; ++i) {
+                assert_string_equal(expected_strings[i], strings[i]);
+
+                // Each string is allocated
+                free(strings[i]);
+        }
+
+        free(strings);
+}
+
+static void test_string_split_empty(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        size_t expected_count = 1;
+        char *expected_strings[1] = {""};
+        const char *input = "";
+        char **strings = NULL;
+        size_t count = 0;
+
+        assert_int_equal(NO_ERROR, string_split(input, ',', &strings, &count));
+        assert_int_equal(expected_count, count);
+
+        for (size_t i = 0; i < expected_count; ++i) {
+                assert_string_equal(expected_strings[i], strings[i]);
+
+                // Each string is allocated
+                free(strings[i]);
+        }
+
+        free(strings);
+}
+
+static void test_string_split_null(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        char **strings = NULL;
+        size_t count = 0;
+
+        assert_int_equal(INVALID_INPUT_ERROR,
+                         string_split(NULL, ',', &strings, &count));
+        assert_null(strings);
+        assert_int_equal(0, count);
+}
+
+static void test_string_split_empty_single_char_delimiter(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        size_t expected_count = 2;
+        char *expected_strings[2] = {"", ""};
+        const char *input = ",";
+        char **strings = NULL;
+        size_t count = 0;
+
+        assert_int_equal(NO_ERROR, string_split(input, ',', &strings, &count));
+        assert_int_equal(expected_count, count);
+
+        for (size_t i = 0; i < expected_count; ++i) {
+                assert_string_equal(expected_strings[i], strings[i]);
+
+                // Each string is allocated
+                free(strings[i]);
+        }
+
+        free(strings);
+}
+
 static void test_string_strip_surrounding_spaces(void **state)
 {
         UNUSED_FUNCTION_PARAM(state);
@@ -697,6 +826,12 @@ int main(void)
                 cmocka_unit_test(test_string_get_delimiter_not_found),
                 cmocka_unit_test(test_string_get_delimiter_first_char),
                 cmocka_unit_test(test_string_get_delimiter_empty_string),
+                cmocka_unit_test(test_string_split),
+                cmocka_unit_test(test_string_split_trailing),
+                cmocka_unit_test(test_string_split_single),
+                cmocka_unit_test(test_string_split_empty),
+                cmocka_unit_test(test_string_split_null),
+                cmocka_unit_test(test_string_split_empty_single_char_delimiter),
                 cmocka_unit_test(test_string_splice),
                 cmocka_unit_test(test_string_splice_null_string),
                 cmocka_unit_test(test_string_splice_large_start),
