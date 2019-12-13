@@ -9,6 +9,7 @@
 #include <string.h>
 
 #include "constants.h"
+#include "list.h"
 #include "logger.h"
 #include "string.h"
 
@@ -290,6 +291,83 @@ enum natwm_error string_splice(const char *string, size_t start, size_t end,
         SET_IF_NON_NULL(size, result_size);
 
         return NO_ERROR;
+}
+
+enum natwm_error string_split(const char *string, char delimiter,
+                              char ***result, size_t *length)
+{
+        // We will create a list of each item we find, then push them all
+        // into an array once we find the total number
+        struct list *found_items = create_list();
+
+        for (;;) {
+                char *item = NULL;
+                size_t delimiter_pos = 0;
+                enum natwm_error err = string_get_delimiter(
+                        string, delimiter, &item, &delimiter_pos, false);
+
+                if (err == NOT_FOUND_ERROR) {
+                        // There are no more delimiters in the string, but we
+                        // still need to consume the last item
+                        char *last_item = string_init(string);
+
+                        if (last_item == NULL) {
+                                goto free_and_error;
+                        }
+
+                        list_insert_end(found_items, last_item);
+
+                        break;
+                } else if (err != NO_ERROR) {
+                        // We have an actual error
+                        goto free_and_error;
+                }
+
+                list_insert_end(found_items, item);
+
+                string += ++delimiter_pos;
+        }
+
+        if (list_is_empty(found_items)) {
+                return NOT_FOUND_ERROR;
+        }
+
+        // We should now have a list of items. We can now make an array of them
+        char **items = malloc(sizeof(char *) * found_items->size);
+        size_t items_index = 0;
+
+        if (items == NULL) {
+                goto free_and_error;
+        }
+
+        LIST_FOR_EACH(found_items, item)
+        {
+                items[items_index] = (char *)item->data;
+
+                ++items_index;
+        }
+
+        *result = items;
+        *length = found_items->size;
+
+        // We have no need for this list anymore
+        destroy_list(found_items);
+
+        return NO_ERROR;
+
+free_and_error:
+        // We need to make sure to cleanup any memory allocated while finding
+        // items before we return an error
+        LIST_FOR_EACH(found_items, item)
+        {
+                if (item && item->data != NULL) {
+                        free((char *)item->data);
+                }
+        }
+
+        destroy_list(found_items);
+
+        return MEMORY_ALLOCATION_ERROR;
 }
 
 /**
