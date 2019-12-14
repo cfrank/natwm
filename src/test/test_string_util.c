@@ -707,6 +707,75 @@ static void test_string_strip_surrounding_spaces_null_string(void **state)
                 string_strip_surrounding_spaces(input, &destination, NULL));
 }
 
+static void test_string_to_boolean(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        const char *input = "true";
+        bool result = false;
+
+        assert_int_equal(NO_ERROR, string_to_boolean(input, &result));
+        assert_true(result);
+}
+
+static void test_string_to_boolean_false(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        const char *input = "false";
+        bool result = false;
+
+        assert_int_equal(NO_ERROR, string_to_boolean(input, &result));
+        assert_false(result);
+}
+
+static void test_string_to_boolean_uppercase(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        const char *input = "FALSE";
+        bool result = false;
+
+        assert_int_equal(NO_ERROR, string_to_boolean(input, &result));
+        assert_false(result);
+}
+
+static void test_string_to_boolean_invalid(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        const char *input = "yes";
+        bool result = false;
+
+        assert_int_equal(INVALID_INPUT_ERROR,
+                         string_to_boolean(input, &result));
+        assert_false(result);
+}
+
+static void test_string_to_boolean_empty(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        const char *input = "";
+        bool result = false;
+
+        assert_int_equal(INVALID_INPUT_ERROR,
+                         string_to_boolean(input, &result));
+        assert_false(result);
+}
+
+static void test_string_to_boolean_null(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        const char *input = NULL;
+        bool result = false;
+
+        assert_int_equal(INVALID_INPUT_ERROR,
+                         string_to_boolean(input, &result));
+        assert_false(result);
+}
+
 static void test_string_to_number(void **state)
 {
         UNUSED_FUNCTION_PARAM(state);
@@ -849,6 +918,12 @@ int main(void)
                         test_string_strip_surrounding_spaces_all_spaces),
                 cmocka_unit_test(
                         test_string_strip_surrounding_spaces_null_string),
+                cmocka_unit_test(test_string_to_boolean),
+                cmocka_unit_test(test_string_to_boolean_false),
+                cmocka_unit_test(test_string_to_boolean_uppercase),
+                cmocka_unit_test(test_string_to_boolean_invalid),
+                cmocka_unit_test(test_string_to_boolean_empty),
+                cmocka_unit_test(test_string_to_boolean_null),
                 cmocka_unit_test(test_string_to_number),
                 cmocka_unit_test(test_string_to_number_negative),
                 cmocka_unit_test(test_string_to_number_invalid_char),

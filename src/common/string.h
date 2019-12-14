@@ -28,4 +28,5 @@ enum natwm_error string_split(const char *string, char delimiter,
                               char ***result, size_t *length);
 enum natwm_error string_strip_surrounding_spaces(const char *string,
                                                  char **dest, size_t *length);
+enum natwm_error string_to_boolean(const char *boolean_string, bool *result);
 enum natwm_error string_to_number(const char *number_string, intmax_t *dest);

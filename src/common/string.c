@@ -413,6 +413,34 @@ enum natwm_error string_strip_surrounding_spaces(const char *string,
 }
 
 /**
+ * Given a string containing some variation of either:
+ *
+ * "true"
+ * or
+ * "false"
+ *
+ * resolve this string into a boolean.
+ *
+ * Any casing ("True", "true", "TRUE", etc.) will be accepted
+ */
+enum natwm_error string_to_boolean(const char *string, bool *result)
+{
+        bool boolean = false;
+
+        if (string_no_case_compare(string, "true")) {
+                boolean = true;
+        } else if (string_no_case_compare(string, "false")) {
+                boolean = false;
+        } else {
+                return INVALID_INPUT_ERROR;
+        }
+
+        *result = boolean;
+
+        return NO_ERROR;
+}
+
+/**
  * Takes a string which corresponds to a base 10 number as well as a pointer
  * to intmax_t. if the number can be transformed successfully the dest
  * pointer will have the number placed into it.
