@@ -243,7 +243,6 @@ static struct map *read_context(struct parser *parser)
                         parser_consume_line(parser);
                         break;
                 case VARIABLE_START:
-                        LOG_INFO(natwm_logger, "Found variable");
                         if (create_variable(parser) != 0) {
                                 goto handle_error;
                         }

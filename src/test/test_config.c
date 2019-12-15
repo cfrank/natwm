@@ -69,6 +69,9 @@ static void test_config_number_variable(void **state)
         size_t config_length = strlen(config_string);
         struct map *config_map
                 = config_read_string(config_string, config_length);
+
+        assert_non_null(config_map);
+
         struct config_value *value = config_find(config_map, expected_key);
 
         assert_non_null(config_map);
@@ -90,6 +93,9 @@ static void test_config_string_variable(void **state)
         size_t config_length = strlen(config_string);
         struct map *config_map
                 = config_read_string(config_string, config_length);
+
+        assert_non_null(config_map);
+
         struct config_value *value = config_find(config_map, expected_key);
 
         assert_non_null(config_map);
@@ -128,6 +134,9 @@ static void test_config_double_definition(void **state)
         size_t config_length = strlen(config_string);
         struct map *config_map
                 = config_read_string(config_string, config_length);
+
+        assert_non_null(config_map);
+
         struct config_value *value = config_find(config_map, expected_key);
 
         assert_non_null(config_map);
