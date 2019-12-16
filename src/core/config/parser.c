@@ -436,6 +436,48 @@ struct parser *parser_create(const char *buffer, size_t buffer_size)
 }
 
 /**
+ * Handle the creation of a variable
+ *
+ * When this function is called the parser will be pointing to the
+ * start of a variable declaration in the form of
+ *
+ * $variable_name = <variable_value>
+ * ^
+ * |
+ * *-(parser->pos)
+ *
+ * Once the variable has been saved to the parser, the parser positon
+ * should also be updated to point to the '\n' of the current
+ * line, so that the next line can be consumed
+ */
+enum natwm_error parser_create_variable(struct parser *parser)
+{
+        // Skip VARIABLE_START
+        parser_increment(parser);
+
+        enum natwm_error err = GENERIC_ERROR;
+        char *key = NULL;
+        struct config_value *value = NULL;
+
+        err = parser_read_item(parser, &key, &value);
+
+        if (err != NO_ERROR) {
+                return err;
+        }
+
+        err = map_insert(parser->variables, key, value);
+
+        if (err != NO_ERROR) {
+                free(key);
+                config_value_destroy(value);
+
+                return err;
+        }
+
+        return NO_ERROR;
+}
+
+/**
  * Return a config value from the parser variable map
  */
 const struct config_value *parser_find_variable(const struct parser *parser,

@@ -35,6 +35,7 @@ enum config_token {
 enum config_token char_to_token(char c);
 
 struct parser *parser_create(const char *buffer, size_t buffer_size);
+enum natwm_error parser_create_variable(struct parser *parser);
 const struct config_value *parser_find_variable(const struct parser *parser,
                                                 const char *key);
 enum natwm_error parser_read_key(struct parser *parser, char **result,

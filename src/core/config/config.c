@@ -25,47 +25,6 @@ static void hashmap_free_callback(void *data)
 }
 
 /**
- * Handle the creation of a variable in the configuration
- *
- * When this function is called the parser will be pointing to the
- * start of a variable declaration in the form of
- *
- * $variable_name = <variable_value>
- * ^
- * |
- * *-(parser->pos)
- *
- * Once the variable has been saved to the parser, the parser positon
- * should also be updated to point to the '\n' of the current
- * line, so that the next line can be consumed
- */
-static int create_variable(struct parser *parser)
-{
-        // Skip VARIABLE_START
-        parser_increment(parser);
-
-        char *key = NULL;
-        struct config_value *value = NULL;
-
-        if (parser_read_item(parser, &key, &value) != NO_ERROR) {
-                return -1;
-        }
-
-        if (value == NULL) {
-                return -1;
-        }
-
-        if (map_insert(parser->variables, key, value) != NO_ERROR) {
-                free(key);
-                config_value_destroy(value);
-
-                return -1;
-        }
-
-        return 0;
-}
-
-/**
  * Handle the creation of a config item in the configuration
  *
  * When this function is called the parser position will be pointing to the
@@ -80,24 +39,26 @@ static int create_variable(struct parser *parser)
  * be updated to point to the '\n' at the end of the current line, which will
  * allow for the next line to be consumed
  */
-static int create_config_item(struct parser *parser, struct map **config_map)
+static enum natwm_error create_config_item(struct parser *parser,
+                                           struct map *config_map)
 {
-        if (*config_map == NULL) {
-                return -1;
-        }
-
+        enum natwm_error err = GENERIC_ERROR;
         char *key = NULL;
         struct config_value *item = NULL;
 
-        if (parser_read_item(parser, &key, &item) != NO_ERROR) {
-                return -1;
+        err = parser_read_item(parser, &key, &item);
+
+        if (err != NO_ERROR) {
+                return err;
         }
 
-        if (map_insert(*config_map, key, item) != NO_ERROR) {
-                return -1;
+        err = map_insert(config_map, key, item);
+
+        if (err != NO_ERROR) {
+                return err;
         }
 
-        return 0;
+        return NO_ERROR;
 }
 
 /**
@@ -255,12 +216,12 @@ static struct map *read_context(struct parser *parser)
                         parser_consume_line(parser);
                         break;
                 case VARIABLE_START:
-                        if (create_variable(parser) != 0) {
+                        if (parser_create_variable(parser) != NO_ERROR) {
                                 goto handle_error;
                         }
                         break;
                 case ALPHA_CHAR:
-                        if (create_config_item(parser, &map) != 0) {
+                        if (create_config_item(parser, map) != NO_ERROR) {
                                 goto handle_error;
                         }
                         break;
