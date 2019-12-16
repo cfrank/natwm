@@ -143,6 +143,8 @@ struct parser *parser_create(const char *buffer, size_t buffer_size)
         // Set up hashmap
         map_set_entry_free_function(parser->variables, hashmap_free_callback);
 
+        map_set_setting_flag(parser->variables, MAP_FLAG_FREE_ENTRY_KEY);
+
         return parser;
 }
 
@@ -173,8 +175,7 @@ const struct config_value *parser_find_variable(const struct parser *parser,
  * value.
  */
 struct config_value *parser_resolve_variable(const struct parser *parser,
-                                             const char *variable_key,
-                                             char *new_key)
+                                             const char *variable_key)
 {
         const struct config_value *variable
                 = parser_find_variable(parser, variable_key);
@@ -188,7 +189,7 @@ struct config_value *parser_resolve_variable(const struct parser *parser,
                 return NULL;
         }
 
-        struct config_value *new = config_value_duplicate(variable, new_key);
+        struct config_value *new = config_value_duplicate(variable);
 
         if (new == NULL) {
                 LOG_ERROR(natwm_logger,
@@ -210,7 +211,7 @@ struct config_value *parser_resolve_variable(const struct parser *parser,
  * No other "falsey" values will be parsed as boolean.
  */
 struct config_value *parser_parse_boolean(const struct parser *parser,
-                                          char *key, char *value)
+                                          char *value)
 {
         bool boolean = false;
         enum natwm_error err = string_to_boolean(value, &boolean);
@@ -225,11 +226,13 @@ struct config_value *parser_parse_boolean(const struct parser *parser,
         }
 
         struct config_value *config_value
-                = config_value_create_boolean(key, boolean);
+                = config_value_create_boolean(boolean);
 
         if (config_value == NULL) {
                 return NULL;
         }
+
+        free(value);
 
         return config_value;
 }
@@ -237,7 +240,7 @@ struct config_value *parser_parse_boolean(const struct parser *parser,
 /**
  * Here we will handle the create of a simple numeric value
  */
-struct config_value *parser_parse_number(const struct parser *parser, char *key,
+struct config_value *parser_parse_number(const struct parser *parser,
                                          char *value)
 {
         intmax_t number = 0;
@@ -252,8 +255,7 @@ struct config_value *parser_parse_number(const struct parser *parser, char *key,
                 return NULL;
         }
 
-        struct config_value *config_value
-                = config_value_create_number(key, number);
+        struct config_value *config_value = config_value_create_number(number);
 
         if (config_value == NULL) {
                 return NULL;
@@ -268,7 +270,7 @@ struct config_value *parser_parse_number(const struct parser *parser, char *key,
 /**
  * Here we will handle the creation of a simple string value
  */
-struct config_value *parser_parse_string(const struct parser *parser, char *key,
+struct config_value *parser_parse_string(const struct parser *parser,
                                          char *string)
 {
         // We first need to strip off the surrounding quotes from the string
@@ -286,7 +288,7 @@ struct config_value *parser_parse_string(const struct parser *parser, char *key,
         }
 
         struct config_value *config_value
-                = config_value_create_string(key, stripped_string);
+                = config_value_create_string(stripped_string);
 
         if (config_value == NULL) {
                 free(stripped_string);
@@ -303,13 +305,13 @@ struct config_value *parser_parse_string(const struct parser *parser, char *key,
  * Here we will handle the parsing and creation of a variable value
  */
 struct config_value *parser_parse_variable(const struct parser *parser,
-                                           char *key, char *value)
+                                           char *value)
 {
         // we need to take the value (minus VARIABLE_START) and look it up
         // in the variable map. If it's found we need to duplicate it and store
         // it in a config item with the key passed in
         struct config_value *config_value
-                = parser_resolve_variable(parser, value + 1, key);
+                = parser_resolve_variable(parser, value + 1);
 
         if (config_value == NULL) {
                 return NULL;
@@ -322,22 +324,21 @@ struct config_value *parser_parse_variable(const struct parser *parser,
         return config_value;
 }
 
-struct config_value *parser_parse_value(struct parser *parser, char *key,
-                                        char *value)
+struct config_value *parser_parse_value(struct parser *parser, char *value)
 {
         switch (char_to_token(value[0])) {
         case ALPHA_CHAR:
-                return parser_parse_boolean(parser, key, value);
+                return parser_parse_boolean(parser, value);
         case ARRAY_START:
                 // In order to parse arrays we first need to re-read the value
                 // since it could exist over several lines
-                return parser_read_array(parser, key, value);
+                return parser_read_array(parser, value);
         case NUMERIC_CHAR:
-                return parser_parse_number(parser, key, value);
+                return parser_parse_number(parser, value);
         case QUOTE:
-                return parser_parse_string(parser, key, value);
+                return parser_parse_string(parser, value);
         case VARIABLE_START:
-                return parser_parse_variable(parser, key, value);
+                return parser_parse_variable(parser, value);
         default:
                 return NULL;
         }
@@ -411,7 +412,8 @@ enum natwm_error parser_read_key(struct parser *parser, char **result,
 
         // Now we can return our valid key and key length
         *result = stripped_key;
-        *length = stripped_key_length;
+
+        SET_IF_NON_NULL(length, stripped_key_length);
 
         return NO_ERROR;
 }
@@ -475,7 +477,8 @@ enum natwm_error parser_read_value(struct parser *parser, char **result,
         parser_move(parser, end_pos);
 
         *result = value_stripped;
-        *length = value_stripped_length;
+
+        SET_IF_NON_NULL(length, value_stripped_length);
 
         return NO_ERROR;
 }
@@ -512,11 +515,8 @@ enum natwm_error parser_read_value(struct parser *parser, char **result,
  *
  * A commas followed by a ARRAY_END char is ignored
  */
-struct config_value *parser_read_array(struct parser *parser, char *key,
-                                       char *value)
+struct config_value *parser_read_array(struct parser *parser, char *value)
 {
-        UNUSED_FUNCTION_PARAM(key);
-
         char *items_string = NULL;
         size_t items_string_length = 0;
         enum natwm_error err = GENERIC_ERROR;
@@ -609,42 +609,46 @@ free_and_error:
  * error while parsing then NULL is returned and no memory is left
  * allocated
  */
-struct config_value *parser_read_item(struct parser *parser)
+enum natwm_error parser_read_item(struct parser *parser, char **key_result,
+                                  struct config_value **value_result)
 {
+        enum natwm_error err = GENERIC_ERROR;
         char *key = NULL;
-        size_t key_length = 0;
 
-        if (parser_read_key(parser, &key, &key_length) != NO_ERROR) {
-                return NULL;
+        err = parser_read_key(parser, &key, NULL);
+
+        if (err != NO_ERROR) {
+                return err;
         }
 
         char *value = NULL;
-        size_t value_length = 0;
 
-        if (parser_read_value(parser, &value, &value_length) != NO_ERROR) {
+        err = parser_read_value(parser, &value, NULL);
+
+        if (err != NO_ERROR) {
                 free(key);
 
-                return NULL;
+                return err;
         }
 
-        struct config_value *ret = parser_parse_value(parser, key, value);
+        struct config_value *config_value = parser_parse_value(parser, value);
 
-        if (ret == NULL) {
+        if (config_value == NULL) {
                 LOG_ERROR(natwm_logger,
                           "Failed to save '%s' - Line %zu",
                           key,
                           parser->line_num);
 
-                goto free_and_error;
+                free(key);
+                free(value);
+
+                return GENERIC_ERROR;
         }
 
-        return ret;
+        *key_result = key;
+        *value_result = config_value;
 
-free_and_error:
-        free(key);
-        free(value);
-
-        return NULL;
+        return NO_ERROR;
 }
 
 /**

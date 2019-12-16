@@ -9,7 +9,7 @@
 
 #include "value.h"
 
-struct config_value *config_value_create_number(char *key, intmax_t number)
+struct config_value *config_value_create_boolean(bool boolean)
 {
         struct config_value *value = malloc(sizeof(struct config_value));
 
@@ -17,45 +17,42 @@ struct config_value *config_value_create_number(char *key, intmax_t number)
                 return NULL;
         }
 
-        value->key = key;
-        value->type = NUMBER;
-        value->data.number = number;
-
-        return value;
-}
-
-struct config_value *config_value_create_string(char *key, char *string)
-{
-        struct config_value *value = malloc(sizeof(struct config_value));
-
-        if (value == NULL) {
-                return NULL;
-        }
-
-        value->key = key;
-        value->type = STRING;
-        value->data.string = string;
-
-        return value;
-}
-
-struct config_value *config_value_create_boolean(char *key, bool boolean)
-{
-        struct config_value *value = malloc(sizeof(struct config_value));
-
-        if (value == NULL) {
-                return NULL;
-        }
-
-        value->key = key;
         value->type = BOOLEAN;
         value->data.boolean = boolean;
 
         return value;
 }
 
+struct config_value *config_value_create_number(intmax_t number)
+{
+        struct config_value *value = malloc(sizeof(struct config_value));
+
+        if (value == NULL) {
+                return NULL;
+        }
+
+        value->type = NUMBER;
+        value->data.number = number;
+
+        return value;
+}
+
+struct config_value *config_value_create_string(char *string)
+{
+        struct config_value *value = malloc(sizeof(struct config_value));
+
+        if (value == NULL) {
+                return NULL;
+        }
+
+        value->type = STRING;
+        value->data.string = string;
+
+        return value;
+}
+
 struct config_value *
-config_value_duplicate(const struct config_value *config_value, char *new_key)
+config_value_duplicate(const struct config_value *config_value)
 {
         struct config_value *new_value = malloc(sizeof(struct config_value));
 
@@ -64,8 +61,6 @@ config_value_duplicate(const struct config_value *config_value, char *new_key)
         }
 
         memcpy(new_value, config_value, sizeof(struct config_value));
-
-        new_value->key = new_key;
 
         if (config_value->type == STRING) {
                 new_value->data.string = string_init(config_value->data.string);
@@ -83,6 +78,5 @@ void config_value_destroy(struct config_value *value)
                 free(value->data.string);
         }
 
-        free(value->key);
         free(value);
 }

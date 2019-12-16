@@ -38,23 +38,21 @@ struct parser *parser_create(const char *buffer, size_t buffer_size);
 const struct config_value *parser_find_variable(const struct parser *parser,
                                                 const char *key);
 struct config_value *parser_resolve_variable(const struct parser *parser,
-                                             const char *variable_key,
-                                             char *new_key);
+                                             const char *variable_key);
 struct config_value *parser_parse_boolean(const struct parser *parser,
-                                          char *key, char *value);
-struct config_value *parser_parse_number(const struct parser *parser, char *key,
+                                          char *value);
+struct config_value *parser_parse_number(const struct parser *parser,
                                          char *value);
 struct config_value *parser_parse_variable(const struct parser *parser,
-                                           char *key, char *value);
-struct config_value *parser_parse_value(struct parser *parser, char *key,
-                                        char *value);
+                                           char *value);
+struct config_value *parser_parse_value(struct parser *parser, char *value);
 enum natwm_error parser_read_key(struct parser *parser, char **result,
                                  size_t *length);
 enum natwm_error parser_read_value(struct parser *parser, char **result,
                                    size_t *length);
-struct config_value *parser_read_array(struct parser *parser, char *key,
-                                       char *value);
-struct config_value *parser_read_item(struct parser *parser);
+struct config_value *parser_read_array(struct parser *parser, char *value);
+enum natwm_error parser_read_item(struct parser *parser, char **key_result,
+                                  struct config_value **value_result);
 void parser_increment(struct parser *parser);
 void parser_move(struct parser *parser, size_t new_pos);
 void parser_consume_line(struct parser *parser);

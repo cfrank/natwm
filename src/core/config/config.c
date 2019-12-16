@@ -44,13 +44,19 @@ static int create_variable(struct parser *parser)
         // Skip VARIABLE_START
         parser_increment(parser);
 
-        struct config_value *value = parser_read_item(parser);
+        char *key = NULL;
+        struct config_value *value = NULL;
+
+        if (parser_read_item(parser, &key, &value) != NO_ERROR) {
+                return -1;
+        }
 
         if (value == NULL) {
                 return -1;
         }
 
-        if (map_insert(parser->variables, value->key, value) != NO_ERROR) {
+        if (map_insert(parser->variables, key, value) != NO_ERROR) {
+                free(key);
                 config_value_destroy(value);
 
                 return -1;
@@ -76,13 +82,18 @@ static int create_variable(struct parser *parser)
  */
 static int create_config_item(struct parser *parser, struct map **config_map)
 {
-        struct config_value *item = parser_read_item(parser);
-
-        if (item == NULL || *config_map == NULL) {
+        if (*config_map == NULL) {
                 return -1;
         }
 
-        if (map_insert(*config_map, item->key, item) != NO_ERROR) {
+        char *key = NULL;
+        struct config_value *item = NULL;
+
+        if (parser_read_item(parser, &key, &item) != NO_ERROR) {
+                return -1;
+        }
+
+        if (map_insert(*config_map, key, item) != NO_ERROR) {
                 return -1;
         }
 
@@ -235,6 +246,7 @@ static struct map *read_context(struct parser *parser)
 
         // Setup hash map
         map_set_entry_free_function(map, hashmap_free_callback);
+        map_set_setting_flag(map, MAP_FLAG_FREE_ENTRY_KEY);
 
         char c = '\0';
         while ((c = parser->buffer[parser->pos]) != '\0') {

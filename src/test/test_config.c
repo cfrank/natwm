@@ -52,7 +52,6 @@ static void test_config_simple_config(void **state)
 
         assert_non_null(config_map);
         assert_non_null(value);
-        assert_string_equal(value->key, expected_key);
         assert_int_equal(value->type, STRING);
         assert_string_equal(value->data.string, expected_value);
 
@@ -76,7 +75,6 @@ static void test_config_number_variable(void **state)
 
         assert_non_null(config_map);
         assert_non_null(value);
-        assert_string_equal(value->key, expected_key);
         assert_int_equal(value->type, NUMBER);
         assert_int_equal(value->data.number, expected_value);
 
@@ -100,7 +98,6 @@ static void test_config_string_variable(void **state)
 
         assert_non_null(config_map);
         assert_non_null(value);
-        assert_string_equal(value->key, expected_key);
         assert_int_equal(value->type, STRING);
         assert_string_equal(value->data.string, expected_value);
 
@@ -141,7 +138,6 @@ static void test_config_double_definition(void **state)
 
         assert_non_null(config_map);
         assert_non_null(value);
-        assert_string_equal(expected_key, value->key);
         assert_int_equal(STRING, value->type);
         assert_string_equal(expected_value, value->data.string);
 

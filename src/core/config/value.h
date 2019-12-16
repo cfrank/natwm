@@ -35,10 +35,10 @@ struct config_value {
         } data;
 };
 
-struct config_value *config_value_create_number(char *key, intmax_t number);
-struct config_value *config_value_create_string(char *key, char *string);
+struct config_value *config_value_create_boolean(bool boolean);
+struct config_value *config_value_create_number(intmax_t number);
+struct config_value *config_value_create_string(char *string);
 struct config_value *
-config_value_duplicate(const struct config_value *config_value, char *new_key);
-struct config_value *config_value_create_boolean(char *key, bool boolean);
+config_value_duplicate(const struct config_value *config_value);
 
 void config_value_destroy(struct config_value *value);
