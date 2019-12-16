@@ -13,12 +13,6 @@
 #include "logger.h"
 #include "string.h"
 
-// TODO: Move to common macro file if used again
-#define SET_IF_NON_NULL(dest, value)                                           \
-        if ((dest) != NULL) {                                                  \
-                (*dest) = value;                                               \
-        }
-
 /*
  * Duplicates a stack allocated string to a heap allocated string. This allows
  * for mutating/building upon a string with for instance the string_append
