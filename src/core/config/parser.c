@@ -84,6 +84,293 @@ static enum natwm_error get_array_items_string(struct parser *parser,
         return NO_ERROR;
 }
 
+/**
+ * Here we will handle parsing array values
+ *
+ * Arrays are different in that they support multi line value strings. The
+ * string we are going to receive into this function will terminate at the
+ * first '\n' so we need to create our own "array value string" from the
+ * parser
+ *
+ * That "array value string" will resemble something like this:
+ *
+ * [<value>,<value>,<value>]
+ *
+ * or
+ *
+ * [
+ *     <value>,
+ *     <value>,
+ *     <value>,
+ * ]
+ *
+ * Both of which should be treated the same and return the same result.
+ *
+ * The rules of arrays are:
+ *
+ * Each value must have the same data type. An array is invalid if any of the
+ * value types differ from their siblings.
+ *
+ * New lines are ignored, and since we don't allow newlines in strings they
+ * are invalid except for splitting the array items on different lines
+ *
+ * A commas followed by a ARRAY_END char is ignored
+ */
+static struct config_value *parser_read_array(struct parser *parser,
+                                              char *value)
+{
+        char *items_string = NULL;
+        size_t items_string_length = 0;
+        enum natwm_error err = GENERIC_ERROR;
+
+        err = get_array_items_string(
+                parser, value, &items_string, &items_string_length);
+
+        if (err != NO_ERROR) {
+                return NULL;
+        }
+
+        // We should now have a valid string containing the string
+        // representation of the array values
+        //
+        // We now need to normalize it
+        char **array_items = NULL;
+        size_t array_items_length = 0;
+
+        err = string_split(
+                items_string, ',', &array_items, &array_items_length);
+
+        if (err != NO_ERROR) {
+                LOG_ERROR(natwm_logger,
+                          "Failed to parse array items - Line %zu",
+                          parser->line_num);
+
+                free(items_string);
+
+                return NULL;
+        }
+
+        // Remove spaces around the items
+        for (size_t i = 0; i < array_items_length; ++i) {
+                char *stripped_item = NULL;
+                err = string_strip_surrounding_spaces(
+                        array_items[i], &stripped_item, NULL);
+
+                if (err != NO_ERROR) {
+                        goto free_and_error;
+                }
+
+                free(array_items[i]);
+
+                array_items[i] = stripped_item;
+        }
+
+        // Now we should have an array of stripped items
+        // Last step is to resolve them into a new config_value
+
+        LOG_INFO(natwm_logger, "TODO: use mem");
+
+        return NULL;
+
+free_and_error:
+        // We need to free up our intermediate strings and the array of array
+        // values we allocated
+        free(items_string);
+
+        for (size_t itr = 0; itr < array_items_length; ++itr) {
+                if (array_items[itr]) {
+                        free(array_items[itr]);
+                }
+        }
+
+        free(array_items);
+
+        return NULL;
+}
+
+/**
+ * Resolve a variable found in the configuration file
+ *
+ * Once we have read and parsed a configuration item pointing to a variable
+ * we need to resolve the variable.
+ *
+ * First we find the variable in the parser's variable map then we copy the
+ * value.
+ */
+static struct config_value *parser_resolve_variable(const struct parser *parser,
+                                                    const char *variable_key)
+{
+        const struct config_value *variable
+                = parser_find_variable(parser, variable_key);
+
+        if (variable == NULL) {
+                LOG_ERROR(natwm_logger,
+                          "'%s' is not defined - Line: %zu",
+                          variable_key,
+                          parser->line_num);
+
+                return NULL;
+        }
+
+        struct config_value *new = config_value_duplicate(variable);
+
+        if (new == NULL) {
+                LOG_ERROR(natwm_logger,
+                          "Failed to resolve variable '%s' - Line: %zu",
+                          variable_key,
+                          parser->line_num);
+
+                return NULL;
+        }
+
+        return new;
+}
+
+/**
+ * Here we will handle the creation of a simple boolean value of the form:
+ *
+ * "true" or "false"
+ *
+ * No other "falsey" values will be parsed as boolean.
+ */
+static struct config_value *parser_parse_boolean(const struct parser *parser,
+                                                 char *value)
+{
+        bool boolean = false;
+        enum natwm_error err = string_to_boolean(value, &boolean);
+
+        if (err != NO_ERROR) {
+                LOG_ERROR(natwm_logger,
+                          "Invalid boolean value '%s' found - Line %zu",
+                          value,
+                          parser->line_num);
+
+                return NULL;
+        }
+
+        struct config_value *config_value
+                = config_value_create_boolean(boolean);
+
+        if (config_value == NULL) {
+                return NULL;
+        }
+
+        free(value);
+
+        return config_value;
+}
+
+/**
+ * Here we will handle the create of a simple numeric value
+ */
+static struct config_value *parser_parse_number(const struct parser *parser,
+                                                char *value)
+{
+        intmax_t number = 0;
+        enum natwm_error err = string_to_number(value, &number);
+
+        if (err != NO_ERROR) {
+                LOG_ERROR(natwm_logger,
+                          "Invalid numeric value '%s' found - Line %zu",
+                          value,
+                          parser->line_num);
+
+                return NULL;
+        }
+
+        struct config_value *config_value = config_value_create_number(number);
+
+        if (config_value == NULL) {
+                return NULL;
+        }
+
+        // We no longer need this value
+        free(value);
+
+        return config_value;
+}
+
+/**
+ * Here we will handle the parsing and creation of a variable value
+ */
+static struct config_value *parser_parse_variable(const struct parser *parser,
+                                                  char *value)
+{
+        // we need to take the value (minus VARIABLE_START) and look it up
+        // in the variable map. If it's found we need to duplicate it and store
+        // it in a config item with the key passed in
+        struct config_value *config_value
+                = parser_resolve_variable(parser, value + 1);
+
+        if (config_value == NULL) {
+                return NULL;
+        }
+
+        // We no longer need this value since we only needed it for the
+        // variable lookup
+        free(value);
+
+        return config_value;
+}
+
+/**
+ * Here we will handle the creation of a simple string value
+ */
+static struct config_value *parser_parse_string(const struct parser *parser,
+                                                char *string)
+{
+        // We first need to strip off the surrounding quotes from the string
+        size_t string_len = strlen(string);
+        char *stripped_string = NULL;
+
+        if (string_splice(string, 1, string_len - 1, &stripped_string, NULL)
+            != NO_ERROR) {
+                LOG_INFO(natwm_logger,
+                         "Invalid string '%s' found - Line %zu",
+                         string,
+                         parser->line_num);
+
+                return NULL;
+        }
+
+        struct config_value *config_value
+                = config_value_create_string(stripped_string);
+
+        if (config_value == NULL) {
+                free(stripped_string);
+
+                return NULL;
+        }
+
+        free(string);
+
+        return config_value;
+}
+
+/**
+ * Here we will handle the parsing of a generic value.
+ */
+static struct config_value *parser_parse_value(struct parser *parser,
+                                               char *value)
+{
+        switch (char_to_token(value[0])) {
+        case ALPHA_CHAR:
+                return parser_parse_boolean(parser, value);
+        case ARRAY_START:
+                // In order to parse arrays we first need to re-read the value
+                // since it could exist over several lines
+                return parser_read_array(parser, value);
+        case NUMERIC_CHAR:
+                return parser_parse_number(parser, value);
+        case QUOTE:
+                return parser_parse_string(parser, value);
+        case VARIABLE_START:
+                return parser_parse_variable(parser, value);
+        default:
+                return NULL;
+        }
+}
+
 enum config_token char_to_token(char c)
 {
         switch (c) {
@@ -163,185 +450,6 @@ const struct config_value *parser_find_variable(const struct parser *parser,
         struct config_value *value = (struct config_value *)entry->value;
 
         return value;
-}
-
-/**
- * Resolve a variable found in the configuration file
- *
- * Once we have read and parsed a configuration item pointing to a variable
- * we need to resolve the variable.
- *
- * First we find the variable in the parser's variable map then we copy the
- * value.
- */
-struct config_value *parser_resolve_variable(const struct parser *parser,
-                                             const char *variable_key)
-{
-        const struct config_value *variable
-                = parser_find_variable(parser, variable_key);
-
-        if (variable == NULL) {
-                LOG_ERROR(natwm_logger,
-                          "'%s' is not defined - Line: %zu",
-                          variable_key,
-                          parser->line_num);
-
-                return NULL;
-        }
-
-        struct config_value *new = config_value_duplicate(variable);
-
-        if (new == NULL) {
-                LOG_ERROR(natwm_logger,
-                          "Failed to resolve variable '%s' - Line: %zu",
-                          variable_key,
-                          parser->line_num);
-
-                return NULL;
-        }
-
-        return new;
-}
-
-/**
- * Here we will handle the creation of a simple boolean value of the form:
- *
- * "true" or "false"
- *
- * No other "falsey" values will be parsed as boolean.
- */
-struct config_value *parser_parse_boolean(const struct parser *parser,
-                                          char *value)
-{
-        bool boolean = false;
-        enum natwm_error err = string_to_boolean(value, &boolean);
-
-        if (err != NO_ERROR) {
-                LOG_ERROR(natwm_logger,
-                          "Invalid boolean value '%s' found - Line %zu",
-                          value,
-                          parser->line_num);
-
-                return NULL;
-        }
-
-        struct config_value *config_value
-                = config_value_create_boolean(boolean);
-
-        if (config_value == NULL) {
-                return NULL;
-        }
-
-        free(value);
-
-        return config_value;
-}
-
-/**
- * Here we will handle the create of a simple numeric value
- */
-struct config_value *parser_parse_number(const struct parser *parser,
-                                         char *value)
-{
-        intmax_t number = 0;
-        enum natwm_error err = string_to_number(value, &number);
-
-        if (err != NO_ERROR) {
-                LOG_ERROR(natwm_logger,
-                          "Invalid numeric value '%s' found - Line %zu",
-                          value,
-                          parser->line_num);
-
-                return NULL;
-        }
-
-        struct config_value *config_value = config_value_create_number(number);
-
-        if (config_value == NULL) {
-                return NULL;
-        }
-
-        // We no longer need this value
-        free(value);
-
-        return config_value;
-}
-
-/**
- * Here we will handle the creation of a simple string value
- */
-struct config_value *parser_parse_string(const struct parser *parser,
-                                         char *string)
-{
-        // We first need to strip off the surrounding quotes from the string
-        size_t string_len = strlen(string);
-        char *stripped_string = NULL;
-
-        if (string_splice(string, 1, string_len - 1, &stripped_string, NULL)
-            != NO_ERROR) {
-                LOG_INFO(natwm_logger,
-                         "Invalid string '%s' found - Line %zu",
-                         string,
-                         parser->line_num);
-
-                return NULL;
-        }
-
-        struct config_value *config_value
-                = config_value_create_string(stripped_string);
-
-        if (config_value == NULL) {
-                free(stripped_string);
-
-                return NULL;
-        }
-
-        free(string);
-
-        return config_value;
-}
-
-/**
- * Here we will handle the parsing and creation of a variable value
- */
-struct config_value *parser_parse_variable(const struct parser *parser,
-                                           char *value)
-{
-        // we need to take the value (minus VARIABLE_START) and look it up
-        // in the variable map. If it's found we need to duplicate it and store
-        // it in a config item with the key passed in
-        struct config_value *config_value
-                = parser_resolve_variable(parser, value + 1);
-
-        if (config_value == NULL) {
-                return NULL;
-        }
-
-        // We no longer need this value since we only needed it for the
-        // variable lookup
-        free(value);
-
-        return config_value;
-}
-
-struct config_value *parser_parse_value(struct parser *parser, char *value)
-{
-        switch (char_to_token(value[0])) {
-        case ALPHA_CHAR:
-                return parser_parse_boolean(parser, value);
-        case ARRAY_START:
-                // In order to parse arrays we first need to re-read the value
-                // since it could exist over several lines
-                return parser_read_array(parser, value);
-        case NUMERIC_CHAR:
-                return parser_parse_number(parser, value);
-        case QUOTE:
-                return parser_parse_string(parser, value);
-        case VARIABLE_START:
-                return parser_parse_variable(parser, value);
-        default:
-                return NULL;
-        }
 }
 
 /**
@@ -481,109 +589,6 @@ enum natwm_error parser_read_value(struct parser *parser, char **result,
         SET_IF_NON_NULL(length, value_stripped_length);
 
         return NO_ERROR;
-}
-
-/**
- * Here we will handle parsing array values
- *
- * Arrays are different in that they support multi line value strings. The
- * string we are going to receive into this function will terminate at the
- * first '\n' so we need to create our own "array value string" from the
- * parser
- *
- * That "array value string" will resemble something like this:
- *
- * [<value>,<value>,<value>]
- *
- * or
- *
- * [
- *     <value>,
- *     <value>,
- *     <value>,
- * ]
- *
- * Both of which should be treated the same and return the same result.
- *
- * The rules of arrays are:
- *
- * Each value must have the same data type. An array is invalid if any of the
- * value types differ from their siblings.
- *
- * New lines are ignored, and since we don't allow newlines in strings they
- * are invalid except for splitting the array items on different lines
- *
- * A commas followed by a ARRAY_END char is ignored
- */
-struct config_value *parser_read_array(struct parser *parser, char *value)
-{
-        char *items_string = NULL;
-        size_t items_string_length = 0;
-        enum natwm_error err = GENERIC_ERROR;
-
-        err = get_array_items_string(
-                parser, value, &items_string, &items_string_length);
-
-        if (err != NO_ERROR) {
-                return NULL;
-        }
-
-        // We should now have a valid string containing the string
-        // representation of the array values
-        //
-        // We now need to normalize it
-        char **array_items = NULL;
-        size_t array_items_length = 0;
-
-        err = string_split(
-                items_string, ',', &array_items, &array_items_length);
-
-        if (err != NO_ERROR) {
-                LOG_ERROR(natwm_logger,
-                          "Failed to parse array items - Line %zu",
-                          parser->line_num);
-
-                free(items_string);
-
-                return NULL;
-        }
-
-        // Remove spaces around the items
-        for (size_t i = 0; i < array_items_length; ++i) {
-                char *stripped_item = NULL;
-                err = string_strip_surrounding_spaces(
-                        array_items[i], &stripped_item, NULL);
-
-                if (err != NO_ERROR) {
-                        goto free_and_error;
-                }
-
-                free(array_items[i]);
-
-                array_items[i] = stripped_item;
-        }
-
-        // Now we should have an array of stripped items
-        // Last step is to resolve them into a new config_value
-
-        LOG_INFO(natwm_logger, "TODO: use mem");
-
-        return NULL;
-
-free_and_error:
-        // We need to free up our intermediate strings and the array of array
-        // values we allocated
-        free(items_string);
-
-        for (size_t itr = 0; itr < array_items_length; ++itr) {
-                if (array_items[itr]) {
-                        free(array_items[itr]);
-                }
-        }
-
-        free(array_items);
-
-        return NULL;
 }
 
 /**
