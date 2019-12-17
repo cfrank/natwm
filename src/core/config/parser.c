@@ -130,6 +130,9 @@ static struct config_value *parser_read_array(struct parser *parser,
                 return NULL;
         }
 
+        // We can free this intermediate string
+        free(value);
+
         // We should now have a valid string containing the string
         // representation of the array values
         //
@@ -167,23 +170,53 @@ static struct config_value *parser_read_array(struct parser *parser,
 
         // Now we should have an array of stripped items
         // Last step is to resolve them into a new config_value
+        struct config_value *config_value
+                = config_value_create_array(array_items_length);
 
-        LOG_INFO(natwm_logger, "TODO: use mem");
+        if (config_value == NULL) {
+                goto free_and_error;
+        }
 
-        return NULL;
+        // Resolve and insert config_values into the array
+        for (size_t j = 0; j < array_items_length; ++j) {
+                struct config_value *value_item
+                        = parser_parse_value(parser, array_items[j]);
+
+                if (value_item == NULL) {
+                        goto free_and_error;
+                }
+
+                config_value->data.array->values[j] = value_item;
+        }
+
+        free(items_string);
+        free(array_items);
+
+        return config_value;
 
 free_and_error:
         // We need to free up our intermediate strings and the array of array
         // values we allocated
         free(items_string);
 
-        for (size_t itr = 0; itr < array_items_length; ++itr) {
+        size_t itr = 0;
+
+        for (itr = 0; itr < array_items_length; ++itr) {
                 if (array_items[itr]) {
                         free(array_items[itr]);
                 }
         }
 
         free(array_items);
+
+        if (config_value != NULL && config_value->data.array->values != NULL) {
+                for (itr = 0; itr < config_value->data.array->length; ++itr) {
+                        if (config_value->data.array->values[itr] != NULL) {
+                                config_value_destroy(
+                                        config_value->data.array->values[itr]);
+                        }
+                }
+        }
 
         return NULL;
 }
@@ -347,30 +380,6 @@ static struct config_value *parser_parse_string(const struct parser *parser,
         return config_value;
 }
 
-/**
- * Here we will handle the parsing of a generic value.
- */
-static struct config_value *parser_parse_value(struct parser *parser,
-                                               char *value)
-{
-        switch (char_to_token(value[0])) {
-        case ALPHA_CHAR:
-                return parser_parse_boolean(parser, value);
-        case ARRAY_START:
-                // In order to parse arrays we first need to re-read the value
-                // since it could exist over several lines
-                return parser_read_array(parser, value);
-        case NUMERIC_CHAR:
-                return parser_parse_number(parser, value);
-        case QUOTE:
-                return parser_parse_string(parser, value);
-        case VARIABLE_START:
-                return parser_parse_variable(parser, value);
-        default:
-                return NULL;
-        }
-}
-
 enum config_token char_to_token(char c)
 {
         switch (c) {
@@ -492,6 +501,29 @@ const struct config_value *parser_find_variable(const struct parser *parser,
         struct config_value *value = (struct config_value *)entry->value;
 
         return value;
+}
+
+/**
+ * Here we will handle the parsing of a generic value.
+ */
+struct config_value *parser_parse_value(struct parser *parser, char *value)
+{
+        switch (char_to_token(value[0])) {
+        case ALPHA_CHAR:
+                return parser_parse_boolean(parser, value);
+        case ARRAY_START:
+                // In order to parse arrays we first need to re-read the value
+                // since it could exist over several lines
+                return parser_read_array(parser, value);
+        case NUMERIC_CHAR:
+                return parser_parse_number(parser, value);
+        case QUOTE:
+                return parser_parse_string(parser, value);
+        case VARIABLE_START:
+                return parser_parse_variable(parser, value);
+        default:
+                return NULL;
+        }
 }
 
 /**

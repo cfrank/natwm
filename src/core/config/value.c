@@ -5,9 +5,43 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <common/logger.h>
 #include <common/string.h>
 
 #include "value.h"
+
+struct config_value *config_value_create_array(size_t length)
+{
+        struct config_value *value = malloc(sizeof(struct config_value));
+
+        if (value == NULL) {
+                return NULL;
+        }
+
+        value->type = ARRAY;
+
+        struct config_array *array = malloc(sizeof(struct config_array));
+
+        if (array == NULL) {
+                free(value);
+
+                return NULL;
+        }
+
+        array->length = length;
+        array->values = malloc(sizeof(struct config_value *) * length);
+
+        if (array->values == NULL) {
+                free(value);
+                free(array);
+
+                return NULL;
+        }
+
+        value->data.array = array;
+
+        return value;
+}
 
 struct config_value *config_value_create_boolean(bool boolean)
 {
@@ -76,6 +110,15 @@ void config_value_destroy(struct config_value *value)
         if (value->type == STRING) {
                 // For strings we need to free the data as well
                 free(value->data.string);
+        }
+
+        if (value->type == ARRAY && value->data.array != NULL) {
+                for (size_t i = 0; i < value->data.array->length; ++i) {
+                        config_value_destroy(value->data.array->values[i]);
+                }
+
+                free(value->data.array->values);
+                free(value->data.array);
         }
 
         free(value);

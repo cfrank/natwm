@@ -13,28 +13,37 @@
  * TODO: Support for more data types will be added as needed
  */
 enum data_types {
+        ARRAY,
         BOOLEAN,
-        NUMBER_ARRAY,
         NUMBER,
-        STRING_ARRAY,
         STRING,
 };
 
+struct config_value;
+
 /**
- * Handle key value pairs
+ * An array of config values
+ */
+struct config_array {
+        size_t length;
+        struct config_value **values;
+};
+
+/**
+ * A config value
  */
 struct config_value {
-        char *key;
         enum data_types type;
         union {
                 bool boolean;
-                struct list *list;
                 intmax_t number;
                 // Heap allocated - must be free'd
                 char *string;
+                struct config_array *array;
         } data;
 };
 
+struct config_value *config_value_create_array(size_t length);
 struct config_value *config_value_create_boolean(bool boolean);
 struct config_value *config_value_create_number(intmax_t number);
 struct config_value *config_value_create_string(char *string);

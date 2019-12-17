@@ -55,6 +55,10 @@ static enum natwm_error create_config_item(struct parser *parser,
         err = map_insert(config_map, key, item);
 
         if (err != NO_ERROR) {
+                free(key);
+
+                config_value_destroy(item);
+
                 return err;
         }
 
