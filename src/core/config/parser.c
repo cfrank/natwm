@@ -73,6 +73,8 @@ static enum natwm_error get_array_items_string(struct parser *parser,
                                              &values_string_size);
 
         if (err != NO_ERROR) {
+                free(array_string);
+
                 return err;
         }
 
@@ -103,8 +105,6 @@ static struct config_value *parser_resolve_array(struct parser *parser,
                         = parser_parse_value(parser, array_items[i]);
 
                 if (item == NULL) {
-                        config_value->data.array->values[i] = NULL;
-
                         goto free_and_error;
                 }
 

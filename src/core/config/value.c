@@ -19,7 +19,7 @@ static struct config_array *config_array_create(size_t length)
         }
 
         array->length = length;
-        array->values = malloc(sizeof(struct config_value *) * length);
+        array->values = calloc(length, sizeof(struct config_value *));
 
         if (array->values == NULL) {
                 free(array);
