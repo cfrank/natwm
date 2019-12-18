@@ -58,6 +58,82 @@ static void test_config_simple_config(void **state)
         config_destroy(config_map);
 }
 
+static void test_config_array(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        const char *expected_key = "simple.array";
+        size_t expected_array_length = 3;
+        intmax_t expected_values[3] = {1, 2, 3};
+        const char *config_string = "simple.array = [1,2,3]\n";
+        size_t config_length = strlen(config_string);
+        struct map *config_map
+                = config_read_string(config_string, config_length);
+
+        assert_non_null(config_map);
+
+        struct config_value *value = config_find(config_map, expected_key);
+
+        assert_non_null(value);
+        assert_int_equal(ARRAY, value->type);
+
+        struct config_array *array = value->data.array;
+
+        assert_int_equal(expected_array_length, array->length);
+
+        for (size_t i = 0; i < expected_array_length; ++i) {
+                struct config_value *array_item = array->values[i];
+
+                assert_non_null(array_item);
+                assert_int_equal(NUMBER, array_item->type);
+                assert_int_equal(expected_values[i], array_item->data.number);
+        }
+
+        config_destroy(config_map);
+}
+
+static void test_config_boolean(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        const char *expected_key = "works";
+        const char *config_string = "works = true\n";
+        size_t config_length = strlen(config_string);
+        struct map *config_map
+                = config_read_string(config_string, config_length);
+
+        assert_non_null(config_map);
+
+        struct config_value *value = config_find(config_map, expected_key);
+
+        assert_non_null(value);
+        assert_int_equal(BOOLEAN, value->type);
+        assert_true(value->data.boolean);
+
+        config_destroy(config_map);
+}
+
+static void test_config_boolean_variable(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        const char *expected_key = "works";
+        const char *config_string = "$is_working = true\nworks = $is_working\n";
+        size_t config_length = strlen(config_string);
+        struct map *config_map
+                = config_read_string(config_string, config_length);
+
+        assert_non_null(config_map);
+
+        struct config_value *value = config_find(config_map, expected_key);
+
+        assert_non_null(value);
+        assert_int_equal(BOOLEAN, value->type);
+        assert_true(value->data.boolean);
+
+        config_destroy(config_map);
+}
+
 static void test_config_number_variable(void **state)
 {
         UNUSED_FUNCTION_PARAM(state);
@@ -73,7 +149,6 @@ static void test_config_number_variable(void **state)
 
         struct config_value *value = config_find(config_map, expected_key);
 
-        assert_non_null(config_map);
         assert_non_null(value);
         assert_int_equal(value->type, NUMBER);
         assert_int_equal(value->data.number, expected_value);
@@ -96,7 +171,6 @@ static void test_config_string_variable(void **state)
 
         struct config_value *value = config_find(config_map, expected_key);
 
-        assert_non_null(config_map);
         assert_non_null(value);
         assert_int_equal(value->type, STRING);
         assert_string_equal(value->data.string, expected_value);
@@ -136,7 +210,6 @@ static void test_config_double_definition(void **state)
 
         struct config_value *value = config_find(config_map, expected_key);
 
-        assert_non_null(config_map);
         assert_non_null(value);
         assert_int_equal(STRING, value->type);
         assert_string_equal(expected_value, value->data.string);
@@ -447,6 +520,9 @@ int main(void)
 {
         const struct CMUnitTest tests[] = {
                 cmocka_unit_test(test_config_simple_config),
+                cmocka_unit_test(test_config_array),
+                cmocka_unit_test(test_config_boolean),
+                cmocka_unit_test(test_config_boolean_variable),
                 cmocka_unit_test(test_config_number_variable),
                 cmocka_unit_test(test_config_string_variable),
                 cmocka_unit_test(test_config_comment),
