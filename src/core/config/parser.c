@@ -84,6 +84,52 @@ static enum natwm_error get_array_items_string(struct parser *parser,
         return NO_ERROR;
 }
 
+static struct config_value *parser_resolve_array(struct parser *parser,
+                                                 char **array_items,
+                                                 size_t array_items_length)
+{
+        // Now we should have an array of stripped items
+        // Last step is to resolve them into a new config_value
+        struct config_value *config_value
+                = config_value_create_array(array_items_length);
+
+        if (config_value == NULL) {
+                return NULL;
+        }
+
+        // Resolve and insert config_values into the array
+        for (size_t i = 0; i < array_items_length; ++i) {
+                struct config_value *item
+                        = parser_parse_value(parser, array_items[i]);
+
+                if (item == NULL) {
+                        goto free_and_error;
+                }
+
+                config_value->data.array->values[i] = item;
+        }
+
+        return config_value;
+
+free_and_error:
+        // If we fail in the middle of populating the array we need to free
+        // the items which were already added
+        for (size_t j = 0; j < array_items_length; ++j) {
+                struct config_value *item_to_free
+                        = config_value->data.array->values[j];
+
+                if (item_to_free != NULL) {
+                        config_value_destroy(item_to_free);
+                }
+        }
+
+        free(config_value->data.array->values);
+        free(config_value->data.array);
+        free(config_value);
+
+        return NULL;
+}
+
 /**
  * Here we will handle parsing array values
  *
@@ -130,9 +176,6 @@ static struct config_value *parser_read_array(struct parser *parser,
                 return NULL;
         }
 
-        // We can free this intermediate string
-        free(value);
-
         // We should now have a valid string containing the string
         // representation of the array values
         //
@@ -169,26 +212,15 @@ static struct config_value *parser_read_array(struct parser *parser,
         }
 
         // Now we should have an array of stripped items
-        // Last step is to resolve them into a new config_value
+        // Last step is to parse them into a new config_value
         struct config_value *config_value
-                = config_value_create_array(array_items_length);
+                = parser_resolve_array(parser, array_items, array_items_length);
 
         if (config_value == NULL) {
                 goto free_and_error;
         }
 
-        // Resolve and insert config_values into the array
-        for (size_t j = 0; j < array_items_length; ++j) {
-                struct config_value *value_item
-                        = parser_parse_value(parser, array_items[j]);
-
-                if (value_item == NULL) {
-                        goto free_and_error;
-                }
-
-                config_value->data.array->values[j] = value_item;
-        }
-
+        free(value);
         free(items_string);
         free(array_items);
 
@@ -208,15 +240,6 @@ free_and_error:
         }
 
         free(array_items);
-
-        if (config_value != NULL && config_value->data.array->values != NULL) {
-                for (itr = 0; itr < config_value->data.array->length; ++itr) {
-                        if (config_value->data.array->values[itr] != NULL) {
-                                config_value_destroy(
-                                        config_value->data.array->values[itr]);
-                        }
-                }
-        }
 
         return NULL;
 }
