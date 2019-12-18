@@ -114,18 +114,7 @@ static struct config_value *parser_resolve_array(struct parser *parser,
 free_and_error:
         // If we fail in the middle of populating the array we need to free
         // the items which were already added
-        for (size_t j = 0; j < array_items_length; ++j) {
-                struct config_value *item_to_free
-                        = config_value->data.array->values[j];
-
-                if (item_to_free != NULL) {
-                        config_value_destroy(item_to_free);
-                }
-        }
-
-        free(config_value->data.array->values);
-        free(config_value->data.array);
-        free(config_value);
+        config_value_destroy(config_value);
 
         return NULL;
 }

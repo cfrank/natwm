@@ -43,11 +43,12 @@ struct config_value {
         } data;
 };
 
+void config_array_destroy(struct config_array *array);
+
 struct config_value *config_value_create_array(size_t length);
 struct config_value *config_value_create_boolean(bool boolean);
 struct config_value *config_value_create_number(intmax_t number);
 struct config_value *config_value_create_string(char *string);
-struct config_value *
-config_value_duplicate(const struct config_value *config_value);
+struct config_value *config_value_duplicate(const struct config_value *value);
 
 void config_value_destroy(struct config_value *value);
