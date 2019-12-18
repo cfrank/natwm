@@ -198,11 +198,33 @@ static struct config_value *parser_read_array(struct parser *parser,
 
         // Remove spaces around the items
         for (size_t i = 0; i < array_items_length; ++i) {
+                // If we encounter an '' (empty string) as the last item in the
+                // array we have two senarios:
+                //
+                // 1) The array is empty and there are no values
+                // 2) There was a trailing comma
+                //
+                // In both cases we should free the string, decrement the array
+                // length, and terminate the loop
+                if (strncmp(array_items[i], "", 1) == 0
+                    && (i == array_items_length - 1)) {
+                        free(array_items[i]);
+
+                        array_items_length = (array_items_length - 1);
+
+                        break;
+                }
+
                 char *stripped_item = NULL;
                 err = string_strip_surrounding_spaces(
                         array_items[i], &stripped_item, NULL);
 
                 if (err != NO_ERROR) {
+                        LOG_ERROR(natwm_logger,
+                                  "Failed to parse array item '%s' - Line %zu",
+                                  array_items[i],
+                                  parser->line_num);
+
                         goto free_and_error;
                 }
 
