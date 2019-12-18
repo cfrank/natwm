@@ -300,6 +300,53 @@ static void test_config_array_trailing_comma(void **state)
         config_destroy(config_map);
 }
 
+static void test_config_array_trailing_comma_multiline(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        const char *expected_key = "trailing.array";
+        size_t expected_array_length = 3;
+        const char *expected_values[3] = {"one", "two", "three"};
+        /**
+         * trailing.array = [
+         *     "one",
+         *     "two",
+         *     "three",
+         * ]
+         */
+        const char *config_string = "trailing.array = [\n"
+                                    "\"one\",\n"
+                                    "\"two\",\n"
+                                    "\"three\",\n"
+                                    "]\n";
+        size_t config_length = strlen(config_string);
+        struct map *config_map
+                = config_read_string(config_string, config_length);
+
+        assert_non_null(config_map);
+
+        struct config_value *value = config_find(config_map, expected_key);
+
+        assert_non_null(value);
+        assert_int_equal(ARRAY, value->type);
+
+        struct config_array *array = value->data.array;
+
+        assert_int_equal(expected_array_length, array->length);
+        assert_non_null(array->values);
+
+        for (size_t i = 0; i < expected_array_length; ++i) {
+                struct config_value *array_item = array->values[i];
+
+                assert_non_null(array_item);
+                assert_int_equal(STRING, array_item->type);
+                assert_string_equal(expected_values[i],
+                                    array_item->data.number);
+        }
+
+        config_destroy(config_map);
+}
+
 static void test_config_boolean(void **state)
 {
         UNUSED_FUNCTION_PARAM(state);
@@ -735,6 +782,7 @@ int main(void)
                 cmocka_unit_test(test_config_array_empty),
                 cmocka_unit_test(test_config_array_invalid),
                 cmocka_unit_test(test_config_array_trailing_comma),
+                cmocka_unit_test(test_config_array_trailing_comma_multiline),
                 cmocka_unit_test(test_config_boolean),
                 cmocka_unit_test(test_config_boolean_variable),
                 cmocka_unit_test(test_config_number_variable),
