@@ -96,13 +96,29 @@ config_value_duplicate(const struct config_value *config_value)
 
         memcpy(new_value, config_value, sizeof(struct config_value));
 
-        if (config_value->type == STRING) {
+        switch (config_value->type) {
+        case STRING:
                 new_value->data.string = string_init(config_value->data.string);
-        } else if (config_value->type == NUMBER) {
+
+                if (new_value->data.string == NULL) {
+                        goto free_and_error;
+                }
+
+                break;
+        case NUMBER:
                 new_value->data.number = config_value->data.number;
+
+                break;
+        default:
+                goto free_and_error;
         }
 
         return new_value;
+
+free_and_error:
+        free(new_value);
+
+        return NULL;
 }
 
 void config_value_destroy(struct config_value *value)
