@@ -80,6 +80,7 @@ static void test_config_array(void **state)
         struct config_array *array = value->data.array;
 
         assert_int_equal(expected_array_length, array->length);
+        assert_non_null(array->values);
 
         for (size_t i = 0; i < expected_array_length; ++i) {
                 struct config_value *array_item = array->values[i];
@@ -87,6 +88,153 @@ static void test_config_array(void **state)
                 assert_non_null(array_item);
                 assert_int_equal(NUMBER, array_item->type);
                 assert_int_equal(expected_values[i], array_item->data.number);
+        }
+
+        config_destroy(config_map);
+}
+
+static void test_config_array_boolean(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        const char *expected_key = "bool.array";
+        size_t expected_array_length = 3;
+        bool expected_values[3] = {true, false, true};
+        // True/False can be any case
+        const char *config_string = "bool.array = [true, False, TRUE]\n";
+        size_t config_length = strlen(config_string);
+        struct map *config_map
+                = config_read_string(config_string, config_length);
+
+        assert_non_null(config_map);
+
+        struct config_value *value = config_find(config_map, expected_key);
+
+        assert_non_null(value);
+        assert_int_equal(ARRAY, value->type);
+
+        struct config_array *array = value->data.array;
+
+        assert_int_equal(expected_array_length, array->length);
+        assert_non_null(array->values);
+
+        for (size_t i = 0; i < expected_array_length; ++i) {
+                struct config_value *array_item = array->values[i];
+
+                assert_non_null(array_item);
+                assert_int_equal(BOOLEAN, array_item->type);
+                assert_int_equal(expected_values[i], array_item->data.boolean);
+        }
+
+        config_destroy(config_map);
+}
+
+static void test_config_array_variable(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        const char *expected_key = "strings";
+        size_t expected_array_length = 3;
+        const char *expected_values[3] = {"one", "two", "three"};
+        const char *config_string
+                = "$nums = [\"one\", \"two\", \"three\"]\nstrings = $nums\n";
+        size_t config_length = strlen(config_string);
+        struct map *config_map
+                = config_read_string(config_string, config_length);
+
+        assert_non_null(config_map);
+
+        struct config_value *value = config_find(config_map, expected_key);
+
+        assert_non_null(value);
+        assert_int_equal(ARRAY, value->type);
+
+        struct config_array *array = value->data.array;
+
+        assert_int_equal(expected_array_length, array->length);
+        assert_non_null(array->values);
+
+        for (size_t i = 0; i < expected_array_length; ++i) {
+                struct config_value *array_item = array->values[i];
+
+                assert_non_null(array_item);
+                assert_int_equal(STRING, array_item->type);
+                assert_string_equal(expected_values[i],
+                                    array_item->data.number);
+        }
+
+        config_destroy(config_map);
+}
+
+static void test_config_array_empty(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        const char *expected_key = "empty.array";
+        size_t expected_array_length = 0;
+        const char *config_string = "empty.array = []\n";
+        size_t config_length = strlen(config_string);
+        struct map *config_map
+                = config_read_string(config_string, config_length);
+
+        assert_non_null(config_map);
+
+        struct config_value *value = config_find(config_map, expected_key);
+
+        assert_non_null(value);
+        assert_int_equal(ARRAY, value->type);
+
+        struct config_array *array = value->data.array;
+
+        assert_int_equal(expected_array_length, array->length);
+        assert_non_null(array->values);
+
+        config_destroy(config_map);
+}
+
+static void test_config_array_invalid(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        const char *config_string = "invalid = [fail]\n";
+        size_t config_length = strlen(config_string);
+        struct map *config_map
+                = config_read_string(config_string, config_length);
+
+        assert_null(config_map);
+}
+
+static void test_config_array_trailing_comma(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        const char *expected_key = "trailing.array";
+        size_t expected_array_length = 1;
+        const char *expected_values[1] = {"one"};
+        const char *config_string = "trailing.array = [\"one\",]\n";
+        size_t config_length = strlen(config_string);
+        struct map *config_map
+                = config_read_string(config_string, config_length);
+
+        assert_non_null(config_map);
+
+        struct config_value *value = config_find(config_map, expected_key);
+
+        assert_non_null(value);
+        assert_int_equal(ARRAY, value->type);
+
+        struct config_array *array = value->data.array;
+
+        assert_int_equal(expected_array_length, array->length);
+        assert_non_null(array->values);
+
+        for (size_t i = 0; i < expected_array_length; ++i) {
+                struct config_value *array_item = array->values[i];
+
+                assert_non_null(array_item);
+                assert_int_equal(STRING, array_item->type);
+                assert_string_equal(expected_values[i],
+                                    array_item->data.number);
         }
 
         config_destroy(config_map);
@@ -521,6 +669,11 @@ int main(void)
         const struct CMUnitTest tests[] = {
                 cmocka_unit_test(test_config_simple_config),
                 cmocka_unit_test(test_config_array),
+                cmocka_unit_test(test_config_array_boolean),
+                cmocka_unit_test(test_config_array_variable),
+                cmocka_unit_test(test_config_array_empty),
+                cmocka_unit_test(test_config_array_invalid),
+                cmocka_unit_test(test_config_array_trailing_comma),
                 cmocka_unit_test(test_config_boolean),
                 cmocka_unit_test(test_config_boolean_variable),
                 cmocka_unit_test(test_config_number_variable),

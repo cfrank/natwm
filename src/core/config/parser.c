@@ -103,6 +103,8 @@ static struct config_value *parser_resolve_array(struct parser *parser,
                         = parser_parse_value(parser, array_items[i]);
 
                 if (item == NULL) {
+                        config_value->data.array->values[i] = NULL;
+
                         goto free_and_error;
                 }
 
@@ -392,10 +394,10 @@ static struct config_value *parser_parse_string(const struct parser *parser,
 
         if (string_splice(string, 1, string_len - 1, &stripped_string, NULL)
             != NO_ERROR) {
-                LOG_INFO(natwm_logger,
-                         "Invalid string '%s' found - Line %zu",
-                         string,
-                         parser->line_num);
+                LOG_ERROR(natwm_logger,
+                          "Invalid string '%s' found - Line %zu",
+                          string,
+                          parser->line_num);
 
                 return NULL;
         }
