@@ -9,6 +9,7 @@
 #include <common/constants.h>
 #include <common/logger.h>
 #include <common/map.h>
+#include <common/stack.h>
 #include <common/string.h>
 
 #include "parser.h"
@@ -18,6 +19,145 @@ static void hashmap_free_callback(void *data)
         struct config_value *value = (struct config_value *)data;
 
         config_value_destroy(value);
+}
+
+/**
+ * This is a array context aware delimiter search. We need to find delimiters
+ * as they relate to the outer array context.
+ *
+ * If we were searching for the first ',' char in an array items string like:
+ *
+ * [1, 2, 3],[4, 5, 6],[7, 8, 9]
+ *
+ * ---------^
+ *
+ * we would not want to find the first ',' in the first nested array, but the
+ * first ',' splitting the arrays
+ */
+static enum natwm_error
+array_context_get_delimiter(const char *string, char delimiter, char **result,
+                            size_t *length, bool consume)
+{
+        enum natwm_error err = GENERIC_ERROR;
+        struct stack *stack = stack_create();
+        size_t index = 0;
+        char ch = '\0';
+
+        while ((ch = string[index]) != '\0') {
+                enum config_token token = char_to_token(ch);
+
+                if (token == ARRAY_START) {
+                        stack_push(stack, &index);
+                }
+
+                if (token == ARRAY_END) {
+                        // We just need to delete this
+                        struct stack_item *stack_item = stack_pop(stack);
+
+                        if (stack_item != NULL) {
+                                stack_item_destroy(stack_item);
+                        }
+                }
+
+                if (ch != delimiter) {
+                        ++index;
+
+                        continue;
+                }
+
+                // We found the delimiter - check if the stack is empty.
+                if (!stack_has_item(stack)) {
+                        // If we want to include the delimiter in the final
+                        // string increment the index
+                        if (consume) {
+                                ++index;
+                        }
+
+                        ++index;
+
+                        break;
+                }
+
+                // We found the delimiter, but we are not in the correct
+                // context, so just incremement the index and continue
+                ++index;
+
+                continue;
+        }
+
+        if (ch == '\0') {
+                // We did not find anything
+                stack_destroy(stack);
+
+                return NOT_FOUND_ERROR;
+        }
+
+        char *resulting_string = NULL;
+        size_t string_length = 0;
+
+        err = string_splice(
+                string, 0, index, &resulting_string, &string_length);
+
+        if (err != NO_ERROR) {
+                stack_destroy(stack);
+
+                return err;
+        }
+
+        *result = resulting_string;
+        *length = string_length;
+
+        stack_destroy(stack);
+
+        return NO_ERROR;
+}
+
+/**
+ * Given the start of an array string we need to find the closing ARRAY_END
+ * for the first ARRAY_START char. This is made more complicated because of the
+ * potential presence of nested arrays
+ *
+ * For a string that looks like this:
+ *
+ * [[1,2,3],[4,5,6],[7,8,9]]
+ *
+ * ---(Expected result)----^
+ *
+ *  We will return the array string and index position of the closing
+ *  ARRAY_END char
+ */
+static enum natwm_error get_array_string(const char *string, char **result,
+                                         size_t *index_pos)
+{
+        UNUSED_FUNCTION_PARAM(result);
+        UNUSED_FUNCTION_PARAM(index_pos);
+        enum natwm_error err = GENERIC_ERROR;
+        char *raw_array_string = NULL;
+        size_t raw_string_length = 0;
+
+        err = array_context_get_delimiter(
+                string, ']', &raw_array_string, &raw_string_length, true);
+
+        if (err != NO_ERROR) {
+                return err;
+        }
+
+        char *array_string = NULL;
+        size_t array_string_length = 0;
+
+        err = string_strip_surrounding_spaces(
+                raw_array_string, &array_string, &array_string_length);
+
+        if (err != NO_ERROR) {
+                free(raw_array_string);
+
+                return err;
+        }
+
+        *result = array_string;
+        *index_pos = raw_string_length - 1;
+
+        return NO_ERROR;
 }
 
 /**
@@ -41,8 +181,11 @@ static enum natwm_error get_array_items_string(struct parser *parser,
         if (char_to_token(string[strlen(string) - 1]) != ARRAY_END) {
                 size_t end_pos = 0;
                 const char *line = parser->buffer + parser->pos;
-                enum natwm_error err = string_get_delimiter(
-                        line, ']', &array_string, &end_pos, true);
+
+                enum natwm_error err
+                        = get_array_string(line, &array_string, &end_pos);
+
+                LOG_INFO(natwm_logger, "SGD IP: '%s'", array_string);
 
                 if (err != NO_ERROR) {
                         LOG_ERROR(
@@ -71,6 +214,8 @@ static enum natwm_error get_array_items_string(struct parser *parser,
                                              strlen(array_string) - 1,
                                              &values_string,
                                              &values_string_size);
+
+        LOG_INFO(natwm_logger, "SPLCIE: '%s'", values_string);
 
         if (err != NO_ERROR) {
                 free(array_string);
@@ -176,6 +321,10 @@ static struct config_value *parser_read_array(struct parser *parser,
 
         err = string_split(
                 items_string, ',', &array_items, &array_items_length);
+
+        for (size_t itr = 0; itr < array_items_length; ++itr) {
+                LOG_INFO(natwm_logger, "Item: '%s'", array_items[itr]);
+        }
 
         if (err != NO_ERROR) {
                 LOG_ERROR(natwm_logger,
