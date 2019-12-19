@@ -154,6 +154,8 @@ static enum natwm_error get_array_string(const char *string, char **result,
                 return err;
         }
 
+        free(raw_array_string);
+
         *result = array_string;
         *index_pos = raw_string_length - 1;
 
@@ -185,8 +187,6 @@ static enum natwm_error get_array_items_string(struct parser *parser,
                 enum natwm_error err
                         = get_array_string(line, &array_string, &end_pos);
 
-                LOG_INFO(natwm_logger, "SGD IP: '%s'", array_string);
-
                 if (err != NO_ERROR) {
                         LOG_ERROR(
                                 natwm_logger,
@@ -214,8 +214,6 @@ static enum natwm_error get_array_items_string(struct parser *parser,
                                              strlen(array_string) - 1,
                                              &values_string,
                                              &values_string_size);
-
-        LOG_INFO(natwm_logger, "SPLCIE: '%s'", values_string);
 
         if (err != NO_ERROR) {
                 free(array_string);
@@ -321,10 +319,6 @@ static struct config_value *parser_read_array(struct parser *parser,
 
         err = string_split(
                 items_string, ',', &array_items, &array_items_length);
-
-        for (size_t itr = 0; itr < array_items_length; ++itr) {
-                LOG_INFO(natwm_logger, "Item: '%s'", array_items[itr]);
-        }
 
         if (err != NO_ERROR) {
                 LOG_ERROR(natwm_logger,
