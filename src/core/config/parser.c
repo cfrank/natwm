@@ -161,8 +161,9 @@ static enum natwm_error get_array_string(const char *string, char **result,
         return NO_ERROR;
 }
 
-static enum natwm_error get_array_items(const char *string, char ***result,
-                                        size_t *length)
+static enum natwm_error array_split_value_items_string(const char *string,
+                                                       char ***result,
+                                                       size_t *length)
 {
         struct list *list = create_list();
 
@@ -247,26 +248,27 @@ free_and_error:
  *
  * The parser position is kept up to date in the case of a multiline value
  */
-static enum natwm_error get_array_items_string(struct parser *parser,
-                                               char *string, char **result,
-                                               size_t *length)
+static enum natwm_error array_find_value_items_string(struct parser *parser,
+                                                      char *string,
+                                                      char **result,
+                                                      size_t *length)
 {
-        // An array string in the format
+        // An array value string in the format
         // [<value>,<value>]
-        char *array_string = NULL;
+        char *array_value_string = NULL;
 
         if (char_to_token(string[strlen(string) - 1]) != ARRAY_END) {
                 size_t end_pos = 0;
                 const char *line = parser->buffer + parser->pos;
 
                 enum natwm_error err
-                        = get_array_string(line, &array_string, &end_pos);
+                        = get_array_string(line, &array_value_string, &end_pos);
 
                 if (err != NO_ERROR) {
-                        LOG_ERROR(
-                                natwm_logger,
-                                "Could not find ']' in array value - Line %zu",
-                                parser->line_num);
+                        LOG_ERROR(natwm_logger,
+                                  "Could not find ']' in array value string - "
+                                  "Line %zu",
+                                  parser->line_num);
 
                         return INVALID_INPUT_ERROR;
                 }
@@ -277,54 +279,54 @@ static enum natwm_error get_array_items_string(struct parser *parser,
                 parser_move(parser, end_pos);
         } else {
                 // Our array exists on a single line
-                array_string = string_init(string);
+                array_value_string = string_init(string);
         }
 
-        // From our array string we need to get a list of values
+        // From our value string we need to get the array items list
         // <value>,<value>
-        char *values_string = NULL;
-        size_t values_string_size = 0;
-        enum natwm_error err = string_splice(array_string,
+        char *array_value_items_string = NULL;
+        size_t array_value_items_string_size = 0;
+        enum natwm_error err = string_splice(array_value_string,
                                              1,
-                                             strlen(array_string) - 1,
-                                             &values_string,
-                                             &values_string_size);
+                                             strlen(array_value_string) - 1,
+                                             &array_value_items_string,
+                                             &array_value_items_string_size);
 
         if (err != NO_ERROR) {
-                free(array_string);
+                free(array_value_string);
 
                 return err;
         }
 
-        free(array_string);
+        free(array_value_string);
 
-        *result = values_string;
-        *length = values_string_size;
+        *result = array_value_items_string;
+        *length = array_value_items_string_size;
 
         return NO_ERROR;
 }
 
-static struct config_value *parser_resolve_array(struct parser *parser,
-                                                 char **array_items,
-                                                 size_t array_items_length)
+static struct config_value *
+parser_resolve_array_values(struct parser *parser, char **value_items,
+                            size_t value_items_length)
 {
         // Now we should have an array of stripped items
         // Last step is to resolve them into a new config_value
         struct config_value *config_value
-                = config_value_create_array(array_items_length);
+                = config_value_create_array(value_items_length);
 
         if (config_value == NULL) {
                 return NULL;
         }
 
         // Resolve and insert config_values into the array
-        for (size_t i = 0; i < array_items_length; ++i) {
+        for (size_t i = 0; i < value_items_length; ++i) {
                 struct config_value *item
-                        = parser_parse_value(parser, array_items[i]);
+                        = parser_parse_value(parser, value_items[i]);
 
                 if (item == NULL) {
-                        for (size_t j = i; j < array_items_length; ++j) {
-                                free(array_items[j]);
+                        for (size_t j = i; j < value_items_length; ++j) {
+                                free(value_items[j]);
                         }
 
                         config_value_destroy(config_value);
@@ -339,7 +341,7 @@ static struct config_value *parser_resolve_array(struct parser *parser,
 }
 
 /**
- * Here we will handle parsing array values
+ * Here we will handle parsing arrays
  *
  * Arrays are different in that they support multi line value strings. The
  * string we are going to receive into this function will terminate at the
@@ -359,26 +361,18 @@ static struct config_value *parser_resolve_array(struct parser *parser,
  * ]
  *
  * Both of which should be treated the same and return the same result.
- *
- * The rules of arrays are:
- *
- * Each value must have the same data type. An array is invalid if any of the
- * value types differ from their siblings.
- *
- * New lines are ignored, and since we don't allow newlines in strings they
- * are invalid except for splitting the array items on different lines
- *
- * A commas followed by a ARRAY_END char is ignored
  */
-static struct config_value *parser_read_array(struct parser *parser,
-                                              char *value)
+static struct config_value *parser_parse_array(struct parser *parser,
+                                               char *string)
 {
-        char *items_string = NULL;
-        size_t items_string_length = 0;
+        char *value_items_string = NULL;
+        size_t value_items_string_length = 0;
         enum natwm_error err = GENERIC_ERROR;
 
-        err = get_array_items_string(
-                parser, value, &items_string, &items_string_length);
+        err = array_find_value_items_string(parser,
+                                            string,
+                                            &value_items_string,
+                                            &value_items_string_length);
 
         if (err != NO_ERROR) {
                 return NULL;
@@ -388,26 +382,27 @@ static struct config_value *parser_read_array(struct parser *parser,
         // representation of the array values
         //
         // We now need to normalize it
-        char **array_items = NULL;
-        size_t array_items_length = 0;
+        char **value_items = NULL;
+        size_t value_items_length = 0;
 
-        err = get_array_items(items_string, &array_items, &array_items_length);
+        err = array_split_value_items_string(
+                value_items_string, &value_items, &value_items_length);
 
         if (err != NO_ERROR) {
                 LOG_ERROR(natwm_logger,
-                          "Failed to parse array items - Line %zu",
+                          "Failed to parse array value items string - Line %zu",
                           parser->line_num);
 
-                free(items_string);
+                free(value_items_string);
 
                 return NULL;
         }
 
         // Remove spaces around the items
-        for (size_t i = 0; i < array_items_length; ++i) {
-                char *stripped_item = NULL;
+        for (size_t i = 0; i < value_items_length; ++i) {
+                char *value_item = NULL;
                 err = string_strip_surrounding_spaces(
-                        array_items[i], &stripped_item, NULL);
+                        value_items[i], &value_item, NULL);
 
                 // If we encounter an '' (empty string) as the last item in the
                 // array we have two senarios:
@@ -417,51 +412,52 @@ static struct config_value *parser_read_array(struct parser *parser,
                 //
                 // In both cases we should free the string, decrement the array
                 // length, and terminate the loop
-                if (err == NOT_FOUND_ERROR && (i == array_items_length - 1)) {
-                        free(array_items[i]);
+                if (err == NOT_FOUND_ERROR && (i == value_items_length - 1)) {
+                        free(value_items[i]);
 
-                        array_items_length -= 1;
+                        value_items_length -= 1;
 
                         break;
                 }
 
                 if (err != NO_ERROR) {
                         LOG_ERROR(natwm_logger,
-                                  "Failed to parse array item '%s' - Line %zu",
-                                  array_items[i],
+                                  "Failed to parse array value item '%s' - "
+                                  "Line %zu",
+                                  value_items[i],
                                   parser->line_num);
 
                         goto free_and_error;
                 }
 
-                free(array_items[i]);
+                free(value_items[i]);
 
-                array_items[i] = stripped_item;
+                value_items[i] = value_item;
         }
 
         // Now we should have an array of stripped items
         // Last step is to parse them into a new config_value
-        struct config_value *config_value
-                = parser_resolve_array(parser, array_items, array_items_length);
+        struct config_value *config_value = parser_resolve_array_values(
+                parser, value_items, value_items_length);
 
         if (config_value == NULL) {
-                free(items_string);
-                free(array_items);
+                free(value_items_string);
+                free(value_items);
 
                 return NULL;
         }
 
-        free(value);
-        free(items_string);
-        free(array_items);
+        free(string);
+        free(value_items_string);
+        free(value_items);
 
         return config_value;
 
 free_and_error:
         // We need to free up our intermediate strings and the array of array
         // values we allocated
-        free(items_string);
-        free(array_items);
+        free(value_items_string);
+        free(value_items);
 
         return NULL;
 }
@@ -757,9 +753,7 @@ struct config_value *parser_parse_value(struct parser *parser, char *value)
         case ALPHA_CHAR:
                 return parser_parse_boolean(parser, value);
         case ARRAY_START:
-                // In order to parse arrays we first need to re-read the value
-                // since it could exist over several lines
-                return parser_read_array(parser, value);
+                return parser_parse_array(parser, value);
         case NUMERIC_CHAR:
                 return parser_parse_number(parser, value);
         case QUOTE:
