@@ -1,6 +1,10 @@
 add_library(core STATIC
-    config.c
-    config.h
+    config/config.c
+    config/config.h
+    config/parser.c
+    config/parser.h
+    config/value.c
+    config/value.h
     event.c
     event.h
     ewmh.c

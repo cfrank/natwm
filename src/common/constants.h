@@ -18,4 +18,9 @@
 
 #define UNUSED_FUNCTION_PARAM(param) (void)(param)
 
+#define SET_IF_NON_NULL(dest, value)                                           \
+        if ((dest) != NULL) {                                                  \
+                (*dest) = value;                                               \
+        }
+
 #define NATWM_CONFIG_FILE "natwm/config"

@@ -3,6 +3,7 @@
 // Refer to the license.txt file included in the root of the project
 
 #include "state.h"
+#include "config/config.h"
 #include "ewmh.h"
 #include "monitor.h"
 #include "workspace.h"

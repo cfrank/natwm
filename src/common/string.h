@@ -21,8 +21,12 @@ enum natwm_error string_find_last_nonspace(const char *string,
 enum natwm_error string_get_delimiter(const char *string, char delimiter,
                                       char **destination, size_t *length,
                                       bool consume);
+bool string_no_case_compare(const char *one, const char *two);
 enum natwm_error string_splice(const char *string, size_t start, size_t end,
                                char **destination, size_t *size);
+enum natwm_error string_split(const char *string, char delimiter,
+                              char ***result, size_t *length);
 enum natwm_error string_strip_surrounding_spaces(const char *string,
                                                  char **dest, size_t *length);
+enum natwm_error string_to_boolean(const char *boolean_string, bool *result);
 enum natwm_error string_to_number(const char *number_string, intmax_t *dest);

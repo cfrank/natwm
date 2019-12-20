@@ -7,30 +7,10 @@
 #include <stdint.h>
 
 #include <common/error.h>
+#include <common/list.h>
 #include <common/map.h>
 
-/**
- * The available data types for natwm configuration files
- *
- * TODO: Support for more data types will be added as needed
- */
-enum config_data_types {
-        NUMBER,
-        STRING,
-};
-
-/**
- * Handle key value pairs
- */
-struct config_value {
-        char *key;
-        enum config_data_types type;
-        union {
-                intmax_t number;
-                // Heap allocated - must be free'd
-                char *string;
-        } data;
-};
+#include "value.h"
 
 struct map *config_read_string(const char *config, size_t size);
 struct map *config_initialize_path(const char *path);

@@ -47,10 +47,11 @@ typedef void (*map_entry_free_function_t)(void *data);
 enum map_settings {
         MAP_FLAG_KEY_IGNORE_CASE = 1 << 0, // Ignore casing for keys
         MAP_FLAG_USE_FREE = 1 << 1, // Use free instead of supplied free func
-        MAP_FLAG_USE_FREE_FUNC = 1 << 2, // Use a custom free function
-        MAP_FLAG_IGNORE_THRESHOLDS = 1 << 3, // Ignore load factors
-        MAP_FLAG_IGNORE_THRESHOLDS_EMPTY = 1 << 4, // Ignore low_load_factor
-        MAP_FLAG_NO_LOCKING = 1 << 5, // Don't try to be thread safe
+        MAP_FLAG_FREE_ENTRY_KEY = 1 << 2, // Free the entry key
+        MAP_FLAG_USE_FREE_FUNC = 1 << 3, // Use a custom free function
+        MAP_FLAG_IGNORE_THRESHOLDS = 1 << 4, // Ignore load factors
+        MAP_FLAG_IGNORE_THRESHOLDS_EMPTY = 1 << 5, // Ignore low_load_factor
+        MAP_FLAG_NO_LOCKING = 1 << 6, // Don't try to be thread safe
 };
 
 enum map_events {
@@ -94,6 +95,8 @@ enum natwm_error map_delete(struct map *map, const char *key);
 int map_set_hash_function(struct map *map, map_hash_function_t function);
 void map_set_entry_free_function(struct map *map,
                                  map_entry_free_function_t function);
+void map_set_setting_flag(struct map *map, enum map_settings flag);
+void map_remove_setting_flag(struct map *map, enum map_settings flag);
 
 uint32_t map_get_uint32(const struct map *map, const char *key,
                         enum natwm_error *error);

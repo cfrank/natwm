@@ -11,7 +11,6 @@
 #include <common/list.h>
 #include <common/map.h>
 
-#include "config.h"
 #include "workspace.h"
 
 struct natwm_state {

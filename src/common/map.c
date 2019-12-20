@@ -337,6 +337,10 @@ enum natwm_error entry_init(uint32_t hash, const char *key, void *value,
 void map_entry_destroy(const struct map *map, struct map_entry *entry)
 {
         if (is_entry_present(entry)) {
+                if (map->setting_flags & MAP_FLAG_FREE_ENTRY_KEY) {
+                        free((char *)entry->key);
+                }
+
                 if (map->setting_flags & MAP_FLAG_USE_FREE) {
                         free(entry->value);
                 }
@@ -502,11 +506,22 @@ void map_set_entry_free_function(struct map *map,
                                  map_entry_free_function_t function)
 {
         if (map->setting_flags & MAP_FLAG_USE_FREE) {
-                map->setting_flags &= (unsigned int)~MAP_FLAG_USE_FREE;
+                map_remove_setting_flag(map, MAP_FLAG_USE_FREE);
         }
 
         map->free_function = function;
-        map->setting_flags |= MAP_FLAG_USE_FREE_FUNC;
+
+        map_set_setting_flag(map, MAP_FLAG_USE_FREE_FUNC);
+}
+
+void map_set_setting_flag(struct map *map, enum map_settings flag)
+{
+        map->setting_flags |= flag;
+}
+
+void map_remove_setting_flag(struct map *map, enum map_settings flag)
+{
+        map->setting_flags &= (unsigned int)~flag;
 }
 
 /**
