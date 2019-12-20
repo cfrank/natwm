@@ -7,6 +7,7 @@
 #include <string.h>
 
 #include <common/constants.h>
+#include <common/list.h>
 #include <common/logger.h>
 #include <common/map.h>
 #include <common/stack.h>
@@ -96,7 +97,7 @@ array_context_get_delimiter(const char *string, char delimiter, char **result,
         size_t string_length = 0;
 
         err = string_splice(
-                string, 0, index, &resulting_string, &string_length);
+                string, 0, index - 1, &resulting_string, &string_length);
 
         if (err != NO_ERROR) {
                 stack_destroy(stack);
@@ -129,8 +130,6 @@ array_context_get_delimiter(const char *string, char delimiter, char **result,
 static enum natwm_error get_array_string(const char *string, char **result,
                                          size_t *index_pos)
 {
-        UNUSED_FUNCTION_PARAM(result);
-        UNUSED_FUNCTION_PARAM(index_pos);
         enum natwm_error err = GENERIC_ERROR;
         char *raw_array_string = NULL;
         size_t raw_string_length = 0;
@@ -160,6 +159,82 @@ static enum natwm_error get_array_string(const char *string, char **result,
         *index_pos = raw_string_length - 1;
 
         return NO_ERROR;
+}
+
+static enum natwm_error get_array_items(const char *string, char ***result,
+                                        size_t *length)
+{
+        struct list *list = create_list();
+
+        if (list == NULL) {
+                return MEMORY_ALLOCATION_ERROR;
+        }
+
+        size_t current_index = 0;
+
+        for (;;) {
+                char *item = NULL;
+                size_t end_pos = 0;
+                enum natwm_error err = array_context_get_delimiter(
+                        string + current_index, ',', &item, &end_pos, false);
+
+                if (err == NOT_FOUND_ERROR) {
+                        char *last_item = string_init(string + current_index);
+
+                        if (last_item == NULL) {
+                                goto free_and_error;
+                        }
+
+                        list_insert(list, last_item);
+
+                        break;
+                }
+
+                if (err != NO_ERROR) {
+                        goto free_and_error;
+                }
+
+                list_insert(list, item);
+
+                string += (end_pos + 1);
+        }
+
+        char **array_items = malloc(sizeof(char *) * list->size);
+
+        if (array_items == NULL) {
+                goto free_and_error;
+        }
+
+        // Walk the list backwards to insert in the correct position
+        size_t array_item_index = (list->size - 1);
+
+        LIST_FOR_EACH(list, item)
+        {
+                char *list_item = (char *)item->data;
+
+                array_items[array_item_index] = list_item;
+
+                --array_item_index;
+        }
+
+        *result = array_items;
+        *length = list->size;
+
+        destroy_list(list);
+
+        return NO_ERROR;
+
+free_and_error:
+        LIST_FOR_EACH(list, item)
+        {
+                if (item && item->data) {
+                        free((char *)item->data);
+                }
+        }
+
+        destroy_list(list);
+
+        return GENERIC_ERROR;
 }
 
 /**
@@ -316,8 +391,7 @@ static struct config_value *parser_read_array(struct parser *parser,
         char **array_items = NULL;
         size_t array_items_length = 0;
 
-        err = string_split(
-                items_string, ',', &array_items, &array_items_length);
+        err = get_array_items(items_string, &array_items, &array_items_length);
 
         if (err != NO_ERROR) {
                 LOG_ERROR(natwm_logger,
