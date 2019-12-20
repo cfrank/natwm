@@ -161,6 +161,20 @@ static enum natwm_error get_array_string(const char *string, char **result,
         return NO_ERROR;
 }
 
+/**
+ * This is an array context aware array split. It splits the inner values
+ * of an array keeping in mind that there might be nested arrays. Instead of
+ * splitting on each ',' (which would happen if we used string_split) we keep
+ * track of our position on the array (and nested arrays) and only return the
+ * top level items.
+ *
+ * Firstly we build a list of top level value items. This allows us to figure
+ * out the number of value items dynamically. Then we do a single allocation
+ * for the returned array and destroy the intermediate list.
+ *
+ * The provided char array is populated with the result, and the provided
+ * length pointer is populated with the number of value items we found
+ */
 static enum natwm_error array_split_value_items_string(const char *string,
                                                        char ***result,
                                                        size_t *length)
@@ -240,7 +254,7 @@ free_and_error:
 
 /**
  * Take a value string which we know contains an array and return a string
- * containing all of the arrays items.
+ * containing all of the array value items.
  *
  * We allow arrays to span multiple lines so this function has to take that
  * into account and reparse the value string if we don't find an ARRAY_END
@@ -274,7 +288,7 @@ static enum natwm_error array_find_value_items_string(struct parser *parser,
                 }
 
                 // We found a valid multiline array value string. But now we
-                // need to update the parser position to point to the end fo the
+                // need to update the parser position to point to the end of the
                 // array value string
                 parser_move(parser, end_pos);
         } else {
@@ -306,12 +320,17 @@ static enum natwm_error array_find_value_items_string(struct parser *parser,
         return NO_ERROR;
 }
 
+/**
+ * Given an array of array value items we need to parse their values or resolve
+ * the variables into values.
+ *
+ * We just take the value item and complete the same process as if we had found
+ * a top level value string starting with "parser_parse_value"
+ */
 static struct config_value *
 parser_resolve_array_values(struct parser *parser, char **value_items,
                             size_t value_items_length)
 {
-        // Now we should have an array of stripped items
-        // Last step is to resolve them into a new config_value
         struct config_value *config_value
                 = config_value_create_array(value_items_length);
 
@@ -504,6 +523,9 @@ static struct config_value *parser_resolve_variable(const struct parser *parser,
  * Here we will handle the creation of a simple boolean value of the form:
  *
  * "true" or "false"
+ *
+ * The casing of the above values does not matter, just that they are
+ * alphabetically equal
  *
  * No other "falsey" values will be parsed as boolean.
  */

@@ -4,9 +4,7 @@
 
 #include <ctype.h>
 #include <pwd.h>
-#include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
 
 #include <common/constants.h>
@@ -39,7 +37,7 @@ static void hashmap_free_callback(void *data)
  * be updated to point to the '\n' at the end of the current line, which will
  * allow for the next line to be consumed
  */
-static enum natwm_error create_config_item(struct parser *parser,
+static enum natwm_error config_item_create(struct parser *parser,
                                            struct map *config_map)
 {
         enum natwm_error err = GENERIC_ERROR;
@@ -198,7 +196,7 @@ static int read_file_into_buffer(FILE *file, char **buffer, size_t file_size)
         return 0;
 }
 
-static struct map *read_context(struct parser *parser)
+static struct map *config_parse(struct parser *parser)
 {
         struct map *map = map_init();
 
@@ -218,16 +216,19 @@ static struct map *read_context(struct parser *parser)
                 switch (char_to_token(c)) {
                 case COMMENT_START:
                         parser_consume_line(parser);
+
                         break;
                 case VARIABLE_START:
                         if (parser_create_variable(parser) != NO_ERROR) {
                                 goto handle_error;
                         }
+
                         break;
                 case ALPHA_CHAR:
-                        if (create_config_item(parser, map) != NO_ERROR) {
+                        if (config_item_create(parser, map) != NO_ERROR) {
                                 goto handle_error;
                         }
+
                         break;
                 default:
                         break;
@@ -260,7 +261,7 @@ struct map *config_read_string(const char *string, size_t size)
                 return NULL;
         }
 
-        struct map *map = read_context(parser);
+        struct map *map = config_parse(parser);
 
         parser_destroy(parser);
 
