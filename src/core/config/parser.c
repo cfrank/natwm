@@ -248,20 +248,19 @@ static struct config_value *parser_resolve_array(struct parser *parser,
                         = parser_parse_value(parser, array_items[i]);
 
                 if (item == NULL) {
-                        goto free_and_error;
+                        for (size_t j = i; j < array_items_length; ++j) {
+                                free(array_items[j]);
+                        }
+
+                        config_value_destroy(config_value);
+
+                        return NULL;
                 }
 
                 config_value->data.array->values[i] = item;
         }
 
         return config_value;
-
-free_and_error:
-        // If we fail in the middle of populating the array we need to free
-        // the items which were already added
-        config_value_destroy(config_value);
-
-        return NULL;
 }
 
 /**
@@ -372,7 +371,10 @@ static struct config_value *parser_read_array(struct parser *parser,
                 = parser_resolve_array(parser, array_items, array_items_length);
 
         if (config_value == NULL) {
-                goto free_and_error;
+                free(items_string);
+                free(array_items);
+
+                return NULL;
         }
 
         free(value);
@@ -385,15 +387,6 @@ free_and_error:
         // We need to free up our intermediate strings and the array of array
         // values we allocated
         free(items_string);
-
-        size_t itr = 0;
-
-        for (itr = 0; itr < array_items_length; ++itr) {
-                if (array_items[itr]) {
-                        free(array_items[itr]);
-                }
-        }
-
         free(array_items);
 
         return NULL;
