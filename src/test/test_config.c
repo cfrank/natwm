@@ -93,6 +93,69 @@ static void test_config_array(void **state)
         config_destroy(config_map);
 }
 
+static void test_config_nested_array(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        const char *expected_key = "nested.array";
+        size_t expected_array_length = 3;
+        size_t expected_nested_array_length = 2;
+        const char *expected_values[3][2] = {
+                {"one", "two"},
+                {"three", "four"},
+                {"five", "six"},
+        };
+        const char *config_string = "$third.value = \"three\"\n"
+                                    "$second.array = [$third.value, \"four\"]\n"
+                                    "nested.array = [\n"
+                                    "\t[\"one\", \"two\"],\n"
+                                    "\t$second.array,\n"
+                                    "\t[\"five\", \"six\"],\n"
+                                    "]\n";
+        size_t config_length = strlen(config_string);
+        struct map *config_map
+                = config_read_string(config_string, config_length);
+
+        assert_non_null(config_map);
+
+        struct config_value *value = config_find(config_map, expected_key);
+
+        assert_non_null(value);
+        assert_int_equal(ARRAY, value->type);
+
+        struct config_array *array = value->data.array;
+
+        assert_non_null(array);
+        assert_int_equal(expected_array_length, array->length);
+        assert_non_null(array->values);
+
+        for (size_t i = 0; i < expected_array_length; ++i) {
+                struct config_value *nested_value = array->values[i];
+
+                assert_non_null(nested_value);
+                assert_int_equal(ARRAY, nested_value->type);
+
+                struct config_array *nested_array = nested_value->data.array;
+
+                assert_non_null(nested_array);
+                assert_int_equal(expected_nested_array_length,
+                                 nested_array->length);
+                assert_non_null(nested_array->values);
+
+                for (size_t j = 0; j < expected_nested_array_length; ++j) {
+                        struct config_value *nested_array_value
+                                = nested_array->values[j];
+
+                        assert_non_null(nested_array_value);
+                        assert_int_equal(STRING, nested_array_value->type);
+                        assert_string_equal(expected_values[i][j],
+                                            nested_array_value->data.string);
+                }
+        }
+
+        config_destroy(config_map);
+}
+
 static void test_config_nested_array_variable(void **state)
 {
         UNUSED_FUNCTION_PARAM(state);
@@ -776,6 +839,7 @@ int main(void)
         const struct CMUnitTest tests[] = {
                 cmocka_unit_test(test_config_simple_config),
                 cmocka_unit_test(test_config_array),
+                cmocka_unit_test(test_config_nested_array),
                 cmocka_unit_test(test_config_nested_array_variable),
                 cmocka_unit_test(test_config_array_boolean),
                 cmocka_unit_test(test_config_array_variable),
