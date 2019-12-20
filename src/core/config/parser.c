@@ -45,7 +45,7 @@ array_context_get_delimiter(const char *string, char delimiter, char **result,
         char ch = '\0';
 
         while ((ch = string[index]) != '\0') {
-                enum config_token token = char_to_token(ch);
+                enum parser_token token = char_to_token(ch);
 
                 if (token == ARRAY_START) {
                         stack_push(stack, &index);
@@ -643,7 +643,7 @@ static struct config_value *parser_parse_string(const struct parser *parser,
         return config_value;
 }
 
-enum config_token char_to_token(char c)
+enum parser_token char_to_token(char c)
 {
         switch (c) {
         case '[':

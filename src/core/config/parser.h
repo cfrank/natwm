@@ -19,7 +19,7 @@ struct parser {
         struct map *variables;
 };
 
-enum config_token {
+enum parser_token {
         ALPHA_CHAR,
         ARRAY_START,
         ARRAY_END,
@@ -32,7 +32,7 @@ enum config_token {
         VARIABLE_START,
 };
 
-enum config_token char_to_token(char c);
+enum parser_token char_to_token(char c);
 
 struct parser *parser_create(const char *buffer, size_t buffer_size);
 enum natwm_error parser_create_variable(struct parser *parser);
