@@ -49,4 +49,16 @@
 bin/
 build/
 .cache/
+
+# Text editors
 .vscode/
+*.config
+*.creator
+*.creator.user
+*.creator.user.*
+*.files
+*.includes
+*.cflags
+*.cxxflags
+*.autosave
+*.user

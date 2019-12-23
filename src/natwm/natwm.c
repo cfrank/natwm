@@ -304,13 +304,22 @@ int main(int argc, char **argv)
         state->screen = default_screen;
 
         struct monitor_list *monitor_list = NULL;
-        enum natwm_error err = monitor_setup(state, &monitor_list);
 
-        if (err != NO_ERROR) {
+        if (monitor_setup(state, &monitor_list) != NO_ERROR) {
                 goto free_and_error;
         }
 
-        state->monitors = monitor_list;
+        state->monitor_list = monitor_list;
+
+        struct workspace *workspace = NULL;
+
+        if (workspace_init(state, &workspace) != NO_ERROR) {
+                LOG_ERROR(natwm_logger, "Failed to setup workspaces");
+
+                goto free_and_error;
+        }
+
+        state->workspace = workspace;
 
         // Attempt to register for substructure events
         if (root_window_subscribe(state) != 0) {

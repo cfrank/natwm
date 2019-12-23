@@ -7,21 +7,25 @@
 #include <stdbool.h>
 #include <xcb/xcb.h>
 
+#include <common/error.h>
+
 struct workspace {
-        size_t length;
+        size_t count;
+        size_t active_space_index;
         struct space **spaces;
 };
 
 struct space {
-        size_t index;
-        xcb_rectangle_t rect;
+        const char *tag_name;
         bool is_visible;
         bool is_focused;
         bool is_floating;
         // TODO Windows
 };
 
-struct workspace *workspace_create(xcb_rectangle_t *rects, size_t count);
-struct space *space_create(xcb_rectangle_t rect, size_t index);
+struct workspace *workspace_create(size_t count);
+struct space *space_create(const char *tag_name);
+enum natwm_error workspace_init(const struct natwm_state *state,
+                                struct workspace **result);
 void workspace_destroy(struct workspace *workspace);
 void space_destroy(struct space *space);

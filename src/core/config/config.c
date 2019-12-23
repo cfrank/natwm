@@ -329,6 +329,25 @@ struct config_value *config_find(const struct map *config_map, const char *key)
         return (struct config_value *)entry->value;
 }
 
+enum natwm_error config_find_array(const struct map *config_map,
+                                   const char *key,
+                                   const struct config_array **result)
+{
+        struct config_value *value = config_find(config_map, key);
+
+        if (value == NULL) {
+                return NOT_FOUND_ERROR;
+        }
+
+        if (value->type != ARRAY) {
+                return INVALID_INPUT_ERROR;
+        }
+
+        *result = value->data.array;
+
+        return NO_ERROR;
+}
+
 enum natwm_error config_find_number(const struct map *config_map,
                                     const char *key, intmax_t *result)
 {

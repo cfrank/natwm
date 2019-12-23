@@ -11,14 +11,16 @@
 #include <common/list.h>
 #include <common/map.h>
 
-#include "workspace.h"
+// Forward declare needed types
+struct monitor_list;
+struct workspace;
 
 struct natwm_state {
         int screen_num;
         xcb_connection_t *xcb;
         xcb_ewmh_connection_t *ewmh;
         xcb_screen_t *screen;
-        struct monitor_list *monitors;
+        struct monitor_list *monitor_list;
         struct workspace *workspace;
         const struct map *config;
         const char *config_path;
