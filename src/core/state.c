@@ -47,12 +47,12 @@ void natwm_state_destroy(struct natwm_state *state)
                 ewmh_destroy(state->ewmh);
         }
 
-        if (state->monitor_list != NULL) {
-                monitor_list_destroy(state->monitor_list);
-        }
-
         if (state->workspace != NULL) {
                 workspace_destroy(state->workspace);
+        }
+
+        if (state->monitor_list != NULL) {
+                monitor_list_destroy(state->monitor_list);
         }
 
         if (state->config != NULL) {

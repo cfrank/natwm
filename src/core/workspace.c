@@ -11,6 +11,37 @@
 #include "monitor.h"
 #include "workspace.h"
 
+/**
+ * On first load we should give each monitor a workspace. The ordering of the
+ * monitors is based on the order we recieve information about them in the
+ * initial monitor setup routine.
+ *
+ * FIXME: In the future we should determine a better ordering of the monitors
+ * based on their positioning. This could also be a user configurable option.
+ */
+static void attach_to_monitors(struct monitor_list *monitor_list,
+                               struct workspace *workspace)
+{
+        size_t index = 0;
+        LIST_FOR_EACH(monitor_list->monitors, monitor_item)
+        {
+                struct monitor *monitor = (struct monitor *)monitor_item->data;
+                struct space *space = workspace->spaces[index];
+
+                // FIXME: Maybe use the atom_name_name instead of ID which is
+                // not very useful
+                LOG_INFO(natwm_logger,
+                         "Adding space '%s' to monitor '%u'",
+                         space->tag_name,
+                         monitor->id);
+
+                space->is_visible = true;
+                monitor->space = space;
+
+                ++index;
+        }
+}
+
 struct workspace *workspace_create(size_t count)
 {
         struct workspace *workspace = malloc(sizeof(struct workspace));
@@ -104,8 +135,11 @@ enum natwm_error workspace_init(const struct natwm_state *state,
 
                 struct space *space = space_create(tag_name);
 
+                LOG_INFO(natwm_logger, "%zu", i);
                 workspace->spaces[i] = space;
         }
+
+        attach_to_monitors(state->monitor_list, workspace);
 
         *result = workspace;
 
