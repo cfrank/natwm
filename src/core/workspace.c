@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <stdlib.h>
 
+#include <common/constants.h>
 #include <common/logger.h>
 
 #include "config/config.h"
@@ -16,7 +17,7 @@
  * monitors is based on the order we recieve information about them in the
  * initial monitor setup routine.
  *
- * FIXME: In the future we should determine a better ordering of the monitors
+ * TODO: In the future we should determine a better ordering of the monitors
  * based on their positioning. This could also be a user configurable option.
  */
 static void attach_to_monitors(struct monitor_list *monitor_list,
@@ -27,13 +28,6 @@ static void attach_to_monitors(struct monitor_list *monitor_list,
         {
                 struct monitor *monitor = (struct monitor *)monitor_item->data;
                 struct space *space = workspace->spaces[index];
-
-                // FIXME: Maybe use the atom_name_name instead of ID which is
-                // not very useful
-                LOG_INFO(natwm_logger,
-                         "Adding space '%s' to monitor '%u'",
-                         space->tag_name,
-                         monitor->id);
 
                 space->is_visible = true;
                 monitor->space = space;
@@ -81,61 +75,54 @@ struct space *space_create(const char *tag_name)
 enum natwm_error workspace_init(const struct natwm_state *state,
                                 struct workspace **result)
 {
-        enum natwm_error err = GENERIC_ERROR;
-
         // First get the list of workspace names
         const struct config_array *workspace_names = NULL;
 
-        err = config_find_array(state->config, "workspaces", &workspace_names);
+        config_find_array(state->config, "workspaces", &workspace_names);
 
-        if (err != NO_ERROR) {
-                if (err == INVALID_INPUT_ERROR) {
-                        LOG_ERROR(natwm_logger,
-                                  "'workspaces' config item is an invalid "
-                                  "type - Should be an array of strings");
-                } else {
-                        LOG_ERROR(natwm_logger,
-                                  "Missing 'workspaces' config item");
-                }
-
-                return err;
-        }
-
-        // FIXME: This should not be needed. Users with more connected monitors
-        // than workspaces should be provided workspaces with empty tag_names
-        if (workspace_names->length < state->monitor_list->monitors->size) {
-                LOG_ERROR(natwm_logger,
-                          "There are more connected monitors than workspaces");
-
-                return GENERIC_ERROR;
-        }
-
-        struct workspace *workspace = workspace_create(workspace_names->length);
+        struct workspace *workspace = workspace_create(NATWM_WORKSPACE_COUNT);
 
         if (workspace == NULL) {
                 return MEMORY_ALLOCATION_ERROR;
         }
 
-        for (size_t i = 0; i < workspace_names->length; ++i) {
+        for (size_t i = 0; i < NATWM_WORKSPACE_COUNT; ++i) {
+                // We don't have a user specified tag name for this space
+                if (workspace_names == NULL || i >= workspace_names->length) {
+                        workspace->spaces[i] = space_create(NULL);
+
+                        if (workspace->spaces[i] == NULL) {
+                                workspace_destroy(workspace);
+
+                                return MEMORY_ALLOCATION_ERROR;
+                        }
+
+                        continue;
+                }
+
+                // We should have a user specified tag name for this space. Make
+                // sure that it is valdi
                 const struct config_value *name_value
                         = workspace_names->values[i];
 
-                if (name_value->type != STRING) {
+                if (name_value == NULL || name_value->type != STRING) {
                         LOG_ERROR(natwm_logger,
-                                  "Workspace names must all be strings");
+                                  "Encountered invalid workspace tag name");
 
                         workspace_destroy(workspace);
 
                         return INVALID_INPUT_ERROR;
                 }
 
-                const char *tag_name = name_value->data.string;
+                // We have a valid tag name for this space
+                struct space *space = space_create(name_value->data.string);
 
-                assert(tag_name);
+                if (space == NULL) {
+                        workspace_destroy(workspace);
 
-                struct space *space = space_create(tag_name);
+                        return MEMORY_ALLOCATION_ERROR;
+                }
 
-                LOG_INFO(natwm_logger, "%zu", i);
                 workspace->spaces[i] = space;
         }
 
