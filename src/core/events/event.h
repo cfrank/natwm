@@ -8,4 +8,4 @@
 #include <core/state.h>
 
 enum natwm_error event_handle(const struct natwm_state *state,
-                              xcb_generic_event_t *event);
+                              const xcb_generic_event_t *event);
