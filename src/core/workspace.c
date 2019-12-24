@@ -9,7 +9,6 @@
 
 #include "config/config.h"
 #include "monitor.h"
-#include "state.h"
 #include "workspace.h"
 
 struct workspace *workspace_create(size_t count)

@@ -9,6 +9,8 @@
 
 #include <common/error.h>
 
+#include "state.h"
+
 struct workspace {
         size_t count;
         size_t active_space_index;
