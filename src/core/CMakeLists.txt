@@ -7,6 +7,8 @@ add_library(core STATIC
     config/value.h
     events/event.c
     events/event.h
+    events/randr-event.c
+    events/randr-event.h
     ewmh.c
     ewmh.h
     monitor.c

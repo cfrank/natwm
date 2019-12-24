@@ -126,6 +126,11 @@ enum natwm_error randr_get_screens(const struct natwm_state *state,
                 free(output_info_reply);
         }
 
+        // Listen for events
+        xcb_randr_select_input(state->xcb,
+                               state->screen->root,
+                               XCB_RANDR_NOTIFY_MASK_SCREEN_CHANGE);
+
         *result = monitors;
         *length = (size_t)screen_count;
 
