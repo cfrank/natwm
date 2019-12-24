@@ -24,3 +24,5 @@
         }
 
 #define NATWM_CONFIG_FILE "natwm/config"
+
+#define NATWM_WORKSPACE_COUNT 10

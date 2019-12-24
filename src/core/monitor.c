@@ -295,9 +295,5 @@ void monitor_list_destroy(struct monitor_list *monitor_list)
 
 void monitor_destroy(struct monitor *monitor)
 {
-        if (monitor->space != NULL) {
-                space_destroy(monitor->space);
-        }
-
         free(monitor);
 }

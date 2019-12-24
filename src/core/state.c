@@ -20,7 +20,7 @@ struct natwm_state *natwm_state_create(void)
         state->xcb = NULL;
         state->ewmh = NULL;
         state->screen = NULL;
-        state->monitors = NULL;
+        state->monitor_list = NULL;
         state->workspace = NULL;
         state->config = NULL;
         state->config_path = NULL;
@@ -47,12 +47,12 @@ void natwm_state_destroy(struct natwm_state *state)
                 ewmh_destroy(state->ewmh);
         }
 
-        if (state->monitors != NULL) {
-                monitor_list_destroy(state->monitors);
-        }
-
         if (state->workspace != NULL) {
                 workspace_destroy(state->workspace);
+        }
+
+        if (state->monitor_list != NULL) {
+                monitor_list_destroy(state->monitor_list);
         }
 
         if (state->config != NULL) {
