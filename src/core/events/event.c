@@ -7,9 +7,10 @@
 #include <common/constants.h>
 #include <common/logger.h>
 
+#include <core/monitor.h>
+#include <core/randr.h>
+
 #include "event.h"
-#include "monitor.h"
-#include "randr.h"
 
 static enum natwm_error
 handle_randr_notify_event(const struct natwm_state *state,
