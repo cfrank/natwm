@@ -5,8 +5,10 @@ add_library(core STATIC
     config/parser.h
     config/value.c
     config/value.h
-    event.c
-    event.h
+    events/event.c
+    events/event.h
+    events/randr-event.c
+    events/randr-event.h
     ewmh.c
     ewmh.h
     monitor.c
