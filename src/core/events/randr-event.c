@@ -6,6 +6,7 @@
 
 #include <common/constants.h>
 #include <common/error.h>
+#include <common/logger.h>
 #include <core/monitor.h>
 #include <core/state.h>
 
@@ -18,6 +19,8 @@ handle_randr_notify_event(const struct natwm_state *state,
         UNUSED_FUNCTION_PARAM(state);
         UNUSED_FUNCTION_PARAM(event);
 
+        LOG_INFO(natwm_logger, "Handle notify");
+
         return NO_ERROR;
 }
 
@@ -27,6 +30,8 @@ static enum natwm_error handle_randr_screen_change_event(
 {
         UNUSED_FUNCTION_PARAM(state);
         UNUSED_FUNCTION_PARAM(event);
+
+        LOG_INFO(natwm_logger, "Handle screen change");
 
         return NO_ERROR;
 }
