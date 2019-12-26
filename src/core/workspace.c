@@ -29,6 +29,8 @@ static void attach_to_monitors(struct monitor_list *monitor_list,
                 struct workspace *workspace = workspace_list->workspaces[index];
 
                 workspace->is_visible = true;
+                workspace->rect = monitor->rect;
+
                 monitor->workspace = workspace;
 
                 ++index;
@@ -56,7 +58,7 @@ struct workspace_list *workspace_list_create(size_t count)
         return workspace_list;
 }
 
-struct workspace *workspace_create(const char *name)
+struct workspace *workspace_create(const char *name, xcb_rectangle_t rect)
 {
         struct workspace *workspace = malloc(sizeof(struct workspace));
 
@@ -65,6 +67,7 @@ struct workspace *workspace_create(const char *name)
         }
 
         workspace->name = name;
+        workspace->rect = rect;
         workspace->is_visible = false;
         workspace->is_focused = false;
         workspace->is_floating = false;
@@ -90,7 +93,8 @@ enum natwm_error workspace_list_init(const struct natwm_state *state,
         for (size_t i = 0; i < NATWM_WORKSPACE_COUNT; ++i) {
                 // We don't have a user specified tag name for this space
                 if (workspace_names == NULL || i >= workspace_names->length) {
-                        workspace_list->workspaces[i] = workspace_create(NULL);
+                        workspace_list->workspaces[i]
+                                = workspace_create(NULL, EMPTY_RECT);
 
                         if (workspace_list->workspaces[i] == NULL) {
                                 workspace_list_destroy(workspace_list);
@@ -117,7 +121,7 @@ enum natwm_error workspace_list_init(const struct natwm_state *state,
 
                 // We have a valid tag name for this workspace
                 struct workspace *workspace
-                        = workspace_create(name_value->data.string);
+                        = workspace_create(name_value->data.string, EMPTY_RECT);
 
                 if (workspace == NULL) {
                         workspace_list_destroy(workspace_list);
@@ -133,6 +137,12 @@ enum natwm_error workspace_list_init(const struct natwm_state *state,
         *result = workspace_list;
 
         return NO_ERROR;
+}
+
+struct workspace *
+workspace_list_get_focused(const struct workspace_list *workspace_list)
+{
+        return workspace_list->workspaces[workspace_list->active_index];
 }
 
 void workspace_list_destroy(struct workspace_list *workspace_list)

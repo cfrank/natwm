@@ -4,6 +4,14 @@
 
 #pragma once
 
+#include <stdbool.h>
+#include <xcb/xcb.h>
+
+#include <common/error.h>
+
+#include "state.h"
+#include "workspace.h"
+
 enum client_type {
         CLIENT_TYPE_DOCK,
         CLIENT_TYPE_TOOLBAR,
@@ -36,7 +44,13 @@ struct client {
         enum client_status status;
         bool is_floating;
         xcb_window_t window;
+        const struct workspace *workspace;
 };
 
-struct client *client_create(xcb_window_t window);
+struct client *client_create(xcb_window_t window,
+                             xcb_rectangle_t floating_rect);
+enum natwm_error client_register(const struct natwm_state *state,
+                                 xcb_window_t window, struct client **result);
+enum natwm_error client_set_workspace(struct client *client,
+                                      const struct workspace *workspace);
 void client_destroy(struct client *client);

@@ -1,4 +1,6 @@
 add_library(core STATIC
+    client.c
+    client.h
     config/config.c
     config/config.h
     config/parser.c

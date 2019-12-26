@@ -19,6 +19,7 @@ struct workspace_list {
 
 struct workspace {
         const char *name;
+        xcb_rectangle_t rect;
         bool is_visible;
         bool is_focused;
         bool is_floating;
@@ -26,8 +27,10 @@ struct workspace {
 };
 
 struct workspace_list *workspace_list_create(size_t count);
-struct workspace *workspace_create(const char *tag_name);
+struct workspace *workspace_create(const char *name, xcb_rectangle_t rect);
 enum natwm_error workspace_list_init(const struct natwm_state *state,
                                      struct workspace_list **result);
+struct workspace *
+workspace_list_get_focused(const struct workspace_list *workspace_list);
 void workspace_list_destroy(struct workspace_list *workspace_list);
 void workspace_destroy(struct workspace *workspace);
