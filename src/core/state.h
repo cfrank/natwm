@@ -13,7 +13,7 @@
 
 // Forward declare needed types
 struct monitor_list;
-struct workspace;
+struct workspace_list;
 
 struct natwm_state {
         int screen_num;
@@ -21,7 +21,7 @@ struct natwm_state {
         xcb_ewmh_connection_t *ewmh;
         xcb_screen_t *screen;
         struct monitor_list *monitor_list;
-        struct workspace *workspace;
+        struct workspace_list *workspace_list;
         const struct map *config;
         const char *config_path;
         pthread_mutex_t mutex;

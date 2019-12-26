@@ -212,7 +212,7 @@ struct monitor_list *monitor_list_create(struct server_extension *extension,
 }
 
 struct monitor *monitor_create(uint32_t id, xcb_rectangle_t rect,
-                               struct space *space)
+                               struct workspace *workspace)
 {
         struct monitor *monitor = malloc(sizeof(struct monitor));
 
@@ -222,7 +222,7 @@ struct monitor *monitor_create(uint32_t id, xcb_rectangle_t rect,
 
         monitor->id = id;
         monitor->rect = rect;
-        monitor->space = space;
+        monitor->workspace = workspace;
 
         return monitor;
 }

@@ -311,15 +311,15 @@ int main(int argc, char **argv)
 
         state->monitor_list = monitor_list;
 
-        struct workspace *workspace = NULL;
+        struct workspace_list *workspace_list = NULL;
 
-        if (workspace_init(state, &workspace) != NO_ERROR) {
+        if (workspace_list_init(state, &workspace_list) != NO_ERROR) {
                 LOG_ERROR(natwm_logger, "Failed to setup workspaces");
 
                 goto free_and_error;
         }
 
-        state->workspace = workspace;
+        state->workspace_list = workspace_list;
 
         // Attempt to register for substructure events
         if (root_window_subscribe(state) != 0) {

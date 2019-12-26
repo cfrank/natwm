@@ -30,7 +30,7 @@ struct monitor {
         // contexts this is unused.
         uint32_t id;
         xcb_rectangle_t rect;
-        struct space *space;
+        struct workspace *workspace;
 };
 
 struct monitor_list {
@@ -44,7 +44,7 @@ const char *server_extension_to_string(enum server_extension_type extension);
 struct monitor_list *monitor_list_create(struct server_extension *extension,
                                          struct list *monitors);
 struct monitor *monitor_create(uint32_t id, xcb_rectangle_t rect,
-                               struct space *space);
+                               struct workspace *workspace);
 enum natwm_error monitor_setup(const struct natwm_state *state,
                                struct monitor_list **result);
 void monitor_list_destroy(struct monitor_list *monitor_list);
