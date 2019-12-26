@@ -88,6 +88,9 @@ enum natwm_error client_register(const struct natwm_state *state,
                  floating_rect.x,
                  floating_rect.y);
 
+        free(attributes_reply);
+        free(geometry_reply);
+
         *result = NULL;
 
         return NO_ERROR;
