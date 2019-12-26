@@ -134,9 +134,18 @@ enum natwm_error workspace_list_init(const struct natwm_state *state,
 
         attach_to_monitors(state->monitor_list, workspace_list);
 
+        // Focus on the first workspace
+        workspace_set_focused(workspace_list, 0);
+
         *result = workspace_list;
 
         return NO_ERROR;
+}
+
+// TODO: Much more is needed for this function
+void workspace_set_focused(struct workspace_list *workspace_list, size_t index)
+{
+        workspace_list->active_index = index;
 }
 
 struct workspace *

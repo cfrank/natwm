@@ -30,6 +30,7 @@ struct workspace_list *workspace_list_create(size_t count);
 struct workspace *workspace_create(const char *name, xcb_rectangle_t rect);
 enum natwm_error workspace_list_init(const struct natwm_state *state,
                                      struct workspace_list **result);
+void workspace_set_focused(struct workspace_list *workspace_list, size_t index);
 struct workspace *
 workspace_list_get_focused(const struct workspace_list *workspace_list);
 void workspace_list_destroy(struct workspace_list *workspace_list);
