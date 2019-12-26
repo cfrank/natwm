@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <xcb/xcb.h>
+
 #if defined __clang__ || defined __GNUC__
 #define ATTR_CONST __attribute__((__const__))
 #define ATTR_NONNULL __attribute__((__nonnull__))
@@ -25,4 +27,11 @@
 
 #define NATWM_CONFIG_FILE "natwm/config"
 
-#define NATWM_WORKSPACE_COUNT 10
+static const size_t NATWM_WORKSPACE_COUNT = 10;
+
+static const xcb_rectangle_t EMPTY_RECT = {
+        .width = 0,
+        .height = 0,
+        .x = 0,
+        .y = 0,
+};
