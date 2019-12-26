@@ -11,23 +11,23 @@
 
 #include "state.h"
 
-struct workspace {
+struct workspace_list {
         size_t count;
-        size_t active_space_index;
-        struct space **spaces;
+        size_t active_index;
+        struct workspace **workspaces;
 };
 
-struct space {
-        const char *tag_name;
+struct workspace {
+        const char *name;
         bool is_visible;
         bool is_focused;
         bool is_floating;
         // TODO Windows
 };
 
-struct workspace *workspace_create(size_t count);
-struct space *space_create(const char *tag_name);
-enum natwm_error workspace_init(const struct natwm_state *state,
-                                struct workspace **result);
+struct workspace_list *workspace_list_create(size_t count);
+struct workspace *workspace_create(const char *tag_name);
+enum natwm_error workspace_list_init(const struct natwm_state *state,
+                                     struct workspace_list **result);
+void workspace_list_destroy(struct workspace_list *workspace_list);
 void workspace_destroy(struct workspace *workspace);
-void space_destroy(struct space *space);

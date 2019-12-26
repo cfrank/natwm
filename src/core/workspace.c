@@ -20,22 +20,43 @@
  * based on their positioning. This could also be a user configurable option.
  */
 static void attach_to_monitors(struct monitor_list *monitor_list,
-                               struct workspace *workspace)
+                               struct workspace_list *workspace_list)
 {
         size_t index = 0;
         LIST_FOR_EACH(monitor_list->monitors, monitor_item)
         {
                 struct monitor *monitor = (struct monitor *)monitor_item->data;
-                struct space *space = workspace->spaces[index];
+                struct workspace *workspace = workspace_list->workspaces[index];
 
-                space->is_visible = true;
-                monitor->space = space;
+                workspace->is_visible = true;
+                monitor->workspace = workspace;
 
                 ++index;
         }
 }
 
-struct workspace *workspace_create(size_t count)
+struct workspace_list *workspace_list_create(size_t count)
+{
+        struct workspace_list *workspace_list
+                = malloc(sizeof(struct workspace_list));
+
+        if (workspace_list == NULL) {
+                return NULL;
+        }
+
+        workspace_list->count = count;
+        workspace_list->workspaces = calloc(count, sizeof(struct workspace *));
+
+        if (workspace_list->workspaces == NULL) {
+                free(workspace_list);
+
+                return NULL;
+        }
+
+        return workspace_list;
+}
+
+struct workspace *workspace_create(const char *name)
 {
         struct workspace *workspace = malloc(sizeof(struct workspace));
 
@@ -43,55 +64,36 @@ struct workspace *workspace_create(size_t count)
                 return NULL;
         }
 
-        workspace->count = count;
-        workspace->spaces = calloc(count, sizeof(struct space *));
-
-        if (workspace->spaces == NULL) {
-                free(workspace);
-
-                return NULL;
-        }
+        workspace->name = name;
+        workspace->is_visible = false;
+        workspace->is_focused = false;
+        workspace->is_floating = false;
 
         return workspace;
 }
 
-struct space *space_create(const char *tag_name)
-{
-        struct space *space = malloc(sizeof(struct space));
-
-        if (space == NULL) {
-                return NULL;
-        }
-
-        space->tag_name = tag_name;
-        space->is_visible = false;
-        space->is_focused = false;
-        space->is_floating = false;
-
-        return space;
-}
-
-enum natwm_error workspace_init(const struct natwm_state *state,
-                                struct workspace **result)
+enum natwm_error workspace_list_init(const struct natwm_state *state,
+                                     struct workspace_list **result)
 {
         // First get the list of workspace names
         const struct config_array *workspace_names = NULL;
 
         config_find_array(state->config, "workspaces", &workspace_names);
 
-        struct workspace *workspace = workspace_create(NATWM_WORKSPACE_COUNT);
+        struct workspace_list *workspace_list
+                = workspace_list_create(NATWM_WORKSPACE_COUNT);
 
-        if (workspace == NULL) {
+        if (workspace_list == NULL) {
                 return MEMORY_ALLOCATION_ERROR;
         }
 
         for (size_t i = 0; i < NATWM_WORKSPACE_COUNT; ++i) {
                 // We don't have a user specified tag name for this space
                 if (workspace_names == NULL || i >= workspace_names->length) {
-                        workspace->spaces[i] = space_create(NULL);
+                        workspace_list->workspaces[i] = workspace_create(NULL);
 
-                        if (workspace->spaces[i] == NULL) {
-                                workspace_destroy(workspace);
+                        if (workspace_list->workspaces[i] == NULL) {
+                                workspace_list_destroy(workspace_list);
 
                                 return MEMORY_ALLOCATION_ERROR;
                         }
@@ -99,8 +101,8 @@ enum natwm_error workspace_init(const struct natwm_state *state,
                         continue;
                 }
 
-                // We should have a user specified tag name for this space. Make
-                // sure that it is valdi
+                // We should have a user specified tag name for this workspace.
+                // Make sure that it is valid
                 const struct config_value *name_value
                         = workspace_names->values[i];
 
@@ -108,43 +110,44 @@ enum natwm_error workspace_init(const struct natwm_state *state,
                         LOG_ERROR(natwm_logger,
                                   "Encountered invalid workspace tag name");
 
-                        workspace_destroy(workspace);
+                        workspace_list_destroy(workspace_list);
 
                         return INVALID_INPUT_ERROR;
                 }
 
-                // We have a valid tag name for this space
-                struct space *space = space_create(name_value->data.string);
+                // We have a valid tag name for this workspace
+                struct workspace *workspace
+                        = workspace_create(name_value->data.string);
 
-                if (space == NULL) {
-                        workspace_destroy(workspace);
+                if (workspace == NULL) {
+                        workspace_list_destroy(workspace_list);
 
                         return MEMORY_ALLOCATION_ERROR;
                 }
 
-                workspace->spaces[i] = space;
+                workspace_list->workspaces[i] = workspace;
         }
 
-        attach_to_monitors(state->monitor_list, workspace);
+        attach_to_monitors(state->monitor_list, workspace_list);
 
-        *result = workspace;
+        *result = workspace_list;
 
         return NO_ERROR;
 }
 
-void workspace_destroy(struct workspace *workspace)
+void workspace_list_destroy(struct workspace_list *workspace_list)
 {
-        for (size_t i = 0; i < workspace->count; ++i) {
-                if (workspace->spaces[i] != NULL) {
-                        space_destroy(workspace->spaces[i]);
+        for (size_t i = 0; i < workspace_list->count; ++i) {
+                if (workspace_list->workspaces[i] != NULL) {
+                        workspace_destroy(workspace_list->workspaces[i]);
                 }
         }
 
-        free(workspace->spaces);
-        free(workspace);
+        free(workspace_list->workspaces);
+        free(workspace_list);
 }
 
-void space_destroy(struct space *space)
+void workspace_destroy(struct workspace *workspace)
 {
-        free(space);
+        free(workspace);
 }
