@@ -17,6 +17,8 @@ const char *error_to_string(enum natwm_error error)
                 return "Capacity exceeded";
         case INVALID_INPUT_ERROR:
                 return "Bad input received";
+        case RESOLUTION_FAILURE:
+                return "Failed to resolve request";
         case GENERIC_ERROR:
                 return "Generic error";
         case NO_ERROR:
