@@ -160,6 +160,16 @@ static void *start_wm_events_thread(void *passed_state)
                         event_handle(state, event);
 
                         free(event);
+
+                        continue;
+                }
+
+                if (xcb_connection_has_error(state->xcb)
+                    && program_status & RUNNING) {
+                        LOG_ERROR(natwm_logger,
+                                  "Connection to X server closed");
+
+                        program_status = STOPPED;
                 }
         }
 
