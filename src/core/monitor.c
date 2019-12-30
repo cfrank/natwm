@@ -74,7 +74,7 @@ static void monitor_list_set_offsets(const struct natwm_state *state,
                 }
 
                 // This has a possibility of overflowing if the user
-                // imputs silly data into their configuration file.
+                // inputs silly data into their configuration file.
                 monitor->rect.x = (int16_t)(monitor->rect.x + offsets.left);
                 monitor->rect.y = (int16_t)(monitor->rect.y + offsets.top);
                 monitor->rect.width = (uint16_t)(
