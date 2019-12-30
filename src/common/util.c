@@ -7,7 +7,40 @@
 #include <sys/select.h>
 #include <unistd.h>
 
+#include "logger.h"
 #include "util.h"
+
+enum natwm_error config_array_to_box_sizes(const struct config_array *array,
+                                           struct box_sizes *result)
+{
+        if (array == NULL || array->length != 4) {
+                return INVALID_INPUT_ERROR;
+        }
+
+        struct box_sizes sizes = {
+                .top = 0,
+                .right = 0,
+                .bottom = 0,
+                .left = 0,
+        };
+
+        for (size_t i = 0; i < 4; ++i) {
+                struct config_value *value = array->values[i];
+
+                if (value == NULL || value->type != NUMBER) {
+                        return INVALID_INPUT_ERROR;
+                }
+        }
+
+        sizes.top = (uint16_t)array->values[0]->data.number;
+        sizes.right = (uint16_t)array->values[1]->data.number;
+        sizes.bottom = (uint16_t)array->values[2]->data.number;
+        sizes.left = (uint16_t)array->values[3]->data.number;
+
+        *result = sizes;
+
+        return NO_ERROR;
+}
 
 /**
  * Get size of a file
