@@ -16,6 +16,7 @@ add_library(common STATIC
     string.h
     tree.c
     tree.h
+    types.h
     util.c
     util.h
 )
