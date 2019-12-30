@@ -7,7 +7,9 @@
 
 #include <common/error.h>
 #include <common/logger.h>
+#include <common/util.h>
 
+#include "config/config.h"
 #include "monitor.h"
 #include "randr.h"
 #include "xinerama.h"
@@ -19,6 +21,66 @@ static void monitors_destroy(struct list *monitors)
                 struct monitor *monitor = (struct monitor *)item->data;
 
                 monitor_destroy(monitor);
+        }
+}
+
+static void monitor_list_set_offsets(const struct natwm_state *state,
+                                     struct monitor_list *monitor_list)
+{
+        const struct config_array *offset_array = NULL;
+
+        config_find_array(state->config, "monitor.offsets", &offset_array);
+
+        if (offset_array == NULL || offset_array->length == 0) {
+                // Nothing to do here
+                return;
+        } else if (monitor_list->monitors->size > offset_array->length) {
+                LOG_WARNING(natwm_logger,
+                            "Encountered more monitors than items in "
+                            "'monitor.offsets' array. Ignoring offsets");
+
+                return;
+        }
+
+        size_t index = 0;
+
+        LIST_FOR_EACH(monitor_list->monitors, monitor_item)
+        {
+                struct monitor *monitor = (struct monitor *)monitor_item->data;
+                // By default we will have no offset
+                struct box_sizes offsets = {
+                        .top = 0,
+                        .right = 0,
+                        .bottom = 0,
+                        .left = 0,
+                };
+
+                const struct config_value *offset_array_value
+                        = offset_array->values[index];
+
+                if (offset_array_value->type != ARRAY) {
+                        LOG_WARNING(natwm_logger,
+                                    "Skipping invalid monitor offset value");
+                        continue;
+                }
+
+                enum natwm_error err = config_array_to_box_sizes(
+                        offset_array_value->data.array, &offsets);
+
+                if (err != NO_ERROR) {
+                        LOG_WARNING(natwm_logger,
+                                    "Skipping invalid monitor offset value");
+                        break;
+                }
+
+                monitor->rect.x = (monitor->rect.x + offsets.left);
+                monitor->rect.y = (monitor->rect.y + offsets.top);
+                monitor->rect.width = (monitor->rect.width
+                                       - (offsets.left + offsets.right));
+                monitor->rect.height = (monitor->rect.height
+                                        - (offsets.top + offsets.bottom));
+
+                ++index;
         }
 }
 
@@ -279,6 +341,8 @@ enum natwm_error monitor_setup(const struct natwm_state *state,
 
                 return MEMORY_ALLOCATION_ERROR;
         }
+
+        monitor_list_set_offsets(state, monitor_list);
 
         *result = monitor_list;
 
