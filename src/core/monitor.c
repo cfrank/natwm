@@ -73,12 +73,14 @@ static void monitor_list_set_offsets(const struct natwm_state *state,
                         break;
                 }
 
-                monitor->rect.x = (monitor->rect.x + offsets.left);
-                monitor->rect.y = (monitor->rect.y + offsets.top);
-                monitor->rect.width = (monitor->rect.width
-                                       - (offsets.left + offsets.right));
-                monitor->rect.height = (monitor->rect.height
-                                        - (offsets.top + offsets.bottom));
+                monitor->rect.x
+                        = (int16_t)(monitor->rect.x + (int16_t)offsets.left);
+                monitor->rect.y
+                        = (int16_t)(monitor->rect.y + (int16_t)offsets.top);
+                monitor->rect.width = monitor->rect.width
+                        - (uint16_t)(offsets.left + offsets.right);
+                monitor->rect.height = monitor->rect.height
+                        - (uint16_t)(offsets.top + offsets.bottom);
 
                 ++index;
         }
