@@ -8,6 +8,7 @@
 #include <xcb/xcb.h>
 
 #include <common/error.h>
+#include <common/tree.h>
 
 #include "state.h"
 
@@ -22,7 +23,7 @@ struct workspace {
         bool is_visible;
         bool is_focused;
         bool is_floating;
-        // TODO Windows
+        struct tree *tiles;
 };
 
 struct workspace_list *workspace_list_create(size_t count);
