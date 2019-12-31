@@ -275,6 +275,22 @@ struct monitor_list *monitor_list_create(struct server_extension *extension,
         return list;
 }
 
+struct monitor *
+monitor_list_get_active_monitor(const struct monitor_list *monitor_list)
+{
+        LIST_FOR_EACH(monitor_list->monitors, monitor_item)
+        {
+                struct monitor *monitor = (struct monitor *)monitor_item->data;
+
+                if (monitor->workspace != NULL
+                    && monitor->workspace->is_focused) {
+                        return monitor;
+                }
+        }
+
+        return NULL;
+}
+
 struct monitor *monitor_create(uint32_t id, xcb_rectangle_t rect,
                                struct workspace *workspace)
 {

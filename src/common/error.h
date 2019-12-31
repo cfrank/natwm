@@ -9,8 +9,9 @@ enum natwm_error {
         NOT_FOUND_ERROR = 1U << 1U, // Failed to find what was requested
         CAPACITY_ERROR = 1U << 2U, // Capacity exceeded
         INVALID_INPUT_ERROR = 1U << 3U, // Bad input received
-        GENERIC_ERROR = 1U << 4U, // Catch-all error
-        NO_ERROR = 1U << 5U, // No error
+        RESOLUTION_FAILURE = 1U << 4U, // Failure during function resolution
+        GENERIC_ERROR = 1U << 5U, // Catch-all error
+        NO_ERROR = 1U << 6U, // No error
 };
 
 const char *error_to_string(enum natwm_error error);

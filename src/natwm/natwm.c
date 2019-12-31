@@ -365,15 +365,15 @@ int main(int argc, char **argv)
         }
 
         free(arg_options);
-        destroy_logger(natwm_logger);
         natwm_state_destroy(state);
+        destroy_logger(natwm_logger);
 
         return EXIT_SUCCESS;
 
 free_and_error:
         free(arg_options);
-        destroy_logger(natwm_logger);
         natwm_state_destroy(state);
+        destroy_logger(natwm_logger);
 
         return EXIT_FAILURE;
 }
