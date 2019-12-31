@@ -43,6 +43,8 @@ const char *server_extension_to_string(enum server_extension_type extension);
 
 struct monitor_list *monitor_list_create(struct server_extension *extension,
                                          struct list *monitors);
+struct monitor *
+monitor_list_get_active_monitor(const struct monitor_list *monitor_list);
 struct monitor *monitor_create(uint32_t id, xcb_rectangle_t rect,
                                struct workspace *workspace);
 enum natwm_error monitor_setup(const struct natwm_state *state,
