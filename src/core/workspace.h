@@ -16,7 +16,7 @@
 struct workspace_list {
         size_t count;
         size_t active_index;
-        struct tile_settings_cache *tile_settings_cache;
+        struct tile_settings_cache *settings;
         struct workspace **workspaces;
 };
 
