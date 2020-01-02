@@ -1,4 +1,6 @@
 add_library(common STATIC
+    color.c
+    color.h
     constants.h
     error.c
     error.h
