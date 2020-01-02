@@ -33,7 +33,7 @@ static enum natwm_error get_window_rect(xcb_connection_t *connection,
         return NO_ERROR;
 }
 
-struct tile *tile_create(xcb_window_t *window)
+struct tile *tile_create(xcb_window_t *client)
 {
         struct tile *tile = malloc(sizeof(struct tile));
 
@@ -41,7 +41,7 @@ struct tile *tile_create(xcb_window_t *window)
                 return NULL;
         }
 
-        tile->window = window;
+        tile->client = client;
         tile->is_floating = false;
 
         return tile;
@@ -86,8 +86,8 @@ enum natwm_error tile_init(const struct natwm_state *state, struct tile *tile)
                 return RESOLUTION_FAILURE;
         }
 
-        if (tile->window != NULL) {
-                if (get_window_rect(state->xcb, *tile->window, &floating_rect)
+        if (tile->client != NULL) {
+                if (get_window_rect(state->xcb, *tile->client, &floating_rect)
                     != NO_ERROR) {
                         return RESOLUTION_FAILURE;
                 }
@@ -95,6 +95,29 @@ enum natwm_error tile_init(const struct natwm_state *state, struct tile *tile)
 
         tile->tiled_rect = tiled_rect;
         tile->floating_rect = floating_rect;
+
+        // Create window - this will be the parent window of the client
+        xcb_window_t window = xcb_generate_id(state->xcb);
+
+        // Set up colors
+
+        xcb_create_window(state->xcb,
+                          XCB_COPY_FROM_PARENT,
+                          window,
+                          state->screen->root,
+                          tiled_rect.x,
+                          tiled_rect.y,
+                          tiled_rect.width,
+                          tiled_rect.height,
+                          0,
+                          XCB_WINDOW_CLASS_INPUT_OUTPUT,
+                          state->screen->root_visual,
+                          0,
+                          NULL);
+
+        xcb_map_window(state->xcb, window);
+
+        tile->parent_window = window;
 
         return NO_ERROR;
 }

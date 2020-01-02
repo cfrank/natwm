@@ -12,8 +12,10 @@
 #include "state.h"
 
 struct tile {
-        // Child window (NULL if empty)
-        xcb_window_t *window;
+        // Parent window
+        xcb_window_t parent_window;
+        // Child (client) window - NULL if empty
+        xcb_window_t *client;
         // Dimentions of the tile when floating
         xcb_rectangle_t floating_rect;
         // Dimentions of the tile when tiled. If the tile is empty and
