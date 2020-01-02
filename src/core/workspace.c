@@ -102,6 +102,7 @@ struct workspace_list *workspace_list_create(size_t count)
         }
 
         workspace_list->count = count;
+        workspace_list->tile_settings_cache = NULL;
         workspace_list->workspaces = calloc(count, sizeof(struct workspace *));
 
         if (workspace_list->workspaces == NULL) {
@@ -191,6 +192,19 @@ enum natwm_error workspace_list_init(const struct natwm_state *state,
 
         attach_to_monitors(state->monitor_list, workspace_list);
 
+        // Before we start creating tiles let's make an initial settings cache
+        // based on the present configuration cache.
+        //
+        // TODO: Set defaults so we don't have a hard requirement on the user
+        // settings these in their configuration
+        if (tile_settings_cache_init(state->config,
+                                     &workspace_list->tile_settings_cache)
+            != NO_ERROR) {
+                workspace_list_destroy(workspace_list);
+
+                return RESOLUTION_FAILURE;
+        }
+
         if (attach_tiles(state, workspace_list) != NO_ERROR) {
                 workspace_list_destroy(workspace_list);
 
@@ -204,6 +218,11 @@ enum natwm_error workspace_list_init(const struct natwm_state *state,
 
 void workspace_list_destroy(struct workspace_list *workspace_list)
 {
+        if (workspace_list->tile_settings_cache != NULL) {
+                tile_settings_cache_destroy(
+                        workspace_list->tile_settings_cache);
+        }
+
         for (size_t i = 0; i < workspace_list->count; ++i) {
                 if (workspace_list->workspaces[i] != NULL) {
                         workspace_destroy(workspace_list->workspaces[i]);

@@ -11,10 +11,12 @@
 #include <common/tree.h>
 
 #include "state.h"
+#include "tile.h"
 
 struct workspace_list {
         size_t count;
         size_t active_index;
+        struct tile_settings_cache *tile_settings_cache;
         struct workspace **workspaces;
 };
 
