@@ -25,4 +25,21 @@
 
 #define NATWM_CONFIG_FILE "natwm/config"
 
+#define UNFOCUSED_BORDER_WIDTH_CONFIG_STRING "window.unfocused.border_width"
+#define FOCUSED_BORDER_WIDTH_CONFIG_STRING "window.focused.border_width"
+#define URGENT_BORDER_WIDTH_CONFIG_STRING "window.urgent.border_width"
+#define STICKY_BORDER_WIDTH_CONFIG_STRING "window.sticky.border_width"
+
+#define UNFOCUSED_BORDER_COLOR_CONFIG_STRING "window.unfocused.border_color"
+#define FOCUSED_BORDER_COLOR_CONFIG_STRING "window.focused.border_color"
+#define URGENT_BORDER_COLOR_CONFIG_STRING "window.urgent.border_color"
+#define STICKY_BORDER_COLOR_CONFIG_STRING "window.sticky.border_color"
+
+#define UNFOCUSED_BACKGROUND_COLOR_CONFIG_STRING                               \
+        "window.unfocused.background_color"
+#define FOCUSED_BACKGROUND_COLOR_CONFIG_STRING                                 \
+        "window.unfocused.background_color"
+#define URGENT_BACKGROUND_COLOR_CONFIG_STRING "window.urgent.background_color"
+#define STICKY_BACKGROUND_COLOR_CONFIG_STRING "window.sticky.background_color"
+
 #define NATWM_WORKSPACE_COUNT 10
