@@ -5,15 +5,22 @@
 #pragma once
 
 #include <stdbool.h>
+#include <stdint.h>
 #include <xcb/xcb.h>
+
+#include <common/error.h>
+#include <common/map.h>
 
 struct color_value {
         // Color string (allocated/free'd by config)
         const char *string;
-        xcb_pixmap_t pixmap;
+        uint32_t color_value;
 };
 
-struct color_value *color_value_from_string(const char *string);
+enum natwm_error color_value_from_string(const char *string,
+                                         struct color_value **result);
+enum natwm_error color_value_from_config(const struct map *map, const char *key,
+                                         struct color_value **result);
 bool color_value_has_changed(struct color_value *value,
                              const char *new_string_value);
 void color_value_destroy(struct color_value *value);
