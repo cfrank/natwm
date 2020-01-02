@@ -110,10 +110,9 @@ static int install_signal_handlers(void)
 
         sigemptyset(&action.sa_mask);
 
-        // Compiler is complaining about signed->unsigned conversion
-        sigaddset((int *)&action.sa_mask, SIGTERM);
-        sigaddset((int *)&action.sa_mask, SIGINT);
-        sigaddset((int *)&action.sa_mask, SIGHUP);
+        sigaddset(&action.sa_mask, SIGTERM);
+        sigaddset(&action.sa_mask, SIGINT);
+        sigaddset(&action.sa_mask, SIGHUP);
 
         action.sa_flags = SA_RESTART;
 
