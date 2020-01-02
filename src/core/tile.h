@@ -21,10 +21,10 @@ enum tile_state {
 
 struct tile_settings_cache {
         // Border width
-        uint32_t unfocused_border_width;
-        uint32_t focused_border_width;
-        uint32_t urgent_border_width;
-        uint32_t sticky_border_width;
+        uint16_t unfocused_border_width;
+        uint16_t focused_border_width;
+        uint16_t urgent_border_width;
+        uint16_t sticky_border_width;
 
         // Border color
         struct color_value *unfocused_border_color;
@@ -55,6 +55,7 @@ struct tile {
 };
 
 struct tile *tile_create(xcb_window_t *window);
+enum natwm_error attach_tiles_to_workspace(const struct natwm_state *state);
 enum natwm_error tile_settings_cache_init(const struct map *config_map,
                                           struct tile_settings_cache **result);
 enum natwm_error get_next_tile_rect(const struct natwm_state *state,

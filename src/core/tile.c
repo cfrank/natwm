@@ -64,8 +64,32 @@ enum natwm_error get_next_tile_rect(const struct natwm_state *state,
 
         // TODO: Need to support getting rects from workspaces with more than
         // one tile
-
         *result = active_monitor->rect;
+
+        return NO_ERROR;
+}
+
+enum natwm_error attach_tiles_to_workspace(const struct natwm_state *state)
+{
+        for (size_t i = 0; i < state->workspace_list->count; ++i) {
+                struct tile *tile = tile_create(NULL);
+
+                if (tile == NULL) {
+                        return MEMORY_ALLOCATION_ERROR;
+                }
+
+                enum natwm_error err = tile_init(state, tile);
+
+                if (err != NO_ERROR) {
+                        tile_destroy(tile);
+
+                        return err;
+                }
+
+                tree_insert(state->workspace_list->workspaces[i]->tiles,
+                            NULL,
+                            tile);
+        }
 
         return NO_ERROR;
 }
@@ -82,13 +106,13 @@ enum natwm_error tile_settings_cache_init(const struct map *config_map,
 
         enum natwm_error err = GENERIC_ERROR;
 
-        uint32_t unfocused_border_width = (uint32_t)config_find_number_fallback(
+        uint16_t unfocused_border_width = (uint16_t)config_find_number_fallback(
                 config_map, UNFOCUSED_BORDER_WIDTH_CONFIG_STRING, 1);
-        uint32_t focused_border_width = (uint32_t)config_find_number_fallback(
+        uint16_t focused_border_width = (uint16_t)config_find_number_fallback(
                 config_map, FOCUSED_BORDER_WIDTH_CONFIG_STRING, 1);
-        uint32_t urgent_border_width = (uint32_t)config_find_number_fallback(
+        uint16_t urgent_border_width = (uint16_t)config_find_number_fallback(
                 config_map, URGENT_BORDER_WIDTH_CONFIG_STRING, 1);
-        uint32_t sticky_border_width = (uint32_t)config_find_number_fallback(
+        uint16_t sticky_border_width = (uint16_t)config_find_number_fallback(
                 config_map, STICKY_BORDER_WIDTH_CONFIG_STRING, 1);
 
         struct color_value *unfocused_border_color = NULL;
@@ -222,8 +246,17 @@ enum natwm_error tile_init(const struct natwm_state *state, struct tile *tile)
         tile->tiled_rect = tiled_rect;
         tile->floating_rect = floating_rect;
 
+        struct tile_settings_cache *settings_cache
+                = state->workspace_list->settings;
+
         // Create window - this will be the parent window of the client
         xcb_window_t window = xcb_generate_id(state->xcb);
+        uint16_t border_width = settings_cache->unfocused_border_width;
+        uint32_t mask = XCB_CW_BACK_PIXEL | XCB_CW_SAVE_UNDER;
+        uint32_t values[] = {
+                settings_cache->unfocused_background_color->color_value,
+                1,
+        };
 
         xcb_create_window(state->xcb,
                           XCB_COPY_FROM_PARENT,
@@ -231,13 +264,21 @@ enum natwm_error tile_init(const struct natwm_state *state, struct tile *tile)
                           state->screen->root,
                           tiled_rect.x,
                           tiled_rect.y,
-                          tiled_rect.width,
-                          tiled_rect.height,
-                          0,
+                          (tiled_rect.width - (2 * border_width)),
+                          (tiled_rect.height - (2 * border_width)),
+                          border_width,
                           XCB_WINDOW_CLASS_INPUT_OUTPUT,
                           state->screen->root_visual,
-                          0,
-                          NULL);
+                          mask,
+                          values);
+
+        if (border_width > 0) {
+                xcb_change_window_attributes(
+                        state->xcb,
+                        window,
+                        XCB_CW_BORDER_PIXEL,
+                        &settings_cache->unfocused_border_color->color_value);
+        }
 
         xcb_map_window(state->xcb, window);
 
