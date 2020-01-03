@@ -8,16 +8,40 @@
 #include <common/logger.h>
 
 #include <core/monitor.h>
+#include <core/tile.h>
 
 #include "event.h"
 #include "randr-event.h"
 
-enum natwm_error event_handle(const struct natwm_state *state,
-                              const xcb_generic_event_t *event)
+static enum natwm_error
+event_handle_map_request(const struct natwm_state *state,
+                         xcb_map_request_event_t *event)
 {
+        struct tile *tile = tile_register_client(state, &event->window);
+
+        if (tile == NULL) {
+                return RESOLUTION_FAILURE;
+        }
+
+        return NO_ERROR;
+}
+
+enum natwm_error event_handle(const struct natwm_state *state,
+                              xcb_generic_event_t *event)
+{
+        enum natwm_error err = GENERIC_ERROR;
         uint8_t type = (uint8_t)(event->response_type & ~0x80);
 
-        LOG_INFO(natwm_logger, "Handle events");
+        switch (type) {
+        case XCB_MAP_REQUEST:
+                err = event_handle_map_request(
+                        state, (xcb_map_request_event_t *)event);
+                break;
+        }
+
+        if (err != NO_ERROR) {
+                return err;
+        }
 
         // If we are using the randr extension then we support additional events
         // related to the monitors. If we don't support these events we can just
@@ -26,7 +50,7 @@ enum natwm_error event_handle(const struct natwm_state *state,
                 return NO_ERROR;
         }
 
-        enum natwm_error err = handle_randr_event(state, event, type);
+        err = handle_randr_event(state, event, type);
 
         if (err != NO_ERROR) {
                 return err;
