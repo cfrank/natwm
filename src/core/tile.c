@@ -252,6 +252,10 @@ enum natwm_error tile_init(const struct natwm_state *state, struct tile *tile)
         // Create window - this will be the parent window of the client
         xcb_window_t window = xcb_generate_id(state->xcb);
         uint16_t border_width = settings_cache->unfocused_border_width;
+        uint16_t window_width
+                = (uint16_t)(tiled_rect.width - (uint16_t)(2 * border_width));
+        uint16_t window_height
+                = (uint16_t)(tiled_rect.height - (uint16_t)(2 * border_width));
         uint32_t mask = XCB_CW_BACK_PIXEL | XCB_CW_SAVE_UNDER;
         uint32_t values[] = {
                 settings_cache->unfocused_background_color->color_value,
@@ -264,8 +268,8 @@ enum natwm_error tile_init(const struct natwm_state *state, struct tile *tile)
                           state->screen->root,
                           tiled_rect.x,
                           tiled_rect.y,
-                          tiled_rect.width - (uint16_t)(2 * border_width),
-                          tiled_rect.height - (uint16_t)(2 * border_width),
+                          window_width,
+                          window_height,
                           border_width,
                           XCB_WINDOW_CLASS_INPUT_OUTPUT,
                           state->screen->root_visual,
