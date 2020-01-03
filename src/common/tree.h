@@ -4,7 +4,6 @@
 
 #pragma once
 
-#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -24,7 +23,6 @@ struct tree {
 
 typedef void (*leaf_callback_t)(struct leaf *leaf);
 typedef void (*leaf_data_callback_t)(const void *data);
-typedef bool (*leaf_compare_callback_t)(struct leaf *one, struct leaf *two);
 
 struct tree *tree_create(const void *data);
 struct leaf *leaf_create(const void *data);
