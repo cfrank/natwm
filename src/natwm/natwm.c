@@ -19,6 +19,7 @@
 #include <core/ewmh.h>
 #include <core/monitor.h>
 #include <core/state.h>
+#include <core/tile.h>
 #include <core/workspace.h>
 
 struct argument_options {
@@ -330,6 +331,22 @@ int main(int argc, char **argv)
         }
 
         state->workspace_list = workspace_list;
+
+        // Before we start creating tiles let's make an initial settings cache
+        // based on the present configuration cache.
+        //
+        // TODO: Set defaults so we don't have a hard requirement on the user
+        // settings these in their configuration
+        if (tile_settings_cache_init(state->config,
+                                     &state->workspace_list->settings)
+            != NO_ERROR) {
+                goto free_and_error;
+        }
+
+        // Attach tiles to workspaces and initialize them
+        if (attach_tiles_to_workspace(state) != NO_ERROR) {
+                goto free_and_error;
+        }
 
         // Attempt to register for substructure events
         if (root_window_subscribe(state) != 0) {
