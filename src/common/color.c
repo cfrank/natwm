@@ -35,7 +35,7 @@ static enum natwm_error string_to_rgb(const char *hex_string, uint32_t *result)
         if (endptr == NULL) {
                 LOG_ERROR(natwm_logger,
                           "Found an invalid color value: '%s'",
-                          hex_string + 1);
+                          hex_string);
 
                 return INVALID_INPUT_ERROR;
         }
