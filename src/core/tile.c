@@ -36,6 +36,63 @@ static enum natwm_error get_window_rect(xcb_connection_t *connection,
         return NO_ERROR;
 }
 
+static enum natwm_error tile_init(const struct natwm_state *state,
+                                  struct tile *tile)
+{
+        xcb_rectangle_t tiled_rect = {
+                .width = 0,
+                .height = 0,
+                .x = 0,
+                .y = 0,
+        };
+        xcb_rectangle_t floating_rect = {
+                .width = 0,
+                .height = 0,
+                .x = 0,
+                .y = 0,
+        };
+
+        // TODO: We need to account for borders and gaps
+        if (get_next_tile_rect(state, &tiled_rect) != NO_ERROR) {
+                return RESOLUTION_FAILURE;
+        }
+
+        tile->tiled_rect = tiled_rect;
+        tile->floating_rect = floating_rect;
+
+        struct tile_settings_cache *settings_cache
+                = state->workspace_list->settings;
+        // Create window - this will be the parent window of the client
+        xcb_window_t window = xcb_generate_id(state->xcb);
+        uint32_t mask
+                = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL | XCB_CW_SAVE_UNDER;
+        uint32_t values[] = {
+                settings_cache->unfocused_background_color->color_value,
+                settings_cache->unfocused_border_color->color_value,
+                1,
+        };
+
+        xcb_create_window(state->xcb,
+                          XCB_COPY_FROM_PARENT,
+                          window,
+                          state->screen->root,
+                          tiled_rect.x,
+                          tiled_rect.y,
+                          tiled_rect.width,
+                          tiled_rect.height,
+                          settings_cache->unfocused_border_width,
+                          XCB_WINDOW_CLASS_INPUT_OUTPUT,
+                          state->screen->root_visual,
+                          mask,
+                          values);
+
+        xcb_map_window(state->xcb, window);
+
+        tile->parent_window = window;
+
+        return NO_ERROR;
+}
+
 struct tile *tile_create(xcb_window_t *client)
 {
         struct tile *tile = malloc(sizeof(struct tile));
@@ -64,14 +121,75 @@ enum natwm_error get_next_tile_rect(const struct natwm_state *state,
 
         // TODO: Need to support getting rects from workspaces with more than
         // one tile
-        *result = active_monitor->rect;
+        struct tile_settings_cache *settings = state->workspace_list->settings;
+        uint16_t border_width = settings->unfocused_border_width;
+        uint32_t double_border_width = (uint32_t)(2 * border_width);
+        uint16_t width
+                = (uint16_t)(active_monitor->rect.width - double_border_width);
+        uint16_t height
+                = (uint16_t)(active_monitor->rect.height - double_border_width);
+
+        xcb_rectangle_t rect = {
+                .x = active_monitor->rect.x,
+                .y = active_monitor->rect.y,
+                .width = width,
+                .height = height,
+        };
+
+        *result = rect;
 
         return NO_ERROR;
+}
+
+struct tile *tile_register_client(const struct natwm_state *state,
+                                  xcb_window_t *client)
+{
+        struct workspace *focused_workspace
+                = workspace_list_get_focused(state->workspace_list);
+
+        if (focused_workspace == NULL) {
+                return NULL;
+        }
+
+        struct tile *tile = focused_workspace->active_tile;
+
+        if (tile == NULL) {
+                return NULL;
+        }
+
+        tile->client = client;
+
+        // Get the initial floating rect for the client
+
+        if (get_window_rect(state->xcb, *tile->client, &tile->floating_rect)
+            != NO_ERROR) {
+                return NULL;
+        }
+
+        // Create the client
+        uint16_t mask = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y
+                | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
+        uint32_t values[] = {
+                (uint32_t)tile->tiled_rect.x,
+                (uint32_t)tile->tiled_rect.y,
+                tile->tiled_rect.width,
+                tile->tiled_rect.height,
+        };
+
+        xcb_configure_window(state->xcb, *tile->client, mask, values);
+        xcb_reparent_window(
+                state->xcb, *tile->client, tile->parent_window, 0, 0);
+        xcb_map_window(state->xcb, *tile->client);
+        xcb_flush(state->xcb);
+
+        return tile;
 }
 
 enum natwm_error attach_tiles_to_workspace(const struct natwm_state *state)
 {
         for (size_t i = 0; i < state->workspace_list->count; ++i) {
+                struct workspace *workspace
+                        = state->workspace_list->workspaces[i];
                 struct tile *tile = tile_create(NULL);
 
                 if (tile == NULL) {
@@ -86,9 +204,12 @@ enum natwm_error attach_tiles_to_workspace(const struct natwm_state *state)
                         return err;
                 }
 
-                tree_insert(state->workspace_list->workspaces[i]->tiles,
-                            NULL,
-                            tile);
+                tree_insert(workspace->tiles, NULL, tile);
+
+                // Set this tile as active - being active doesn't mean it's
+                // the focused tile. The only way to find the focused tile
+                // if by finding the focused workspace and it's active tile
+                workspace->active_tile = tile;
         }
 
         return NO_ERROR;
@@ -214,81 +335,6 @@ handle_error:
         LOG_ERROR(natwm_logger, "Failed to setup tile settings cache");
 
         return INVALID_INPUT_ERROR;
-}
-
-enum natwm_error tile_init(const struct natwm_state *state, struct tile *tile)
-{
-        xcb_rectangle_t tiled_rect = {
-                .width = 0,
-                .height = 0,
-                .x = 0,
-                .y = 0,
-        };
-        xcb_rectangle_t floating_rect = {
-                .width = 0,
-                .height = 0,
-                .x = 0,
-                .y = 0,
-        };
-
-        // TODO: We need to account for borders and gaps
-        if (get_next_tile_rect(state, &tiled_rect) != NO_ERROR) {
-                return RESOLUTION_FAILURE;
-        }
-
-        if (tile->client != NULL) {
-                if (get_window_rect(state->xcb, *tile->client, &floating_rect)
-                    != NO_ERROR) {
-                        return RESOLUTION_FAILURE;
-                }
-        }
-
-        tile->tiled_rect = tiled_rect;
-        tile->floating_rect = floating_rect;
-
-        struct tile_settings_cache *settings_cache
-                = state->workspace_list->settings;
-
-        // Create window - this will be the parent window of the client
-        xcb_window_t window = xcb_generate_id(state->xcb);
-        uint16_t border_width = settings_cache->unfocused_border_width;
-        uint16_t window_width
-                = (uint16_t)(tiled_rect.width - (uint16_t)(2 * border_width));
-        uint16_t window_height
-                = (uint16_t)(tiled_rect.height - (uint16_t)(2 * border_width));
-        uint32_t mask = XCB_CW_BACK_PIXEL | XCB_CW_SAVE_UNDER;
-        uint32_t values[] = {
-                settings_cache->unfocused_background_color->color_value,
-                1,
-        };
-
-        xcb_create_window(state->xcb,
-                          XCB_COPY_FROM_PARENT,
-                          window,
-                          state->screen->root,
-                          tiled_rect.x,
-                          tiled_rect.y,
-                          window_width,
-                          window_height,
-                          border_width,
-                          XCB_WINDOW_CLASS_INPUT_OUTPUT,
-                          state->screen->root_visual,
-                          mask,
-                          values);
-
-        if (border_width > 0) {
-                xcb_change_window_attributes(
-                        state->xcb,
-                        window,
-                        XCB_CW_BORDER_PIXEL,
-                        &settings_cache->unfocused_border_color->color_value);
-        }
-
-        xcb_map_window(state->xcb, window);
-
-        tile->parent_window = window;
-
-        return NO_ERROR;
 }
 
 void tile_settings_cache_destroy(struct tile_settings_cache *cache)

@@ -55,11 +55,12 @@ struct tile {
 };
 
 struct tile *tile_create(xcb_window_t *window);
+enum natwm_error get_next_tile_rect(const struct natwm_state *state,
+                                    xcb_rectangle_t *result);
+struct tile *tile_register_client(const struct natwm_state *state,
+                                  xcb_window_t *client);
 enum natwm_error attach_tiles_to_workspace(const struct natwm_state *state);
 enum natwm_error tile_settings_cache_init(const struct map *config_map,
                                           struct tile_settings_cache **result);
-enum natwm_error get_next_tile_rect(const struct natwm_state *state,
-                                    xcb_rectangle_t *result);
-enum natwm_error tile_init(const struct natwm_state *state, struct tile *tile);
 void tile_settings_cache_destroy(struct tile_settings_cache *cache);
 void tile_destroy(struct tile *tile);

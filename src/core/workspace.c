@@ -155,6 +155,19 @@ enum natwm_error workspace_list_init(const struct natwm_state *state,
         return NO_ERROR;
 }
 
+struct workspace *workspace_list_get_focused(struct workspace_list *list)
+{
+        for (size_t i = 0; i < list->count; ++i) {
+                struct workspace *workspace = list->workspaces[i];
+
+                if (workspace->is_focused) {
+                        return workspace;
+                }
+        }
+
+        return NULL;
+}
+
 void workspace_list_destroy(struct workspace_list *workspace_list)
 {
         if (workspace_list->settings != NULL) {

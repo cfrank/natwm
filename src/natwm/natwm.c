@@ -333,7 +333,8 @@ int main(int argc, char **argv)
         state->workspace_list = workspace_list;
 
         // Before we start creating tiles let's make an initial settings cache
-        // based on the present configuration cache.
+        // based on the present configuration. This will save us trips to the
+        // config map when setting up new windows
         //
         // TODO: Set defaults so we don't have a hard requirement on the user
         // settings these in their configuration
