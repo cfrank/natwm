@@ -179,10 +179,7 @@ struct tile *tile_register_client(const struct natwm_state *state,
         xcb_configure_window(state->xcb, *tile->client, mask, values);
         xcb_reparent_window(
                 state->xcb, *tile->client, tile->parent_window, 0, 0);
-
-        // Map the client to the window
-        xcb_map_window(state->xcb, tile->parent_window);
-
+        xcb_map_window(state->xcb, *tile->client);
         xcb_flush(state->xcb);
 
         return tile;
