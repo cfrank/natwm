@@ -78,7 +78,6 @@ void ewmh_init(const struct natwm_state *state)
                 state->ewmh->_NET_CURRENT_DESKTOP,
                 state->ewmh->_NET_DESKTOP_NAMES,
                 state->ewmh->_NET_ACTIVE_WINDOW,
-                state->ewmh->_NET_WORKAREA,
                 state->ewmh->_NET_SUPPORTING_WM_CHECK,
                 // Root messages
                 state->ewmh->_NET_CLOSE_WINDOW,
