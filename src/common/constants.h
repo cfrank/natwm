@@ -25,6 +25,8 @@
 
 #define NATWM_CONFIG_FILE "natwm/config"
 
+#define NATWM_WORKSPACE_COUNT 10
+
 #define UNFOCUSED_BORDER_WIDTH_CONFIG_STRING "window.unfocused.border_width"
 #define FOCUSED_BORDER_WIDTH_CONFIG_STRING "window.focused.border_width"
 #define URGENT_BORDER_WIDTH_CONFIG_STRING "window.urgent.border_width"
@@ -41,5 +43,3 @@
         "window.unfocused.background_color"
 #define URGENT_BACKGROUND_COLOR_CONFIG_STRING "window.urgent.background_color"
 #define STICKY_BACKGROUND_COLOR_CONFIG_STRING "window.sticky.background_color"
-
-#define NATWM_WORKSPACE_COUNT 10
