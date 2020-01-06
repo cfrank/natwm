@@ -314,6 +314,17 @@ int main(int argc, char **argv)
 
         state->screen = default_screen;
 
+        xcb_ewmh_connection_t *ewmh = ewmh_create(xcb);
+
+        if (ewmh == NULL) {
+                goto free_and_error;
+        }
+
+        state->ewmh = ewmh;
+
+        // Initialize ewmh hinting
+        ewmh_init(state);
+
         struct monitor_list *monitor_list = NULL;
 
         if (monitor_setup(state, &monitor_list) != NO_ERROR) {
@@ -321,6 +332,9 @@ int main(int argc, char **argv)
         }
 
         state->monitor_list = monitor_list;
+
+        // Use the monitor list we just initialized to set the desktop viewport
+        ewmh_update_desktop_viewport(state);
 
         struct workspace_list *workspace_list = NULL;
 
@@ -357,17 +371,6 @@ int main(int argc, char **argv)
 
                 goto free_and_error;
         }
-
-        xcb_ewmh_connection_t *ewmh = ewmh_create(xcb);
-
-        if (ewmh == NULL) {
-                goto free_and_error;
-        }
-
-        state->ewmh = ewmh;
-
-        // Initialize ewmh hinting
-        ewmh_init(state);
 
         program_status = RUNNING;
 
