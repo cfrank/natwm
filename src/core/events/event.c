@@ -17,7 +17,8 @@ static enum natwm_error
 event_handle_map_request(const struct natwm_state *state,
                          xcb_map_request_event_t *event)
 {
-        struct tile *tile = tile_register_client(state, &event->window);
+        xcb_window_t window = event->window;
+        struct tile *tile = tile_register_client(state, &window);
 
         if (tile == NULL) {
                 return RESOLUTION_FAILURE;

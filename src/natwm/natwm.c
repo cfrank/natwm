@@ -389,6 +389,8 @@ int main(int argc, char **argv)
         return EXIT_SUCCESS;
 
 free_and_error:
+        LOG_CRITICAL(natwm_logger, "Encountered error. Closing...");
+
         free(arg_options);
         natwm_state_destroy(state);
         destroy_logger(natwm_logger);
