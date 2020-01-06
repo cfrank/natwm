@@ -33,6 +33,8 @@ static enum natwm_error get_window_rect(xcb_connection_t *connection,
 
         *result = rect;
 
+        free(reply);
+
         return NO_ERROR;
 }
 
