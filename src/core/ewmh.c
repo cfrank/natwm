@@ -74,7 +74,6 @@ void ewmh_init(const struct natwm_state *state)
                 state->ewmh->_NET_CLIENT_LIST,
                 state->ewmh->_NET_CLIENT_LIST_STACKING,
                 state->ewmh->_NET_NUMBER_OF_DESKTOPS,
-                state->ewmh->_NET_DESKTOP_GEOMETRY,
                 state->ewmh->_NET_DESKTOP_VIEWPORT,
                 state->ewmh->_NET_CURRENT_DESKTOP,
                 state->ewmh->_NET_DESKTOP_NAMES,
