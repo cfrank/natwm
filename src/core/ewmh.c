@@ -2,10 +2,16 @@
 // Licensed under BSD-3-Clause
 // Refer to the license.txt file included in the root of the project
 
+#include <assert.h>
 #include <string.h>
 #include <unistd.h>
 
+#include <common/constants.h>
+#include <common/logger.h>
+
 #include "ewmh.h"
+#include "monitor.h"
+#include "workspace.h"
 
 // Create a simple window for the _NET_SUPPORTING_WM_CHECK property
 //
@@ -55,15 +61,8 @@ xcb_ewmh_connection_t *ewmh_create(xcb_connection_t *xcb_connection)
 
 void ewmh_init(const struct natwm_state *state)
 {
-        // Base info
         pid_t pid = getpid();
         size_t wm_name_len = strlen(NATWM_VERSION_STRING);
-
-        xcb_ewmh_set_wm_pid(state->ewmh, state->screen->root, (uint32_t)pid);
-        xcb_ewmh_set_wm_name(state->ewmh,
-                             state->screen->root,
-                             (uint32_t)wm_name_len,
-                             NATWM_VERSION_STRING);
 
         // A list of supported atoms
         //
@@ -76,7 +75,6 @@ void ewmh_init(const struct natwm_state *state)
                 state->ewmh->_NET_CLIENT_LIST_STACKING,
                 state->ewmh->_NET_NUMBER_OF_DESKTOPS,
                 state->ewmh->_NET_DESKTOP_GEOMETRY,
-                // We don't support large desktops - this will always be 0,0
                 state->ewmh->_NET_DESKTOP_VIEWPORT,
                 state->ewmh->_NET_CURRENT_DESKTOP,
                 state->ewmh->_NET_DESKTOP_NAMES,
@@ -116,6 +114,12 @@ void ewmh_init(const struct natwm_state *state)
         xcb_ewmh_set_supported(
                 state->ewmh, state->screen_num, (uint32_t)len, net_atoms);
 
+        xcb_ewmh_set_wm_pid(state->ewmh, state->screen->root, (uint32_t)pid);
+        xcb_ewmh_set_wm_name(state->ewmh,
+                             state->screen->root,
+                             (uint32_t)wm_name_len,
+                             NATWM_VERSION_STRING);
+
         xcb_window_t supporting_win = create_supporting_window(state);
 
         xcb_ewmh_set_supporting_wm_check(
@@ -126,6 +130,37 @@ void ewmh_init(const struct natwm_state *state)
                              supporting_win,
                              (uint32_t)wm_name_len,
                              NATWM_VERSION_STRING);
+
+        xcb_ewmh_set_number_of_desktops(state->ewmh,
+                                        state->screen_num,
+                                        (uint32_t)NATWM_WORKSPACE_COUNT);
+
+        ewmh_update_desktop_viewport(state);
+}
+
+void ewmh_update_desktop_viewport(const struct natwm_state *state)
+{
+        size_t num_desktops = state->monitor_list->monitors->size;
+        xcb_ewmh_coordinates_t viewports[num_desktops];
+
+        size_t index = 0;
+
+        LIST_FOR_EACH(state->monitor_list->monitors, monitor_item)
+        {
+                struct monitor *monitor = (struct monitor *)monitor_item->data;
+
+                assert(index < num_desktops);
+
+                viewports[index].x = (uint32_t)monitor->rect.x;
+                viewports[index].y = (uint32_t)monitor->rect.y;
+
+                ++index;
+        }
+
+        xcb_ewmh_set_desktop_viewport(state->ewmh,
+                                      state->screen_num,
+                                      (uint32_t)num_desktops,
+                                      viewports);
 }
 
 void ewmh_destroy(xcb_ewmh_connection_t *ewmh_connection)
