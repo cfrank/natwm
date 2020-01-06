@@ -2,6 +2,7 @@
 // Licensed under BSD-3-Clause
 // Refer to the license.txt file included in the root of the project
 
+#include <string.h>
 #include <xcb/randr.h>
 #include <xcb/xinerama.h>
 
@@ -284,6 +285,26 @@ monitor_list_get_active_monitor(const struct monitor_list *monitor_list)
 
                 if (monitor->workspace != NULL
                     && monitor->workspace->is_focused) {
+                        return monitor;
+                }
+        }
+
+        return NULL;
+}
+
+struct monitor *
+monitor_list_get_workspace_monitor(const struct monitor_list *monitor_list,
+                                   const struct workspace *workspace)
+{
+        LIST_FOR_EACH(monitor_list->monitors, monitor_item)
+        {
+                struct monitor *monitor = (struct monitor *)monitor_item->data;
+
+                if (monitor->workspace == NULL) {
+                        continue;
+                }
+
+                if (strcmp(monitor->workspace->name, workspace->name) == 0) {
                         return monitor;
                 }
         }
