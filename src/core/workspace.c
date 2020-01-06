@@ -12,6 +12,19 @@
 #include "tile.h"
 #include "workspace.h"
 
+static const char *DEFAULT_WORKSPACE_NAMES[10] = {
+        "one",
+        "two",
+        "three",
+        "four",
+        "five",
+        "six",
+        "seven",
+        "eight",
+        "nine",
+        "ten",
+};
+
 static void workspace_tiles_destroy_callback(struct leaf *leaf)
 {
         if (leaf != NULL && leaf->data != NULL) {
@@ -115,7 +128,8 @@ enum natwm_error workspace_list_init(const struct natwm_state *state,
 
                 // We don't have a user specified tag name for this space
                 if (workspace_names == NULL || i >= workspace_names->length) {
-                        workspace = workspace_create(NULL);
+                        const char *name = DEFAULT_WORKSPACE_NAMES[i];
+                        workspace = workspace_create(name);
 
                         if (workspace == NULL) {
                                 workspace_list_destroy(workspace_list);
