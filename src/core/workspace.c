@@ -8,6 +8,7 @@
 #include <common/logger.h>
 
 #include "config/config.h"
+#include "ewmh.h"
 #include "monitor.h"
 #include "tile.h"
 #include "workspace.h"
@@ -53,6 +54,7 @@ static void attach_to_monitors(struct monitor_list *monitor_list,
 
                 // Focus on the first monitor
                 if (index == 0) {
+                        workspace_list->active_index = 0;
                         workspace->is_focused = true;
                 }
 
@@ -163,6 +165,8 @@ enum natwm_error workspace_list_init(const struct natwm_state *state,
         }
 
         attach_to_monitors(state->monitor_list, workspace_list);
+
+        ewmh_update_current_desktop(state, workspace_list->active_index);
 
         *result = workspace_list;
 

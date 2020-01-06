@@ -134,22 +134,18 @@ void ewmh_init(const struct natwm_state *state)
         xcb_ewmh_set_number_of_desktops(state->ewmh,
                                         state->screen_num,
                                         (uint32_t)NATWM_WORKSPACE_COUNT);
-
-        ewmh_update_desktop_viewport(state);
 }
 
 void ewmh_update_desktop_viewport(const struct natwm_state *state)
 {
-        size_t num_desktops = state->monitor_list->monitors->size;
-        xcb_ewmh_coordinates_t viewports[num_desktops];
+        size_t num_monitors = state->monitor_list->monitors->size;
+        xcb_ewmh_coordinates_t viewports[num_monitors];
 
         size_t index = 0;
 
         LIST_FOR_EACH(state->monitor_list->monitors, monitor_item)
         {
                 struct monitor *monitor = (struct monitor *)monitor_item->data;
-
-                assert(index < num_desktops);
 
                 viewports[index].x = (uint32_t)monitor->rect.x;
                 viewports[index].y = (uint32_t)monitor->rect.y;
@@ -159,8 +155,17 @@ void ewmh_update_desktop_viewport(const struct natwm_state *state)
 
         xcb_ewmh_set_desktop_viewport(state->ewmh,
                                       state->screen_num,
-                                      (uint32_t)num_desktops,
+                                      (uint32_t)num_monitors,
                                       viewports);
+}
+
+void ewmh_update_current_desktop(const struct natwm_state *state,
+                                 size_t current_index)
+{
+        assert(current_index < NATWM_WORKSPACE_COUNT);
+
+        xcb_ewmh_set_current_desktop(
+                state->ewmh, state->screen_num, (uint32_t)current_index);
 }
 
 void ewmh_destroy(xcb_ewmh_connection_t *ewmh_connection)
