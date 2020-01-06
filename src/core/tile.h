@@ -54,9 +54,13 @@ struct tile {
         enum tile_state state;
 };
 
+// Forward declare workspace
+struct workspace;
+
 struct tile *tile_create(xcb_window_t *window);
-enum natwm_error get_next_tile_rect(const struct natwm_state *state,
-                                    xcb_rectangle_t *result);
+enum natwm_error get_next_tiled_rect(const struct natwm_state *state,
+                                     const struct workspace *workspace,
+                                     xcb_rectangle_t *result);
 struct tile *tile_register_client(const struct natwm_state *state,
                                   xcb_window_t *client);
 enum natwm_error attach_tiles_to_workspace(const struct natwm_state *state);

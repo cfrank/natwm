@@ -37,6 +37,7 @@ static enum natwm_error get_window_rect(xcb_connection_t *connection,
 }
 
 static enum natwm_error tile_init(const struct natwm_state *state,
+                                  const struct workspace *workspace,
                                   struct tile *tile)
 {
         xcb_rectangle_t tiled_rect = {
@@ -52,8 +53,7 @@ static enum natwm_error tile_init(const struct natwm_state *state,
                 .y = 0,
         };
 
-        // TODO: We need to account for borders and gaps
-        if (get_next_tile_rect(state, &tiled_rect) != NO_ERROR) {
+        if (get_next_tiled_rect(state, workspace, &tiled_rect) != NO_ERROR) {
                 return RESOLUTION_FAILURE;
         }
 
@@ -86,9 +86,11 @@ static enum natwm_error tile_init(const struct natwm_state *state,
                           mask,
                           values);
 
-        xcb_map_window(state->xcb, window);
-
         tile->parent_window = window;
+
+        if (workspace->is_visible) {
+                xcb_map_window(state->xcb, window);
+        }
 
         return NO_ERROR;
 }
@@ -108,15 +110,22 @@ struct tile *tile_create(xcb_window_t *client)
         return tile;
 }
 
-enum natwm_error get_next_tile_rect(const struct natwm_state *state,
-                                    xcb_rectangle_t *result)
+enum natwm_error get_next_tiled_rect(const struct natwm_state *state,
+                                     const struct workspace *workspace,
+                                     xcb_rectangle_t *result)
 {
-        // Find the currently active monitor
-        struct monitor *active_monitor
-                = monitor_list_get_active_monitor(state->monitor_list);
+        xcb_rectangle_t monitor_rect = {
+                .x = 0,
+                .y = 0,
+                .width = 0,
+                .height = 0,
+        };
 
-        if (active_monitor == NULL) {
-                return NOT_FOUND_ERROR;
+        struct monitor *workspace_monitor = monitor_list_get_workspace_monitor(
+                state->monitor_list, workspace);
+
+        if (workspace_monitor != NULL) {
+                monitor_rect = workspace_monitor->rect;
         }
 
         // TODO: Need to support getting rects from workspaces with more than
@@ -124,14 +133,12 @@ enum natwm_error get_next_tile_rect(const struct natwm_state *state,
         struct tile_settings_cache *settings = state->workspace_list->settings;
         uint16_t border_width = settings->unfocused_border_width;
         uint32_t double_border_width = (uint32_t)(2 * border_width);
-        uint16_t width
-                = (uint16_t)(active_monitor->rect.width - double_border_width);
-        uint16_t height
-                = (uint16_t)(active_monitor->rect.height - double_border_width);
+        uint16_t width = (uint16_t)(monitor_rect.width - double_border_width);
+        uint16_t height = (uint16_t)(monitor_rect.height - double_border_width);
 
         xcb_rectangle_t rect = {
-                .x = active_monitor->rect.x,
-                .y = active_monitor->rect.y,
+                .x = monitor_rect.x,
+                .y = monitor_rect.y,
                 .width = width,
                 .height = height,
         };
@@ -179,7 +186,11 @@ struct tile *tile_register_client(const struct natwm_state *state,
         xcb_configure_window(state->xcb, *tile->client, mask, values);
         xcb_reparent_window(
                 state->xcb, *tile->client, tile->parent_window, 0, 0);
-        xcb_map_window(state->xcb, *tile->client);
+
+        if (focused_workspace->is_visible) {
+                xcb_map_window(state->xcb, *tile->client);
+        }
+
         xcb_flush(state->xcb);
 
         return tile;
@@ -196,7 +207,7 @@ enum natwm_error attach_tiles_to_workspace(const struct natwm_state *state)
                         return MEMORY_ALLOCATION_ERROR;
                 }
 
-                enum natwm_error err = tile_init(state, tile);
+                enum natwm_error err = tile_init(state, workspace, tile);
 
                 if (err != NO_ERROR) {
                         tile_destroy(tile);
