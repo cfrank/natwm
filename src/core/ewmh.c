@@ -157,6 +157,27 @@ void ewmh_update_desktop_viewport(const struct natwm_state *state)
                                       viewports);
 }
 
+void ewmh_update_desktop_names(const struct natwm_state *state,
+                               const struct workspace_list *list)
+{
+        char names[(NATWM_WORKSPACE_NAME_MAX_LEN * list->count) + list->count];
+        size_t pos = 0;
+
+        for (size_t i = 0; i < list->count; ++i) {
+                const char *name = list->workspaces[i]->name;
+                size_t name_length = strlen(name);
+
+                memcpy(names + pos, name, name_length);
+
+                names[pos + name_length] = '\0';
+
+                pos += (name_length + 1);
+        }
+
+        xcb_ewmh_set_desktop_names(
+                state->ewmh, state->screen_num, (uint32_t)(pos - 1), names);
+}
+
 void ewmh_update_current_desktop(const struct natwm_state *state,
                                  size_t current_index)
 {

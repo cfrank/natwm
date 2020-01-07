@@ -11,6 +11,8 @@
 xcb_ewmh_connection_t *ewmh_create(xcb_connection_t *xcb_connection);
 void ewmh_init(const struct natwm_state *state);
 void ewmh_update_desktop_viewport(const struct natwm_state *state);
+void ewmh_update_desktop_names(const struct natwm_state *state,
+                               const struct workspace_list *list);
 void ewmh_update_current_desktop(const struct natwm_state *state,
                                  size_t current_index);
 void ewmh_destroy(xcb_ewmh_connection_t *ewmh_connection);
