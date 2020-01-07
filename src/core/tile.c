@@ -62,15 +62,14 @@ static enum natwm_error tile_init(const struct natwm_state *state,
         tile->tiled_rect = tiled_rect;
         tile->floating_rect = floating_rect;
 
-        struct tile_settings_cache *settings_cache
-                = state->workspace_list->settings;
+        struct tile_theme *theme = state->workspace_list->theme;
         // Create window - this will be the parent window of the client
         xcb_window_t window = xcb_generate_id(state->xcb);
         uint32_t mask
                 = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL | XCB_CW_SAVE_UNDER;
         uint32_t values[] = {
-                settings_cache->unfocused_background_color->color_value,
-                settings_cache->unfocused_border_color->color_value,
+                theme->unfocused_background_color->color_value,
+                theme->unfocused_border_color->color_value,
                 1,
         };
 
@@ -82,7 +81,7 @@ static enum natwm_error tile_init(const struct natwm_state *state,
                           tiled_rect.y,
                           tiled_rect.width,
                           tiled_rect.height,
-                          settings_cache->unfocused_border_width,
+                          theme->unfocused_border_width,
                           XCB_WINDOW_CLASS_INPUT_OUTPUT,
                           state->screen->root_visual,
                           mask,
@@ -132,8 +131,8 @@ enum natwm_error get_next_tiled_rect(const struct natwm_state *state,
 
         // TODO: Need to support getting rects from workspaces with more than
         // one tile
-        struct tile_settings_cache *settings = state->workspace_list->settings;
-        uint16_t border_width = settings->unfocused_border_width;
+        struct tile_theme *theme = state->workspace_list->theme;
+        uint16_t border_width = theme->unfocused_border_width;
         uint32_t double_border_width = (uint32_t)(2 * border_width);
         uint16_t width = (uint16_t)(monitor_rect.width - double_border_width);
         uint16_t height = (uint16_t)(monitor_rect.height - double_border_width);
@@ -228,13 +227,12 @@ enum natwm_error attach_tiles_to_workspace(const struct natwm_state *state)
         return NO_ERROR;
 }
 
-enum natwm_error tile_settings_cache_init(const struct map *config_map,
-                                          struct tile_settings_cache **result)
+enum natwm_error tile_theme_init(const struct map *config_map,
+                                 struct tile_theme **result)
 {
-        struct tile_settings_cache *cache
-                = calloc(1, sizeof(struct tile_settings_cache));
+        struct tile_theme *theme = calloc(1, sizeof(struct tile_theme));
 
-        if (cache == NULL) {
+        if (theme == NULL) {
                 return MEMORY_ALLOCATION_ERROR;
         }
 
@@ -323,68 +321,68 @@ enum natwm_error tile_settings_cache_init(const struct map *config_map,
                 goto handle_error;
         }
 
-        cache->unfocused_border_width = unfocused_border_width;
-        cache->focused_border_width = focused_border_width;
-        cache->urgent_border_width = urgent_border_width;
-        cache->sticky_border_width = sticky_border_width;
+        theme->unfocused_border_width = unfocused_border_width;
+        theme->focused_border_width = focused_border_width;
+        theme->urgent_border_width = urgent_border_width;
+        theme->sticky_border_width = sticky_border_width;
 
-        cache->unfocused_border_color = unfocused_border_color;
-        cache->focused_border_color = focused_border_color;
-        cache->urgent_border_color = urgent_border_color;
-        cache->sticky_border_color = sticky_border_color;
+        theme->unfocused_border_color = unfocused_border_color;
+        theme->focused_border_color = focused_border_color;
+        theme->urgent_border_color = urgent_border_color;
+        theme->sticky_border_color = sticky_border_color;
 
-        cache->unfocused_background_color = unfocused_background_color;
-        cache->focused_background_color = focused_background_color;
-        cache->urgent_background_color = urgent_background_color;
-        cache->sticky_background_color = sticky_background_color;
+        theme->unfocused_background_color = unfocused_background_color;
+        theme->focused_background_color = focused_background_color;
+        theme->urgent_background_color = urgent_background_color;
+        theme->sticky_background_color = sticky_background_color;
 
-        *result = cache;
+        *result = theme;
 
         return NO_ERROR;
 
 handle_error:
-        tile_settings_cache_destroy(cache);
+        tile_theme_destroy(theme);
 
         LOG_ERROR(natwm_logger, "Failed to setup tile settings cache");
 
         return INVALID_INPUT_ERROR;
 }
 
-void tile_settings_cache_destroy(struct tile_settings_cache *cache)
+void tile_theme_destroy(struct tile_theme *theme)
 {
-        if (cache->unfocused_border_color != NULL) {
-                color_value_destroy(cache->unfocused_border_color);
+        if (theme->unfocused_border_color != NULL) {
+                color_value_destroy(theme->unfocused_border_color);
         }
 
-        if (cache->focused_border_color != NULL) {
-                color_value_destroy(cache->focused_border_color);
+        if (theme->focused_border_color != NULL) {
+                color_value_destroy(theme->focused_border_color);
         }
 
-        if (cache->urgent_border_color != NULL) {
-                color_value_destroy(cache->urgent_border_color);
+        if (theme->urgent_border_color != NULL) {
+                color_value_destroy(theme->urgent_border_color);
         }
 
-        if (cache->sticky_border_color != NULL) {
-                color_value_destroy(cache->sticky_border_color);
+        if (theme->sticky_border_color != NULL) {
+                color_value_destroy(theme->sticky_border_color);
         }
 
-        if (cache->unfocused_background_color != NULL) {
-                color_value_destroy(cache->unfocused_background_color);
+        if (theme->unfocused_background_color != NULL) {
+                color_value_destroy(theme->unfocused_background_color);
         }
 
-        if (cache->focused_background_color != NULL) {
-                color_value_destroy(cache->focused_background_color);
+        if (theme->focused_background_color != NULL) {
+                color_value_destroy(theme->focused_background_color);
         }
 
-        if (cache->urgent_background_color != NULL) {
-                color_value_destroy(cache->urgent_background_color);
+        if (theme->urgent_background_color != NULL) {
+                color_value_destroy(theme->urgent_background_color);
         }
 
-        if (cache->sticky_background_color != NULL) {
-                color_value_destroy(cache->sticky_background_color);
+        if (theme->sticky_background_color != NULL) {
+                color_value_destroy(theme->sticky_background_color);
         }
 
-        free(cache);
+        free(theme);
 }
 
 void tile_destroy(struct tile *tile)

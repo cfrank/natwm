@@ -19,7 +19,7 @@ enum tile_state {
         TILE_STICKY,
 };
 
-struct tile_settings_cache {
+struct tile_theme {
         // Border width
         uint16_t unfocused_border_width;
         uint16_t focused_border_width;
@@ -37,6 +37,10 @@ struct tile_settings_cache {
         struct color_value *focused_background_color;
         struct color_value *urgent_background_color;
         struct color_value *sticky_background_color;
+
+        // Tiled window border color
+        struct color_value *unfocused_window_border_color;
+        struct color_value *focused_window_border_color;
 };
 
 struct tile {
@@ -64,7 +68,7 @@ enum natwm_error get_next_tiled_rect(const struct natwm_state *state,
 struct tile *tile_register_client(const struct natwm_state *state,
                                   xcb_window_t *client);
 enum natwm_error attach_tiles_to_workspace(const struct natwm_state *state);
-enum natwm_error tile_settings_cache_init(const struct map *config_map,
-                                          struct tile_settings_cache **result);
-void tile_settings_cache_destroy(struct tile_settings_cache *cache);
+enum natwm_error tile_theme_init(const struct map *config_map,
+                                 struct tile_theme **result);
+void tile_theme_destroy(struct tile_theme *cache);
 void tile_destroy(struct tile *tile);

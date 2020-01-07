@@ -112,7 +112,7 @@ struct workspace_list *workspace_list_create(size_t count)
         }
 
         workspace_list->count = count;
-        workspace_list->settings = NULL;
+        workspace_list->theme = NULL;
         workspace_list->workspaces = calloc(count, sizeof(struct workspace *));
 
         if (workspace_list->workspaces == NULL) {
@@ -200,8 +200,8 @@ struct workspace *workspace_list_get_focused(struct workspace_list *list)
 
 void workspace_list_destroy(struct workspace_list *workspace_list)
 {
-        if (workspace_list->settings != NULL) {
-                tile_settings_cache_destroy(workspace_list->settings);
+        if (workspace_list->theme != NULL) {
+                tile_theme_destroy(workspace_list->theme);
         }
 
         for (size_t i = 0; i < workspace_list->count; ++i) {
