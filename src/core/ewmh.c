@@ -7,7 +7,6 @@
 #include <unistd.h>
 
 #include <common/constants.h>
-#include <common/logger.h>
 
 #include "ewmh.h"
 #include "monitor.h"
@@ -134,14 +133,14 @@ void ewmh_init(const struct natwm_state *state)
                                         (uint32_t)NATWM_WORKSPACE_COUNT);
 }
 
-void ewmh_update_desktop_viewport(const struct natwm_state *state)
+void ewmh_update_desktop_viewport(const struct natwm_state *state,
+                                  const struct monitor_list *list)
 {
-        size_t num_monitors = state->monitor_list->monitors->size;
+        size_t num_monitors = list->monitors->size;
         xcb_ewmh_coordinates_t viewports[num_monitors];
-
         size_t index = 0;
 
-        LIST_FOR_EACH(state->monitor_list->monitors, monitor_item)
+        LIST_FOR_EACH(list->monitors, monitor_item)
         {
                 struct monitor *monitor = (struct monitor *)monitor_item->data;
 

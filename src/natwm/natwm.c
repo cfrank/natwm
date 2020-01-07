@@ -333,9 +333,6 @@ int main(int argc, char **argv)
 
         state->monitor_list = monitor_list;
 
-        // Use the monitor list we just initialized to set the desktop viewport
-        ewmh_update_desktop_viewport(state);
-
         struct workspace_list *workspace_list = NULL;
 
         if (workspace_list_init(state, &workspace_list) != NO_ERROR) {
