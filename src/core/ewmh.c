@@ -159,6 +159,14 @@ void ewmh_update_desktop_viewport(const struct natwm_state *state,
 void ewmh_update_desktop_names(const struct natwm_state *state,
                                const struct workspace_list *list)
 {
+        // Should never happen
+        if (list->count < 1) {
+                xcb_ewmh_set_desktop_names(
+                        state->ewmh, state->screen_num, 0, NULL);
+
+                return;
+        }
+
         char names[(NATWM_WORKSPACE_NAME_MAX_LEN * list->count) + list->count];
         size_t pos = 0;
 
