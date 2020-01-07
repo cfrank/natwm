@@ -89,7 +89,7 @@ workspace_init(const struct config_array *workspace_names, size_t index)
                 return workspace_create(name);
         }
 
-        if (strlen(name_value->data.string) >= NATWM_WORKSPACE_NAME_MAX_LEN) {
+        if (strlen(name_value->data.string) > NATWM_WORKSPACE_NAME_MAX_LEN) {
                 LOG_WARNING(
                         natwm_logger,
                         "Workspace name '%s' is too long. Max length is %zu",
@@ -178,6 +178,7 @@ enum natwm_error workspace_list_init(const struct natwm_state *state,
         attach_to_monitors(state->monitor_list, workspace_list);
 
         ewmh_update_current_desktop(state, workspace_list->active_index);
+        ewmh_update_desktop_names(state, workspace_list);
 
         *result = workspace_list;
 
