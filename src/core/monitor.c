@@ -11,6 +11,7 @@
 #include <common/util.h>
 
 #include "config/config.h"
+#include "ewmh.h"
 #include "monitor.h"
 #include "randr.h"
 #include "xinerama.h"
@@ -382,6 +383,9 @@ enum natwm_error monitor_setup(const struct natwm_state *state,
         }
 
         monitor_list_set_offsets(state, monitor_list);
+
+        // Initialize the desktop viewport
+        ewmh_update_desktop_viewport(state, monitor_list);
 
         *result = monitor_list;
 

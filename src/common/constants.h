@@ -27,6 +27,8 @@
 
 #define NATWM_WORKSPACE_COUNT 10
 
+#define NATWM_WORKSPACE_NAME_MAX_LEN 50
+
 #define UNFOCUSED_BORDER_WIDTH_CONFIG_STRING "window.unfocused.border_width"
 #define FOCUSED_BORDER_WIDTH_CONFIG_STRING "window.focused.border_width"
 #define URGENT_BORDER_WIDTH_CONFIG_STRING "window.urgent.border_width"

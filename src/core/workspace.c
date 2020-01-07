@@ -3,11 +3,13 @@
 // Refer to the license.txt file included in the root of the project
 
 #include <stdlib.h>
+#include <string.h>
 
 #include <common/constants.h>
 #include <common/logger.h>
 
 #include "config/config.h"
+#include "ewmh.h"
 #include "monitor.h"
 #include "tile.h"
 #include "workspace.h"
@@ -53,6 +55,7 @@ static void attach_to_monitors(struct monitor_list *monitor_list,
 
                 // Focus on the first monitor
                 if (index == 0) {
+                        workspace_list->active_index = 0;
                         workspace->is_focused = true;
                 }
 
@@ -61,6 +64,42 @@ static void attach_to_monitors(struct monitor_list *monitor_list,
 
                 ++index;
         }
+}
+
+/**
+ * Given a list of workspace names attempt to find a user specified workspace
+ * name and initialize a new workspace with that name. If there is no name, or
+ * it is invalid then create a new workspace with the default name
+ */
+static struct workspace *
+workspace_init(const struct config_array *workspace_names, size_t index)
+{
+        const char *name = DEFAULT_WORKSPACE_NAMES[index];
+
+        if (workspace_names == NULL || index >= workspace_names->length) {
+                return workspace_create(name);
+        }
+
+        const struct config_value *name_value = workspace_names->values[index];
+
+        if (name_value == NULL || name_value->type != STRING) {
+                LOG_WARNING(
+                        natwm_logger, "Ignoring invalid workspace name", name);
+
+                return workspace_create(name);
+        }
+
+        if (strlen(name_value->data.string) > NATWM_WORKSPACE_NAME_MAX_LEN) {
+                LOG_WARNING(
+                        natwm_logger,
+                        "Workspace name '%s' is too long. Max length is %zu",
+                        name_value->data.string,
+                        NATWM_WORKSPACE_NAME_MAX_LEN);
+
+                return workspace_create(name);
+        }
+
+        return workspace_create(name_value->data.string);
 }
 
 struct workspace_list *workspace_list_create(size_t count)
@@ -124,45 +163,22 @@ enum natwm_error workspace_list_init(const struct natwm_state *state,
         }
 
         for (size_t i = 0; i < NATWM_WORKSPACE_COUNT; ++i) {
-                struct workspace *workspace = NULL;
+                struct workspace *workspace
+                        = workspace_init(workspace_names, i);
 
-                // We don't have a user specified tag name for this space
-                if (workspace_names == NULL || i >= workspace_names->length) {
-                        const char *name = DEFAULT_WORKSPACE_NAMES[i];
-                        workspace = workspace_create(name);
+                if (workspace == NULL) {
+                        workspace_list_destroy(workspace_list);
 
-                        if (workspace == NULL) {
-                                workspace_list_destroy(workspace_list);
-
-                                return MEMORY_ALLOCATION_ERROR;
-                        }
-                } else {
-                        const struct config_value *name_value
-                                = workspace_names->values[i];
-
-                        if (name_value == NULL || name_value->type != STRING) {
-                                LOG_ERROR(natwm_logger,
-                                          "Encountered invalid workspace tag "
-                                          "name");
-
-                                workspace_list_destroy(workspace_list);
-
-                                return INVALID_INPUT_ERROR;
-                        }
-
-                        workspace = workspace_create(name_value->data.string);
-
-                        if (workspace == NULL) {
-                                workspace_list_destroy(workspace_list);
-
-                                return MEMORY_ALLOCATION_ERROR;
-                        }
+                        return MEMORY_ALLOCATION_ERROR;
                 }
 
                 workspace_list->workspaces[i] = workspace;
         }
 
         attach_to_monitors(state->monitor_list, workspace_list);
+
+        ewmh_update_current_desktop(state, workspace_list->active_index);
+        ewmh_update_desktop_names(state, workspace_list);
 
         *result = workspace_list;
 
