@@ -7,8 +7,8 @@
 #include <stdbool.h>
 #include <xcb/xcb.h>
 
-#include <common/color.h>
 #include <common/error.h>
+#include <common/theme.h>
 
 #include "state.h"
 
@@ -20,27 +20,9 @@ enum tile_state {
 };
 
 struct tile_theme {
-        // Border width
-        uint16_t unfocused_border_width;
-        uint16_t focused_border_width;
-        uint16_t urgent_border_width;
-        uint16_t sticky_border_width;
-
-        // Border color
-        struct color_value *unfocused_border_color;
-        struct color_value *focused_border_color;
-        struct color_value *urgent_border_color;
-        struct color_value *sticky_border_color;
-
-        // Background color
-        struct color_value *unfocused_background_color;
-        struct color_value *focused_background_color;
-        struct color_value *urgent_background_color;
-        struct color_value *sticky_background_color;
-
-        // Tiled window border color
-        struct color_value *unfocused_window_border_color;
-        struct color_value *focused_window_border_color;
+        uint16_t border_width;
+        struct color_theme *border_color;
+        struct color_theme *background_color;
 };
 
 struct tile {
