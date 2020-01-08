@@ -133,7 +133,7 @@ enum natwm_error get_next_tiled_rect(const struct natwm_state *state,
         // one tile
         struct tile_theme *theme = state->workspace_list->theme;
         uint16_t border_width = theme->border_width;
-        uint32_t double_border_width = (2 * border_width);
+        uint32_t double_border_width = (uint32_t)(border_width * 2);
         uint16_t width = (uint16_t)(monitor_rect.width - double_border_width);
         uint16_t height = (uint16_t)(monitor_rect.height - double_border_width);
 
