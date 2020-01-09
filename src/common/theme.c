@@ -41,7 +41,7 @@ static enum natwm_error string_to_rgb(const char *hex_string, uint32_t *result)
                 return INVALID_INPUT_ERROR;
         }
 
-        *result = rgb | 0xff000000;
+        *result = rgb;
 
         return NO_ERROR;
 }
