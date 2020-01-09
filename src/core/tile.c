@@ -68,8 +68,8 @@ static enum natwm_error tile_init(const struct natwm_state *state,
         uint32_t mask
                 = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL | XCB_CW_SAVE_UNDER;
         uint32_t values[] = {
-                theme->background_color->unfocused->color_value,
-                theme->border_color->unfocused->color_value,
+                theme->tile_background_color->unfocused->color_value,
+                theme->tile_border_color->unfocused->color_value,
                 1,
         };
 
@@ -81,7 +81,7 @@ static enum natwm_error tile_init(const struct natwm_state *state,
                           tiled_rect.y,
                           tiled_rect.width,
                           tiled_rect.height,
-                          theme->border_width->unfocused,
+                          theme->tile_border_width->unfocused,
                           XCB_WINDOW_CLASS_INPUT_OUTPUT,
                           state->screen->root_visual,
                           mask,
@@ -132,7 +132,7 @@ enum natwm_error get_next_tiled_rect(const struct natwm_state *state,
         // TODO: Need to support getting rects from workspaces with more than
         // one tile
         struct tile_theme *theme = state->workspace_list->theme;
-        uint16_t border_width = theme->border_width->unfocused;
+        uint16_t border_width = theme->tile_border_width->unfocused;
         uint32_t double_border_width = (uint32_t)(border_width * 2);
         uint16_t width = (uint16_t)(monitor_rect.width - double_border_width);
         uint16_t height = (uint16_t)(monitor_rect.height - double_border_width);
@@ -238,24 +238,42 @@ enum natwm_error tile_theme_init(const struct map *config_map,
 
         enum natwm_error err = GENERIC_ERROR;
 
-        err = border_theme_from_config(
-                config_map, BORDER_WIDTH_CONFIG_STRING, &theme->border_width);
+        err = border_theme_from_config(config_map,
+                                       TILE_BORDER_WIDTH_CONFIG_STRING,
+                                       &theme->tile_border_width);
 
         // Defaults will be set if invalid input is found
         if (err != NO_ERROR && err != INVALID_INPUT_ERROR) {
                 goto handle_error;
         }
 
-        err = color_theme_from_config(
-                config_map, BORDER_COLOR_CONFIG_STRING, &theme->border_color);
+        err = border_theme_from_config(config_map,
+                                       WINDOW_BORDER_WIDTH_CONFIG_STRING,
+                                       &theme->window_border_width);
+
+        if (err != NO_ERROR && err != INVALID_INPUT_ERROR) {
+                goto handle_error;
+        }
+
+        err = color_theme_from_config(config_map,
+                                      TILE_BORDER_COLOR_CONFIG_STRING,
+                                      &theme->tile_border_color);
 
         if (err != NO_ERROR) {
                 goto handle_error;
         }
 
         err = color_theme_from_config(config_map,
-                                      BACKGROUND_COLOR_CONFIG_STRING,
-                                      &theme->background_color);
+                                      WINDOW_BORDER_COLOR_CONFIG_STRING,
+                                      &theme->window_border_color);
+
+        if (err != NO_ERROR) {
+                goto handle_error;
+        }
+
+        err = color_theme_from_config(config_map,
+                                      TILE_BACKGROUND_COLOR_CONFIG_STRING,
+                                      &theme->tile_background_color);
 
         if (err != NO_ERROR) {
                 goto handle_error;
@@ -275,16 +293,24 @@ handle_error:
 
 void tile_theme_destroy(struct tile_theme *theme)
 {
-        if (theme->border_width != NULL) {
-                border_theme_destroy(theme->border_width);
+        if (theme->tile_border_width != NULL) {
+                border_theme_destroy(theme->tile_border_width);
         }
 
-        if (theme->border_color != NULL) {
-                color_theme_destroy(theme->border_color);
+        if (theme->window_border_width != NULL) {
+                border_theme_destroy(theme->window_border_width);
         }
 
-        if (theme->background_color != NULL) {
-                color_theme_destroy(theme->background_color);
+        if (theme->tile_border_color != NULL) {
+                color_theme_destroy(theme->tile_border_color);
+        }
+
+        if (theme->window_border_color != NULL) {
+                color_theme_destroy(theme->window_border_color);
+        }
+
+        if (theme->tile_background_color != NULL) {
+                color_theme_destroy(theme->tile_background_color);
         }
 
         free(theme);
