@@ -134,14 +134,11 @@ enum natwm_error get_next_tiled_rect(const struct natwm_state *state,
         struct tile_theme *theme = state->workspace_list->theme;
         uint16_t border_width = theme->tile_border_width->unfocused;
         uint32_t double_border_width = (uint32_t)(border_width * 2);
-        uint16_t width = (uint16_t)(monitor_rect.width - double_border_width);
-        uint16_t height = (uint16_t)(monitor_rect.height - double_border_width);
-
         xcb_rectangle_t rect = {
                 .x = monitor_rect.x,
                 .y = monitor_rect.y,
-                .width = width,
-                .height = height,
+                .width = (uint16_t)(monitor_rect.width - double_border_width),
+                .height = (uint16_t)(monitor_rect.height - double_border_width),
         };
 
         *result = rect;
@@ -181,21 +178,17 @@ struct tile *tile_register_client(const struct natwm_state *state,
                 | XCB_CONFIG_WINDOW_BORDER_WIDTH;
         uint16_t border_width = theme->window_border_width->unfocused;
         uint32_t double_border_width = (uint32_t)(border_width * 2);
-        uint16_t width
-                = (uint16_t)(tile->tiled_rect.width - double_border_width);
-        uint16_t height
-                = (uint16_t)(tile->tiled_rect.height - double_border_width);
         uint32_t values[] = {
                 (uint32_t)tile->tiled_rect.x,
                 (uint32_t)tile->tiled_rect.y,
-                width,
-                height,
+                (uint16_t)(tile->tiled_rect.width - double_border_width),
+                (uint16_t)(tile->tiled_rect.height - double_border_width),
                 theme->window_border_width->unfocused,
         };
 
         xcb_configure_window(state->xcb, *tile->client, mask, values);
 
-        if (theme->window_border_width->unfocused != 0) {
+        if (theme->window_border_width->unfocused > 0) {
                 xcb_change_window_attributes(
                         state->xcb,
                         *tile->client,
