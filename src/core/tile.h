@@ -20,7 +20,7 @@ enum tile_state {
 };
 
 struct tile_theme {
-        uint16_t border_width;
+        struct border_theme *border_width;
         struct color_theme *border_color;
         struct color_theme *background_color;
 };

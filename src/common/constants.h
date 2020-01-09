@@ -29,6 +29,8 @@
 
 #define NATWM_WORKSPACE_NAME_MAX_LEN 50
 
+#define DEFAULT_BORDER_WIDTH 1
+
 #define BORDER_WIDTH_CONFIG_STRING "window.border_width"
 #define BORDER_COLOR_CONFIG_STRING "window.border_color"
 #define BACKGROUND_COLOR_CONFIG_STRING "window.background_color"

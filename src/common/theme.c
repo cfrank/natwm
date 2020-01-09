@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <common/constants.h>
 #include <common/logger.h>
 #include <core/config/config.h>
 
@@ -64,6 +65,22 @@ color_value_from_config_value(const struct config_value *config_value,
         *result = value;
 
         return NO_ERROR;
+}
+
+struct border_theme *border_theme_create(void)
+{
+        struct border_theme *theme = malloc(sizeof(struct border_theme));
+
+        if (theme == NULL) {
+                return NULL;
+        }
+
+        theme->unfocused = 0;
+        theme->focused = 0;
+        theme->urgent = 0;
+        theme->sticky = 0;
+
+        return theme;
 }
 
 struct color_theme *color_theme_create(void)
@@ -128,6 +145,83 @@ enum natwm_error color_value_from_config(const struct map *map, const char *key,
         }
 
         *result = value;
+
+        return NO_ERROR;
+}
+
+enum natwm_error border_theme_from_config(const struct map *map,
+                                          const char *key,
+                                          struct border_theme **result)
+{
+        const struct config_array *config_value = NULL;
+
+        if (config_find_array(map, key, &config_value) != NO_ERROR) {
+                LOG_ERROR(natwm_logger,
+                          "Failed to find config item for '%s'",
+                          key);
+
+                return NOT_FOUND_ERROR;
+        }
+
+        struct border_theme *theme = border_theme_create();
+
+        if (theme == NULL) {
+                return MEMORY_ALLOCATION_ERROR;
+        }
+
+        theme->unfocused = DEFAULT_BORDER_WIDTH;
+        theme->focused = DEFAULT_BORDER_WIDTH;
+        theme->urgent = DEFAULT_BORDER_WIDTH;
+        theme->sticky = DEFAULT_BORDER_WIDTH;
+
+        if (config_value->length != 4) {
+                *result = theme;
+
+                return INVALID_INPUT_ERROR;
+        }
+
+        const struct config_value *unfocused_value = config_value->values[0];
+
+        if (unfocused_value->type != NUMBER) {
+                LOG_WARNING(
+                        natwm_logger,
+                        "Ignoring invalid unfocused config item inside '%s'",
+                        key);
+        } else {
+                theme->unfocused = (uint16_t)unfocused_value->data.number;
+        }
+
+        const struct config_value *focused_value = config_value->values[1];
+
+        if (unfocused_value->type != NUMBER) {
+                LOG_WARNING(natwm_logger,
+                            "Ignoring invalid focused config item inside '%s'",
+                            key);
+        } else {
+                theme->focused = (uint16_t)focused_value->data.number;
+        }
+
+        const struct config_value *urgent_value = config_value->values[2];
+
+        if (urgent_value->type != NUMBER) {
+                LOG_WARNING(natwm_logger,
+                            "Ignoring invalid urgent config item inside '%s'",
+                            key);
+        } else {
+                theme->urgent = (uint16_t)urgent_value->data.number;
+        }
+
+        const struct config_value *sticky_value = config_value->values[2];
+
+        if (sticky_value->type != NUMBER) {
+                LOG_WARNING(natwm_logger,
+                            "Ignoring invalid sticky config item inside '%s'",
+                            key);
+        } else {
+                theme->sticky = (uint16_t)sticky_value->data.number;
+        }
+
+        *result = theme;
 
         return NO_ERROR;
 }
@@ -228,6 +322,11 @@ bool color_value_has_changed(struct color_value *value,
         }
 
         return false;
+}
+
+void border_theme_destroy(struct border_theme *theme)
+{
+        free(theme);
 }
 
 void color_value_destroy(struct color_value *value)
