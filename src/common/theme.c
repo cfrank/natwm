@@ -193,7 +193,7 @@ enum natwm_error border_theme_from_config(const struct map *map,
 
         const struct config_value *focused_value = config_value->values[1];
 
-        if (unfocused_value->type != NUMBER) {
+        if (focused_value->type != NUMBER) {
                 LOG_WARNING(natwm_logger,
                             "Ignoring invalid focused config item inside '%s'",
                             key);
