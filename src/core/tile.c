@@ -175,16 +175,34 @@ struct tile *tile_register_client(const struct natwm_state *state,
         }
 
         // Create the client
+        struct tile_theme *theme = state->workspace_list->theme;
         uint16_t mask = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y
-                | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
+                | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT
+                | XCB_CONFIG_WINDOW_BORDER_WIDTH;
+        uint16_t border_width = theme->window_border_width->unfocused;
+        uint32_t double_border_width = (uint32_t)(border_width * 2);
+        uint16_t width
+                = (uint16_t)(tile->tiled_rect.width - double_border_width);
+        uint16_t height
+                = (uint16_t)(tile->tiled_rect.height - double_border_width);
         uint32_t values[] = {
                 (uint32_t)tile->tiled_rect.x,
                 (uint32_t)tile->tiled_rect.y,
-                tile->tiled_rect.width,
-                tile->tiled_rect.height,
+                width,
+                height,
+                theme->window_border_width->unfocused,
         };
 
         xcb_configure_window(state->xcb, *tile->client, mask, values);
+
+        if (theme->window_border_width->unfocused != 0) {
+                xcb_change_window_attributes(
+                        state->xcb,
+                        *tile->client,
+                        XCB_CW_BORDER_PIXEL,
+                        &theme->window_border_color->unfocused->color_value);
+        }
+
         xcb_reparent_window(
                 state->xcb, *tile->client, tile->parent_window, 0, 0);
 
