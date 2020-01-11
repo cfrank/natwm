@@ -211,7 +211,7 @@ enum natwm_error border_theme_from_config(const struct map *map,
                 theme->urgent = (uint16_t)urgent_value->data.number;
         }
 
-        const struct config_value *sticky_value = config_value->values[2];
+        const struct config_value *sticky_value = config_value->values[3];
 
         if (sticky_value->type != NUMBER) {
                 LOG_WARNING(natwm_logger,
