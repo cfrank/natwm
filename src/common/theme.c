@@ -230,13 +230,20 @@ enum natwm_error color_theme_from_config(const struct map *map, const char *key,
                                          struct color_theme **result)
 {
         const struct config_array *config_value = NULL;
+        enum natwm_error err = config_find_array(map, key, &config_value);
 
-        if (config_find_array(map, key, &config_value) != NO_ERROR) {
-                LOG_ERROR(natwm_logger,
-                          "Failed to find config item for '%s'",
-                          key);
+        if (err != NO_ERROR) {
+                if (NOT_FOUND_ERROR) {
+                        LOG_ERROR(natwm_logger,
+                                  "Failed to find config item for '%s'",
+                                  key);
+                } else {
+                        LOG_ERROR(natwm_logger,
+                                  "Invalid color values for config item '%s'",
+                                  key);
+                }
 
-                return NOT_FOUND_ERROR;
+                return err;
         }
 
         // TODO: It might be better in the future to leave unset config values
@@ -257,8 +264,6 @@ enum natwm_error color_theme_from_config(const struct map *map, const char *key,
 
                 return MEMORY_ALLOCATION_ERROR;
         }
-
-        enum natwm_error err = GENERIC_ERROR;
 
         err = color_value_from_config_value(config_value->values[0],
                                             &theme->unfocused);
