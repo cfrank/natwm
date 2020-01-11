@@ -342,10 +342,10 @@ bool color_value_has_changed(struct color_value *value,
                              const char *new_string_value)
 {
         if (strcmp(value->string, new_string_value) == 0) {
-                return true;
+                return false;
         }
 
-        return false;
+        return true;
 }
 
 void border_theme_destroy(struct border_theme *theme)
