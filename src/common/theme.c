@@ -125,16 +125,27 @@ enum natwm_error color_value_from_string(const char *string,
 enum natwm_error color_value_from_config(const struct map *map, const char *key,
                                          struct color_value **result)
 {
-        const char *string = config_find_string(map, key);
+        const char *string = NULL;
+        enum natwm_error err = config_find_string(map, key, &string);
 
-        if (string == NULL) {
-                LOG_ERROR(natwm_logger, "Missing config item for '%s'", key);
+        if (err != NO_ERROR) {
+                if (err == NOT_FOUND_ERROR) {
+                        LOG_ERROR(natwm_logger,
+                                  "Failed to find config item for '%s'",
+                                  key);
+                } else {
+                        LOG_ERROR(natwm_logger,
+                                  "Failed to find valid color value for config "
+                                  "item '%s'",
+                                  key);
+                }
 
-                return NOT_FOUND_ERROR;
+                return err;
         }
 
         struct color_value *value = NULL;
-        enum natwm_error err = color_value_from_string(string, &value);
+
+        err = color_value_from_string(string, &value);
 
         if (err != NO_ERROR) {
                 LOG_ERROR(natwm_logger,
