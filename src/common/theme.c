@@ -271,7 +271,8 @@ enum natwm_error color_theme_from_config(const struct map *map, const char *key,
         if (config_value->length != 4) {
                 LOG_ERROR(natwm_logger,
                           "Invalid number of values for config item '%s', "
-                          "Expected 4");
+                          "Expected 4",
+                          key);
 
                 return INVALID_INPUT_ERROR;
         }
