@@ -102,6 +102,7 @@ static void test_border_theme_from_config(void **state)
 
         /**
          * config = [
+         * 	0,
          * 	1,
          * 	2,
          * 	3,
