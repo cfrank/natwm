@@ -2,7 +2,6 @@
 // Licensed under BSD-3-Clause
 // Refer to the license.txt file included in the root of the project
 
-#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 
