@@ -266,6 +266,38 @@ static void test_border_theme_from_config_missing_config_item(void **state)
         config_destroy(config_map);
 }
 
+static void test_color_value_from_config(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        const char *expected_string = "#cc0000";
+        struct color_value *expected_value = NULL;
+
+        assert_int_equal(
+                NO_ERROR,
+                color_value_from_string(expected_string, &expected_value));
+        assert_non_null(expected_value);
+
+        const char *config_string = "config = \"#cc0000\"\n";
+        size_t config_length = strlen(config_string);
+        struct map *config_map
+                = config_read_string(config_string, config_length);
+
+        assert_non_null(config_map);
+
+        struct color_value *value = NULL;
+
+        assert_int_equal(NO_ERROR,
+                         color_value_from_config(config_map, "config", &value));
+        assert_non_null(value);
+        assert_string_equal(expected_string, value->string);
+        assert_int_equal(expected_value->color_value, value->color_value);
+
+        color_value_destroy(expected_value);
+        color_value_destroy(value);
+        config_destroy(config_map);
+}
+
 static void test_color_theme_from_config(void **state)
 {
         UNUSED_FUNCTION_PARAM(state);
@@ -422,6 +454,7 @@ int main(void)
                 cmocka_unit_test(test_border_theme_from_config_invalid_type),
                 cmocka_unit_test(
                         test_border_theme_from_config_missing_config_item),
+                cmocka_unit_test(test_color_value_from_config),
                 cmocka_unit_test(test_color_theme_from_config),
                 cmocka_unit_test(test_color_theme_from_config_invalid_length),
                 cmocka_unit_test(test_color_theme_from_config_invalid_type),
