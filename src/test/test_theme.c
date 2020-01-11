@@ -101,6 +101,51 @@ static void test_color_value_from_string_invalid_length(void **state)
         assert_null(result);
 }
 
+static void test_border_theme_from_config(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        uint16_t expected_values[] = {
+                0,
+                1,
+                2,
+                3,
+        };
+
+        /**
+         * config = [
+         * 	1,
+         * 	2,
+         * 	3,
+         * ]
+         */
+        const char *config_string = "config = [\n"
+                                    "\t0,\n"
+                                    "\t1,\n"
+                                    "\t2,\n"
+                                    "\t3,\n"
+                                    "]\n";
+        struct map *config_map
+                = config_read_string(config_string, strlen(config_string));
+
+        map_set_entry_free_function(config_map, config_map_free_callback);
+
+        assert_non_null(config_map);
+
+        struct border_theme *theme = NULL;
+
+        assert_int_equal(
+                NO_ERROR,
+                border_theme_from_config(config_map, "config", &theme));
+        assert_non_null(theme);
+        assert_int_equal(expected_values[0], theme->unfocused);
+        assert_int_equal(expected_values[1], theme->focused);
+        assert_int_equal(expected_values[2], theme->urgent);
+        assert_int_equal(expected_values[3], theme->sticky);
+
+        map_destroy(config_map);
+}
+
 static void test_color_theme_from_config(void **state)
 {
         UNUSED_FUNCTION_PARAM(state);
@@ -246,6 +291,7 @@ int main(void)
                 cmocka_unit_test(test_color_value_from_string_invalid),
                 cmocka_unit_test(test_color_value_from_string_missing_hash),
                 cmocka_unit_test(test_color_value_from_string_invalid_length),
+                cmocka_unit_test(test_border_theme_from_config),
                 cmocka_unit_test(test_color_theme_from_config),
                 cmocka_unit_test(test_color_theme_from_config_invalid_length),
                 cmocka_unit_test(test_color_theme_from_config_invalid_type),
