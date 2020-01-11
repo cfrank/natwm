@@ -546,6 +546,49 @@ static void test_color_value_has_changed(void **state)
                          color_value_from_string(first_string, &value));
         assert_non_null(value);
         assert_true(color_value_has_changed(value, second_string));
+
+        color_value_destroy(value);
+}
+
+static void test_color_value_has_changed_not_changed(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        const char *first_string = "#000000";
+        const char *second_string = "#000000";
+
+        struct color_value *value = NULL;
+
+        assert_int_equal(NO_ERROR,
+                         color_value_from_string(first_string, &value));
+        assert_non_null(value);
+        assert_false(color_value_has_changed(value, second_string));
+
+        color_value_destroy(value);
+}
+
+static void test_color_value_has_changed_null_value(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        const char *string = "#000000";
+
+        assert_true(color_value_has_changed(NULL, string));
+}
+
+static void test_color_value_has_changed_null_string(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        const char *string = "#000000";
+
+        struct color_value *value = NULL;
+
+        assert_int_equal(NO_ERROR, color_value_from_string(string, &value));
+        assert_non_null(value);
+        assert_true(color_value_has_changed(value, NULL));
+
+        color_value_destroy(value);
 }
 
 int main(void)
@@ -574,6 +617,9 @@ int main(void)
                 cmocka_unit_test(
                         test_color_theme_from_config_missing_config_item),
                 cmocka_unit_test(test_color_value_has_changed),
+                cmocka_unit_test(test_color_value_has_changed_not_changed),
+                cmocka_unit_test(test_color_value_has_changed_null_value),
+                cmocka_unit_test(test_color_value_has_changed_null_string),
         };
 
         return cmocka_run_group_tests(
