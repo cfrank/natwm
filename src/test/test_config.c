@@ -810,8 +810,11 @@ static void test_config_find_string(void **state)
 
         assert_non_null(config_map);
 
-        const char *result = config_find_string(config_map, "test_string");
+        const char *result = NULL;
 
+        assert_int_equal(
+                NO_ERROR,
+                config_find_string(config_map, "test_string", &result));
         assert_non_null(result);
         assert_string_equal(expected_result, result);
 
@@ -829,8 +832,11 @@ static void test_config_find_string_number(void **state)
 
         assert_non_null(config_map);
 
-        const char *result = config_find_string(config_map, "test_string");
+        const char *result = NULL;
 
+        assert_int_equal(
+                INVALID_INPUT_ERROR,
+                config_find_string(config_map, "test_string", &result));
         assert_null(result);
 
         config_destroy(config_map);
@@ -847,8 +853,10 @@ static void test_config_find_string_null(void **state)
 
         assert_non_null(config_map);
 
-        const char *result = config_find_string(config_map, NULL);
+        const char *result = NULL;
 
+        assert_int_equal(NOT_FOUND_ERROR,
+                         config_find_string(config_map, NULL, &result));
         assert_null(result);
 
         config_destroy(config_map);
@@ -865,8 +873,10 @@ static void test_config_find_string_not_found(void **state)
 
         assert_non_null(config_map);
 
-        const char *result = config_find_string(config_map, "found");
+        const char *result = NULL;
 
+        assert_int_equal(NOT_FOUND_ERROR,
+                         config_find_string(config_map, "found", &result));
         assert_null(result);
 
         config_destroy(config_map);

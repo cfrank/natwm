@@ -1,6 +1,4 @@
 add_library(common STATIC
-    color.c
-    color.h
     constants.h
     error.c
     error.h
@@ -16,6 +14,8 @@ add_library(common STATIC
     stack.h
     string.c
     string.h
+    theme.c
+    theme.h
     tree.c
     tree.h
     types.h

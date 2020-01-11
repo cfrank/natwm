@@ -35,6 +35,16 @@ add_natwm_test(test_stack
     TEST_NAME StackTest
 )
 
+# Common/Theme
+add_natwm_test(test_theme
+    SOURCES test_theme.c
+    LINK_LIBRARIES
+        ${CMOCKA_SHARED_LIBRARY}
+        common
+        core
+    TEST_NAME ThemeTest
+)
+
 # Common/Tree
 add_natwm_test(test_tree
     SOURCES test_tree.c

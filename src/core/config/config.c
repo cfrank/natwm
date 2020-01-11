@@ -378,22 +378,30 @@ intmax_t config_find_number_fallback(const struct map *config_map,
         return value;
 }
 
-const char *config_find_string(const struct map *config_map, const char *key)
+enum natwm_error config_find_string(const struct map *config_map,
+                                    const char *key, const char **result)
 {
         struct config_value *value = config_find(config_map, key);
 
-        if (value == NULL || value->type != STRING) {
-                return NULL;
+        if (value == NULL) {
+                return NOT_FOUND_ERROR;
         }
 
-        return value->data.string;
+        if (value->type != STRING) {
+                return INVALID_INPUT_ERROR;
+        }
+
+        *result = value->data.string;
+
+        return NO_ERROR;
 }
+
 const char *config_find_string_fallback(const struct map *config_map,
                                         const char *key, const char *fallback)
 {
-        const char *string = config_find_string(config_map, key);
+        const char *string = NULL;
 
-        if (string == NULL) {
+        if (config_find_string(config_map, key, &string) != NO_ERROR) {
                 return fallback;
         }
 

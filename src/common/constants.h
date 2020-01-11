@@ -23,25 +23,16 @@
                 (*dest) = value;                                               \
         }
 
-#define NATWM_CONFIG_FILE "natwm/config"
+#define NATWM_CONFIG_FILE "natwm/natwm.config"
 
 #define NATWM_WORKSPACE_COUNT 10
 
 #define NATWM_WORKSPACE_NAME_MAX_LEN 50
 
-#define UNFOCUSED_BORDER_WIDTH_CONFIG_STRING "window.unfocused.border_width"
-#define FOCUSED_BORDER_WIDTH_CONFIG_STRING "window.focused.border_width"
-#define URGENT_BORDER_WIDTH_CONFIG_STRING "window.urgent.border_width"
-#define STICKY_BORDER_WIDTH_CONFIG_STRING "window.sticky.border_width"
+#define DEFAULT_BORDER_WIDTH 1
 
-#define UNFOCUSED_BORDER_COLOR_CONFIG_STRING "window.unfocused.border_color"
-#define FOCUSED_BORDER_COLOR_CONFIG_STRING "window.focused.border_color"
-#define URGENT_BORDER_COLOR_CONFIG_STRING "window.urgent.border_color"
-#define STICKY_BORDER_COLOR_CONFIG_STRING "window.sticky.border_color"
-
-#define UNFOCUSED_BACKGROUND_COLOR_CONFIG_STRING                               \
-        "window.unfocused.background_color"
-#define FOCUSED_BACKGROUND_COLOR_CONFIG_STRING                                 \
-        "window.unfocused.background_color"
-#define URGENT_BACKGROUND_COLOR_CONFIG_STRING "window.urgent.background_color"
-#define STICKY_BACKGROUND_COLOR_CONFIG_STRING "window.sticky.background_color"
+#define TILE_BORDER_WIDTH_CONFIG_STRING "tile.border_width"
+#define TILE_BORDER_COLOR_CONFIG_STRING "tile.border_color"
+#define TILE_BACKGROUND_COLOR_CONFIG_STRING "tile.background_color"
+#define WINDOW_BORDER_WIDTH_CONFIG_STRING "window.border_width"
+#define WINDOW_BORDER_COLOR_CONFIG_STRING "window.border_color"

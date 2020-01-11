@@ -7,8 +7,8 @@
 #include <stdbool.h>
 #include <xcb/xcb.h>
 
-#include <common/color.h>
 #include <common/error.h>
+#include <common/theme.h>
 
 #include "state.h"
 
@@ -19,24 +19,12 @@ enum tile_state {
         TILE_STICKY,
 };
 
-struct tile_settings_cache {
-        // Border width
-        uint16_t unfocused_border_width;
-        uint16_t focused_border_width;
-        uint16_t urgent_border_width;
-        uint16_t sticky_border_width;
-
-        // Border color
-        struct color_value *unfocused_border_color;
-        struct color_value *focused_border_color;
-        struct color_value *urgent_border_color;
-        struct color_value *sticky_border_color;
-
-        // Background color
-        struct color_value *unfocused_background_color;
-        struct color_value *focused_background_color;
-        struct color_value *urgent_background_color;
-        struct color_value *sticky_background_color;
+struct tile_theme {
+        struct border_theme *tile_border_width;
+        struct border_theme *window_border_width;
+        struct color_theme *tile_border_color;
+        struct color_theme *tile_background_color;
+        struct color_theme *window_border_color;
 };
 
 struct tile {
@@ -64,7 +52,7 @@ enum natwm_error get_next_tiled_rect(const struct natwm_state *state,
 struct tile *tile_register_client(const struct natwm_state *state,
                                   xcb_window_t *client);
 enum natwm_error attach_tiles_to_workspace(const struct natwm_state *state);
-enum natwm_error tile_settings_cache_init(const struct map *config_map,
-                                          struct tile_settings_cache **result);
-void tile_settings_cache_destroy(struct tile_settings_cache *cache);
+enum natwm_error tile_theme_init(const struct map *config_map,
+                                 struct tile_theme **result);
+void tile_theme_destroy(struct tile_theme *cache);
 void tile_destroy(struct tile *tile);

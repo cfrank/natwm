@@ -349,8 +349,7 @@ int main(int argc, char **argv)
         //
         // TODO: Set defaults so we don't have a hard requirement on the user
         // settings these in their configuration
-        if (tile_settings_cache_init(state->config,
-                                     &state->workspace_list->settings)
+        if (tile_theme_init(state->config, &state->workspace_list->theme)
             != NO_ERROR) {
                 goto free_and_error;
         }

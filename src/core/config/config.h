@@ -25,7 +25,8 @@ intmax_t config_find_number_fallback(const struct map *config_map,
                                      const char *key, intmax_t fallback);
 const char *config_find_string_fallback(const struct map *config_map,
                                         const char *key, const char *fallback);
-const char *config_find_string(const struct map *config_map, const char *key);
+enum natwm_error config_find_string(const struct map *config_map,
+                                    const char *key, const char **result);
 const char *config_find_string_fallback(const struct map *config_map,
                                         const char *key, const char *fallback);
 
