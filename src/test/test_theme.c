@@ -146,6 +146,126 @@ static void test_border_theme_from_config(void **state)
         map_destroy(config_map);
 }
 
+static void test_border_theme_from_config_ignore_invalid_item(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        uint16_t expected_values[] = {
+                0,
+                1,
+                DEFAULT_BORDER_WIDTH,
+                DEFAULT_BORDER_WIDTH,
+        };
+
+        // When given items of invalid types we should fallback to
+        // DEFAULT_BORDER_WIDTH
+
+        /**
+         * config = [
+         * 	0,
+         * 	1,
+         * 	"Invalid string type",
+         * 	["Invalid array type"],
+         * ]
+         */
+        const char *config_string = "config = [\n"
+                                    "\t0,\n"
+                                    "\t1,\n"
+                                    "\t\"Invalid string type\",\n"
+                                    "\t[\"Invalid string type\"],\n"
+                                    "]\n";
+        size_t config_length = strlen(config_string);
+        struct map *config_map
+                = config_read_string(config_string, config_length);
+
+        assert_non_null(config_map);
+
+        map_set_entry_free_function(config_map, config_map_free_callback);
+
+        struct border_theme *theme = NULL;
+
+        assert_int_equal(
+                NO_ERROR,
+                border_theme_from_config(config_map, "config", &theme));
+        assert_non_null(theme);
+        assert_int_equal(expected_values[0], theme->unfocused);
+        assert_int_equal(expected_values[1], theme->focused);
+        assert_int_equal(expected_values[2], theme->urgent);
+        assert_int_equal(expected_values[3], theme->sticky);
+
+        border_theme_destroy(theme);
+        config_destroy(config_map);
+}
+
+static void test_border_theme_from_config_invalid_length(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        const char *config_string = "config = []\n";
+        size_t config_length = strlen(config_string);
+        struct map *config_map
+                = config_read_string(config_string, config_length);
+
+        assert_non_null(config_map);
+
+        map_set_entry_free_function(config_map, config_map_free_callback);
+
+        struct border_theme *theme = NULL;
+
+        assert_int_equal(
+                INVALID_INPUT_ERROR,
+                border_theme_from_config(config_map, "config", &theme));
+        assert_null(theme);
+
+        config_destroy(config_map);
+}
+
+static void test_border_theme_from_config_invalid_type(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        const char *config_string = "config = \"Invalid Type\"\n";
+        size_t config_length = strlen(config_string);
+        struct map *config_map
+                = config_read_string(config_string, config_length);
+
+        assert_non_null(config_map);
+
+        map_set_entry_free_function(config_map, config_map_free_callback);
+
+        struct border_theme *theme = NULL;
+
+        assert_int_equal(
+                INVALID_INPUT_ERROR,
+                border_theme_from_config(config_map, "config", &theme));
+        assert_null(theme);
+
+        config_destroy(config_map);
+}
+
+static void test_border_theme_from_config_missing_config_item(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        const char *config_string = "invalid = \"Not found\"\n";
+        size_t config_length = strlen(config_string);
+        struct map *config_map
+                = config_read_string(config_string, config_length);
+
+        assert_non_null(config_map);
+
+        map_set_entry_free_function(config_map, config_map_free_callback);
+
+        struct border_theme *theme = NULL;
+
+        assert_int_equal(
+                NOT_FOUND_ERROR,
+                border_theme_from_config(config_map, "config", &theme));
+        assert_null(theme);
+
+        config_destroy(config_map);
+}
+
 static void test_color_theme_from_config(void **state)
 {
         UNUSED_FUNCTION_PARAM(state);
@@ -187,8 +307,9 @@ static void test_color_theme_from_config(void **state)
                                     "\t\"#000000\","
                                     "\t\"#cccccc\","
                                     "]\n";
+        size_t config_length = strlen(config_string);
         struct map *config_map
-                = config_read_string(config_string, strlen(config_string));
+                = config_read_string(config_string, config_length);
 
         map_set_entry_free_function(config_map, config_map_free_callback);
 
@@ -232,8 +353,9 @@ static void test_color_theme_from_config_invalid_length(void **state)
         UNUSED_FUNCTION_PARAM(state);
 
         const char *config_string = "config = []\n";
+        size_t config_length = strlen(config_string);
         struct map *config_map
-                = config_read_string(config_string, strlen(config_string));
+                = config_read_string(config_string, config_length);
 
         assert_non_null(config_map);
 
@@ -251,8 +373,9 @@ static void test_color_theme_from_config_invalid_type(void **state)
         UNUSED_FUNCTION_PARAM(state);
 
         const char *config_string = "config = \"Hello world\"\n";
+        size_t config_length = strlen(config_string);
         struct map *config_map
-                = config_read_string(config_string, strlen(config_string));
+                = config_read_string(config_string, config_length);
 
         assert_non_null(config_map);
 
@@ -270,8 +393,9 @@ static void test_color_theme_from_config_missing_config_item(void **state)
         UNUSED_FUNCTION_PARAM(state);
 
         const char *config_string = "not_found = \"Invalid\"\n";
+        size_t config_length = strlen(config_string);
         struct map *config_map
-                = config_read_string(config_string, strlen(config_string));
+                = config_read_string(config_string, config_length);
 
         assert_non_null(config_map);
 
@@ -292,6 +416,12 @@ int main(void)
                 cmocka_unit_test(test_color_value_from_string_missing_hash),
                 cmocka_unit_test(test_color_value_from_string_invalid_length),
                 cmocka_unit_test(test_border_theme_from_config),
+                cmocka_unit_test(
+                        test_border_theme_from_config_ignore_invalid_item),
+                cmocka_unit_test(test_border_theme_from_config_invalid_length),
+                cmocka_unit_test(test_border_theme_from_config_invalid_type),
+                cmocka_unit_test(
+                        test_border_theme_from_config_missing_config_item),
                 cmocka_unit_test(test_color_theme_from_config),
                 cmocka_unit_test(test_color_theme_from_config_invalid_length),
                 cmocka_unit_test(test_color_theme_from_config_invalid_type),
