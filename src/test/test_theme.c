@@ -299,6 +299,98 @@ static void test_color_value_from_config(void **state)
         config_destroy(config_map);
 }
 
+static void test_color_value_from_config_no_hashtag(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        const char *config_string = "config = \"000000\"\n";
+        size_t config_length = strlen(config_string);
+        struct map *config_map
+                = config_read_string(config_string, config_length);
+
+        assert_non_null(config_map);
+
+        map_set_entry_free_function(config_map, config_map_free_callback);
+
+        struct color_value *value = NULL;
+
+        assert_int_equal(INVALID_INPUT_ERROR,
+                         color_value_from_config(config_map, "config", &value));
+        assert_null(value);
+
+        color_value_destroy(value);
+        map_destroy(config_map);
+}
+
+static void test_color_value_from_config_invalid_length(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        const char *config_string = "config = \"#00000\"\n";
+        size_t config_length = strlen(config_string);
+        struct map *config_map
+                = config_read_string(config_string, config_length);
+
+        assert_non_null(config_map);
+
+        map_set_entry_free_function(config_map, config_map_free_callback);
+
+        struct color_value *value = NULL;
+
+        assert_int_equal(INVALID_INPUT_ERROR,
+                         color_value_from_config(config_map, "config", &value));
+        assert_null(value);
+
+        color_value_destroy(value);
+        map_destroy(config_map);
+}
+
+static void test_color_value_from_config_invalid_type(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        const char *config_string = "config = [\"Invalid array type\"]\n";
+        size_t config_length = strlen(config_string);
+        struct map *config_map
+                = config_read_string(config_string, config_length);
+
+        assert_non_null(config_map);
+
+        map_set_entry_free_function(config_map, config_map_free_callback);
+
+        struct color_value *value = NULL;
+
+        assert_int_equal(INVALID_INPUT_ERROR,
+                         color_value_from_config(config_map, "config", &value));
+        assert_null(value);
+
+        color_value_destroy(value);
+        map_destroy(config_map);
+}
+
+static void test_color_value_from_config_missing_config_item(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        const char *config_string = "invalid = \"You can't find me\"\n";
+        size_t config_length = strlen(config_string);
+        struct map *config_map
+                = config_read_string(config_string, config_length);
+
+        assert_non_null(config_map);
+
+        map_set_entry_free_function(config_map, config_map_free_callback);
+
+        struct color_value *value = NULL;
+
+        assert_int_equal(NOT_FOUND_ERROR,
+                         color_value_from_config(config_map, "config", &value));
+        assert_null(value);
+
+        color_value_destroy(value);
+        map_destroy(config_map);
+}
+
 static void test_color_theme_from_config(void **state)
 {
         UNUSED_FUNCTION_PARAM(state);
@@ -456,6 +548,11 @@ int main(void)
                 cmocka_unit_test(
                         test_border_theme_from_config_missing_config_item),
                 cmocka_unit_test(test_color_value_from_config),
+                cmocka_unit_test(test_color_value_from_config_no_hashtag),
+                cmocka_unit_test(test_color_value_from_config_invalid_length),
+                cmocka_unit_test(test_color_value_from_config_invalid_type),
+                cmocka_unit_test(
+                        test_color_value_from_config_missing_config_item),
                 cmocka_unit_test(test_color_theme_from_config),
                 cmocka_unit_test(test_color_theme_from_config_invalid_length),
                 cmocka_unit_test(test_color_theme_from_config_invalid_type),
