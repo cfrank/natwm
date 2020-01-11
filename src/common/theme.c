@@ -79,10 +79,10 @@ struct border_theme *border_theme_create(void)
                 return NULL;
         }
 
-        theme->unfocused = 0;
-        theme->focused = 0;
-        theme->urgent = 0;
-        theme->sticky = 0;
+        theme->unfocused = DEFAULT_BORDER_WIDTH;
+        theme->focused = DEFAULT_BORDER_WIDTH;
+        theme->urgent = DEFAULT_BORDER_WIDTH;
+        theme->sticky = DEFAULT_BORDER_WIDTH;
 
         return theme;
 }
@@ -191,11 +191,6 @@ enum natwm_error border_theme_from_config(const struct map *map,
         if (theme == NULL) {
                 return MEMORY_ALLOCATION_ERROR;
         }
-
-        theme->unfocused = DEFAULT_BORDER_WIDTH;
-        theme->focused = DEFAULT_BORDER_WIDTH;
-        theme->urgent = DEFAULT_BORDER_WIDTH;
-        theme->sticky = DEFAULT_BORDER_WIDTH;
 
         if (config_value->length != 4) {
                 border_theme_destroy(theme);
