@@ -341,6 +341,10 @@ invalid_color_value_error:
 bool color_value_has_changed(struct color_value *value,
                              const char *new_string_value)
 {
+        if (value == NULL || new_string_value == NULL) {
+                return true;
+        }
+
         if (strcmp(value->string, new_string_value) == 0) {
                 return false;
         }
