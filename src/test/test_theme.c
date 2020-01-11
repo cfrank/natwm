@@ -63,18 +63,6 @@ static void test_color_value_from_string(void **state)
         color_value_destroy(result);
 }
 
-static void test_color_value_from_string_invalid(void **state)
-{
-        UNUSED_FUNCTION_PARAM(state);
-
-        const char *string = "abc123";
-        struct color_value *result = NULL;
-
-        assert_int_equal(INVALID_INPUT_ERROR,
-                         color_value_from_string(string, &result));
-        assert_null(result);
-}
-
 static void test_color_value_from_string_missing_hash(void **state)
 {
         UNUSED_FUNCTION_PARAM(state);
@@ -595,7 +583,6 @@ int main(void)
 {
         const struct CMUnitTest tests[] = {
                 cmocka_unit_test(test_color_value_from_string),
-                cmocka_unit_test(test_color_value_from_string_invalid),
                 cmocka_unit_test(test_color_value_from_string_missing_hash),
                 cmocka_unit_test(test_color_value_from_string_invalid_length),
                 cmocka_unit_test(test_border_theme_from_config),

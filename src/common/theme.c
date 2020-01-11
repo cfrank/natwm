@@ -12,6 +12,11 @@
 
 #include "theme.h"
 
+// TODO: This does not do bounds checking on hex codes- and accepts #ZZZZZZ for
+// example.
+//
+// This should be fixed in the future by checking the hex_string for values
+// which don't conform to the correct RGB hex values
 static enum natwm_error string_to_rgb(const char *hex_string, uint32_t *result)
 {
         if (hex_string[0] != '#') {
