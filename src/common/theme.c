@@ -154,13 +154,21 @@ enum natwm_error border_theme_from_config(const struct map *map,
                                           struct border_theme **result)
 {
         const struct config_array *config_value = NULL;
+        enum natwm_error err = config_find_array(map, key, &config_value);
 
-        if (config_find_array(map, key, &config_value) != NO_ERROR) {
-                LOG_ERROR(natwm_logger,
-                          "Failed to find config item for '%s'",
-                          key);
+        if (err != NO_ERROR) {
+                if (err == NOT_FOUND_ERROR) {
+                        LOG_ERROR(natwm_logger,
+                                  "Failed to find config item for '%s'",
+                                  key);
+                } else {
+                        LOG_ERROR(natwm_logger,
+                                  "Failed to find border widths for config "
+                                  "item '%s'",
+                                  key);
+                }
 
-                return NOT_FOUND_ERROR;
+                return err;
         }
 
         struct border_theme *theme = border_theme_create();
@@ -175,7 +183,7 @@ enum natwm_error border_theme_from_config(const struct map *map,
         theme->sticky = DEFAULT_BORDER_WIDTH;
 
         if (config_value->length != 4) {
-                *result = theme;
+                border_theme_destroy(theme);
 
                 return INVALID_INPUT_ERROR;
         }
