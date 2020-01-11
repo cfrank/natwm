@@ -143,6 +143,7 @@ static void test_border_theme_from_config(void **state)
         assert_int_equal(expected_values[2], theme->urgent);
         assert_int_equal(expected_values[3], theme->sticky);
 
+        border_theme_destroy(theme);
         map_destroy(config_map);
 }
 
