@@ -533,6 +533,21 @@ static void test_color_theme_from_config_missing_config_item(void **state)
         map_destroy(config_map);
 }
 
+static void test_color_value_has_changed(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        const char *first_string = "#000000";
+        const char *second_string = "#cc0000";
+
+        struct color_value *value = NULL;
+
+        assert_int_equal(NO_ERROR,
+                         color_value_from_string(first_string, &value));
+        assert_non_null(value);
+        assert_true(color_value_has_changed(value, second_string));
+}
+
 int main(void)
 {
         const struct CMUnitTest tests[] = {
@@ -558,6 +573,7 @@ int main(void)
                 cmocka_unit_test(test_color_theme_from_config_invalid_type),
                 cmocka_unit_test(
                         test_color_theme_from_config_missing_config_item),
+                cmocka_unit_test(test_color_value_has_changed),
         };
 
         return cmocka_run_group_tests(
