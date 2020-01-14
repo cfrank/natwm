@@ -456,22 +456,46 @@ static void test_tree_comparison_iterate(void **state)
 
         assert_int_equal(NO_ERROR, tree_insert(tree, NULL, &data_first));
         assert_int_equal(NO_ERROR, tree_insert(tree, NULL, &data_second));
+        assert_non_null(tree->root->left);
         assert_int_equal(NO_ERROR,
                          tree_insert(tree, tree->root->left, &expected_result));
         assert_non_null(tree->root->left->right);
-        assert_int_equal(expected_result,
-                         *(size_t *)tree->root->left->right->data);
 
-        expect_function_call_any(primitive_leaf_compare);
+        // root->right, root->left->left = 2
+        expect_function_calls(primitive_leaf_compare, 2);
 
         assert_int_equal(NO_ERROR,
                          tree_comparison_iterate(tree,
                                                  NULL,
-                                                 tree->root->left->right,
+                                                 &expected_result,
                                                  primitive_leaf_compare,
                                                  &result));
         assert_non_null(result);
-        assert_int_equal(data_second, *(size_t *)result->data);
+        assert_int_equal(expected_result, *(size_t *)result->data);
+}
+
+static void test_tree_comparison_iterate_not_found(void **state)
+{
+        struct tree *tree = *(struct tree **)state;
+        size_t data_first = 1;
+        size_t data_second = 2;
+        size_t hidden_data = 3;
+        struct leaf *result = NULL;
+
+        assert_int_equal(NO_ERROR, tree_insert(tree, NULL, &data_first));
+        assert_int_equal(NO_ERROR, tree_insert(tree, NULL, &data_second));
+
+        // root->left, root->right = 2
+        expect_function_calls(primitive_leaf_compare, 2);
+
+        assert_int_equal(NOT_FOUND_ERROR,
+                         tree_comparison_iterate(tree,
+                                                 NULL,
+                                                 &hidden_data,
+                                                 primitive_leaf_compare,
+                                                 &result));
+
+        assert_null(result);
 }
 
 static void test_leaf_find_parent(void **state)
@@ -597,6 +621,10 @@ int main(void)
                 cmocka_unit_test_setup_teardown(test_tree_comparison_iterate,
                                                 test_setup,
                                                 test_teardown),
+                cmocka_unit_test_setup_teardown(
+                        test_tree_comparison_iterate_not_found,
+                        test_setup,
+                        test_teardown),
                 cmocka_unit_test_setup_teardown(
                         test_leaf_find_parent, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(
