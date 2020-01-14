@@ -65,6 +65,21 @@ static void non_primitive_leaf_free(struct leaf *leaf)
         leaf_destroy(leaf);
 }
 
+static bool primitive_leaf_compare(const void *one, const void *two)
+{
+        function_called();
+
+        if (one == NULL || two == NULL) {
+                return false;
+        }
+
+        if (*(size_t *)one == *(size_t *)two) {
+                return true;
+        }
+
+        return false;
+}
+
 int test_setup(void **state)
 {
         struct tree *tree = tree_create(NULL);
@@ -431,6 +446,34 @@ static void test_tree_remove_non_primitive_multiple(void **state)
         tree_destroy(tree, non_primitive_leaf_free);
 }
 
+static void test_tree_comparison_iterate(void **state)
+{
+        struct tree *tree = *(struct tree **)state;
+        size_t data_first = 1;
+        size_t data_second = 2;
+        size_t expected_result = 3;
+        struct leaf *result = NULL;
+
+        assert_int_equal(NO_ERROR, tree_insert(tree, NULL, &data_first));
+        assert_int_equal(NO_ERROR, tree_insert(tree, NULL, &data_second));
+        assert_int_equal(NO_ERROR,
+                         tree_insert(tree, tree->root->left, &expected_result));
+        assert_non_null(tree->root->left->right);
+        assert_int_equal(expected_result,
+                         *(size_t *)tree->root->left->right->data);
+
+        expect_function_call_any(primitive_leaf_compare);
+
+        assert_int_equal(NO_ERROR,
+                         tree_comparison_iterate(tree,
+                                                 NULL,
+                                                 tree->root->left->right,
+                                                 primitive_leaf_compare,
+                                                 &result));
+        assert_non_null(result);
+        assert_int_equal(data_second, *(size_t *)result->data);
+}
+
 static void test_leaf_find_parent(void **state)
 {
         struct tree *tree = *(struct tree **)state;
@@ -551,6 +594,9 @@ int main(void)
                                                 test_teardown),
                 cmocka_unit_test(test_tree_remove_non_primitive),
                 cmocka_unit_test(test_tree_remove_non_primitive_multiple),
+                cmocka_unit_test_setup_teardown(test_tree_comparison_iterate,
+                                                test_setup,
+                                                test_teardown),
                 cmocka_unit_test_setup_teardown(
                         test_leaf_find_parent, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(
