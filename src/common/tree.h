@@ -37,8 +37,7 @@ enum natwm_error tree_remove(struct tree *tree, struct leaf *leaf,
 void tree_iterate(struct tree *tree, struct leaf *start,
                   leaf_callback_t callback);
 enum natwm_error tree_comparison_iterate(const struct tree *tree,
-                                         struct leaf *start,
-                                         const struct leaf *needle,
+                                         struct leaf *start, const void *needle,
                                          leaf_compare_callback_t compare,
                                          struct leaf **result);
 enum natwm_error leaf_find_parent(struct leaf *leaf, struct leaf **parent);

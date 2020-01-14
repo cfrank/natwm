@@ -219,8 +219,7 @@ void tree_iterate(struct tree *tree, struct leaf *start,
 }
 
 enum natwm_error tree_comparison_iterate(const struct tree *tree,
-                                         struct leaf *start,
-                                         const struct leaf *needle,
+                                         struct leaf *start, const void *needle,
                                          leaf_compare_callback_t compare,
                                          struct leaf **result)
 {
@@ -240,7 +239,8 @@ enum natwm_error tree_comparison_iterate(const struct tree *tree,
 
                 current_leaf = (struct leaf *)stack_item->data;
 
-                if (compare(needle->data, current_leaf->data)) {
+                if (current_leaf->data != NULL
+                    && compare(needle, current_leaf->data)) {
                         SET_IF_NON_NULL(result, current_leaf);
 
                         stack_destroy(stack);
