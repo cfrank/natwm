@@ -206,6 +206,8 @@ void tree_iterate(const struct tree *tree, struct leaf *start,
 
                 current_leaf = (struct leaf *)stack_item->data;
 
+                // It is possible that 'callback' will free the mem pointed to
+                // by current_leaf - so we must access the child before calling
                 struct leaf *tmp = current_leaf;
 
                 current_leaf = current_leaf->right;
