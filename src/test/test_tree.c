@@ -65,6 +65,30 @@ static void non_primitive_leaf_free(struct leaf *leaf)
         leaf_destroy(leaf);
 }
 
+static bool non_primitive_type_compare(const void *one, const void *two)
+{
+        function_called();
+
+        const struct non_primitive_type *type_one
+                = (const struct non_primitive_type *)one;
+        const struct non_primitive_type *type_two
+                = (const struct non_primitive_type *)two;
+
+        if (one == NULL || two == NULL) {
+                return false;
+        }
+
+        if (type_one->number != type_two->number) {
+                return false;
+        }
+
+        if (strcmp(type_one->string, type_two->string) != 0) {
+                return false;
+        }
+
+        return true;
+}
+
 static bool primitive_leaf_compare(const void *one, const void *two)
 {
         function_called();
@@ -440,8 +464,8 @@ static void test_tree_remove_non_primitive_multiple(void **state)
         assert_int_equal(2, tree->size);
         assert_ptr_equal(affected_leaf, tree->root->left);
 
-        // Need to include the node with no data
-        expect_function_calls(non_primitive_leaf_free, (int)tree->size + 1);
+        // tree->root, tree->root->left, tree->root->right = 3
+        expect_function_calls(non_primitive_leaf_free, 3);
 
         tree_destroy(tree, non_primitive_leaf_free);
 }
@@ -474,6 +498,72 @@ static void test_tree_comparison_iterate(void **state)
         assert_int_equal(expected_result, *(size_t *)result->data);
 }
 
+static void test_tree_comparison_iterate_find_root(void **state)
+{
+        struct tree *tree = *(struct tree **)state;
+        size_t expected_result = 14;
+        struct leaf *result = NULL;
+
+        assert_int_equal(NO_ERROR, tree_insert(tree, NULL, &expected_result));
+        assert_non_null(tree->root);
+
+        expect_function_calls(primitive_leaf_compare, 1);
+
+        assert_int_equal(NO_ERROR,
+                         tree_comparison_iterate(tree,
+                                                 NULL,
+                                                 &expected_result,
+                                                 primitive_leaf_compare,
+                                                 &result));
+        assert_non_null(result);
+        assert_int_equal(expected_result, *(size_t *)result->data);
+}
+
+static void test_tree_comparison_iterate_non_primitive(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        struct tree *tree = tree_create(NULL);
+
+        assert_non_null(tree);
+
+        struct non_primitive_type *data_first = create_npt("one", 1);
+        struct non_primitive_type *data_second = create_npt("two", 2);
+        struct non_primitive_type *expected_data = create_npt("three", 3);
+        struct leaf *result = NULL;
+
+        assert_non_null(data_first);
+        assert_non_null(data_second);
+        assert_non_null(expected_data);
+        assert_int_equal(NO_ERROR, tree_insert(tree, NULL, data_first));
+        assert_int_equal(NO_ERROR, tree_insert(tree, NULL, data_second));
+        assert_int_equal(NO_ERROR,
+                         tree_insert(tree, tree->root->left, expected_data));
+
+        // tree->right tree->left->left = 2
+        expect_function_calls(non_primitive_type_compare, 2);
+
+        assert_int_equal(NO_ERROR,
+                         tree_comparison_iterate(tree,
+                                                 NULL,
+                                                 expected_data,
+                                                 non_primitive_type_compare,
+                                                 &result));
+        assert_non_null(result);
+        assert_string_equal(
+                expected_data->string,
+                ((const struct non_primitive_type *)result->data)->string);
+        assert_int_equal(
+                expected_data->number,
+                ((const struct non_primitive_type *)result->data)->number);
+
+        // tree->root, tree->root->left, tree->root->right,
+        // tree->root->left->left, tree->root->left->right = 5
+        expect_function_calls(non_primitive_leaf_free, 5);
+
+        tree_destroy(tree, non_primitive_leaf_free);
+}
+
 static void test_tree_comparison_iterate_not_found(void **state)
 {
         struct tree *tree = *(struct tree **)state;
@@ -495,6 +585,21 @@ static void test_tree_comparison_iterate_not_found(void **state)
                                                  primitive_leaf_compare,
                                                  &result));
 
+        assert_null(result);
+}
+
+static void test_tree_comparison_iterate_empty_tree(void **state)
+{
+        struct tree *tree = *(struct tree **)state;
+        size_t hidden_data = 14;
+        struct leaf *result;
+
+        assert_int_equal(NOT_FOUND_ERROR,
+                         tree_comparison_iterate(tree,
+                                                 NULL,
+                                                 &hidden_data,
+                                                 primitive_leaf_compare,
+                                                 &result));
         assert_null(result);
 }
 
@@ -622,7 +727,16 @@ int main(void)
                                                 test_setup,
                                                 test_teardown),
                 cmocka_unit_test_setup_teardown(
+                        test_tree_comparison_iterate_find_root,
+                        test_setup,
+                        test_teardown),
+                cmocka_unit_test(test_tree_comparison_iterate_non_primitive),
+                cmocka_unit_test_setup_teardown(
                         test_tree_comparison_iterate_not_found,
+                        test_setup,
+                        test_teardown),
+                cmocka_unit_test_setup_teardown(
+                        test_tree_comparison_iterate_empty_tree,
                         test_setup,
                         test_teardown),
                 cmocka_unit_test_setup_teardown(
