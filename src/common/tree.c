@@ -228,7 +228,7 @@ enum natwm_error tree_comparison_iterate(const struct tree *tree,
 
         while (stack_has_item(stack) || current_leaf != NULL) {
                 if (current_leaf != NULL) {
-                        stack_push(stack, (void *)current_leaf);
+                        stack_push(stack, current_leaf);
 
                         current_leaf = current_leaf->left;
 
