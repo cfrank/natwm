@@ -243,6 +243,7 @@ enum natwm_error tree_comparison_iterate(const struct tree *tree,
                     && compare(needle, current_leaf->data)) {
                         SET_IF_NON_NULL(result, current_leaf);
 
+                        stack_item_destroy(stack_item);
                         stack_destroy(stack);
 
                         return NO_ERROR;

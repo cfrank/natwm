@@ -592,7 +592,7 @@ static void test_tree_comparison_iterate_empty_tree(void **state)
 {
         struct tree *tree = *(struct tree **)state;
         size_t hidden_data = 14;
-        struct leaf *result;
+        struct leaf *result = NULL;
 
         assert_int_equal(NOT_FOUND_ERROR,
                          tree_comparison_iterate(tree,
