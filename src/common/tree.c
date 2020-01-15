@@ -187,7 +187,7 @@ enum natwm_error tree_remove(struct tree *tree, struct leaf *leaf,
         return NO_ERROR;
 }
 
-void tree_iterate(struct tree *tree, struct leaf *start,
+void tree_iterate(const struct tree *tree, struct leaf *start,
                   leaf_callback_t callback)
 {
         struct stack *stack = stack_create();

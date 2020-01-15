@@ -34,7 +34,7 @@ enum natwm_error tree_insert(struct tree *tree, struct leaf *append_under,
 enum natwm_error tree_remove(struct tree *tree, struct leaf *leaf,
                              leaf_data_callback_t free_callback,
                              struct leaf **affected_leaf);
-void tree_iterate(struct tree *tree, struct leaf *start,
+void tree_iterate(const struct tree *tree, struct leaf *start,
                   leaf_callback_t callback);
 enum natwm_error tree_comparison_iterate(const struct tree *tree,
                                          struct leaf *start, const void *needle,
