@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -23,6 +24,7 @@ struct tree {
 
 typedef void (*leaf_callback_t)(struct leaf *leaf);
 typedef void (*leaf_data_callback_t)(const void *data);
+typedef bool (*leaf_compare_callback_t)(const void *one, const void *two);
 
 struct tree *tree_create(const void *data);
 struct leaf *leaf_create(const void *data);
@@ -32,8 +34,12 @@ enum natwm_error tree_insert(struct tree *tree, struct leaf *append_under,
 enum natwm_error tree_remove(struct tree *tree, struct leaf *leaf,
                              leaf_data_callback_t free_callback,
                              struct leaf **affected_leaf);
-void tree_iterate(struct tree *tree, struct leaf *start,
+void tree_iterate(const struct tree *tree, struct leaf *start,
                   leaf_callback_t callback);
+enum natwm_error tree_comparison_iterate(const struct tree *tree,
+                                         struct leaf *start, const void *needle,
+                                         leaf_compare_callback_t compare,
+                                         struct leaf **result);
 enum natwm_error leaf_find_parent(struct leaf *leaf, struct leaf **parent);
 enum natwm_error leaf_find_sibling(struct leaf *leaf, struct leaf **sibling);
 

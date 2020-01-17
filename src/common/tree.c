@@ -187,32 +187,30 @@ enum natwm_error tree_remove(struct tree *tree, struct leaf *leaf,
         return NO_ERROR;
 }
 
-void tree_iterate(struct tree *tree, struct leaf *start,
+void tree_iterate(const struct tree *tree, struct leaf *start,
                   leaf_callback_t callback)
 {
         struct stack *stack = stack_create();
-        struct leaf *curr = tree->root;
+        struct leaf *current_leaf = (start != NULL) ? start : tree->root;
 
-        if (start != NULL) {
-                curr = start;
-        }
+        while (stack_has_item(stack) || current_leaf != NULL) {
+                if (current_leaf != NULL) {
+                        stack_push(stack, current_leaf);
 
-        while (stack_has_item(stack) || curr != NULL) {
-                if (curr != NULL) {
-                        stack_push(stack, curr);
-
-                        curr = curr->left;
+                        current_leaf = current_leaf->left;
 
                         continue;
                 }
 
                 struct stack_item *stack_item = stack_pop(stack);
 
-                curr = (struct leaf *)stack_item->data;
+                current_leaf = (struct leaf *)stack_item->data;
 
-                struct leaf *tmp = curr;
+                // It is possible that 'callback' will free the mem pointed to
+                // by current_leaf - so we must access the child before calling
+                struct leaf *tmp = current_leaf;
 
-                curr = curr->right;
+                current_leaf = current_leaf->right;
 
                 callback(tmp);
 
@@ -220,6 +218,47 @@ void tree_iterate(struct tree *tree, struct leaf *start,
         }
 
         stack_destroy(stack);
+}
+
+enum natwm_error tree_comparison_iterate(const struct tree *tree,
+                                         struct leaf *start, const void *needle,
+                                         leaf_compare_callback_t compare,
+                                         struct leaf **result)
+{
+        struct stack *stack = stack_create();
+        struct leaf *current_leaf = (start != NULL) ? start : tree->root;
+
+        while (stack_has_item(stack) || current_leaf != NULL) {
+                if (current_leaf != NULL) {
+                        stack_push(stack, current_leaf);
+
+                        current_leaf = current_leaf->left;
+
+                        continue;
+                }
+
+                struct stack_item *stack_item = stack_pop(stack);
+
+                current_leaf = (struct leaf *)stack_item->data;
+
+                if (current_leaf->data != NULL
+                    && compare(needle, current_leaf->data)) {
+                        SET_IF_NON_NULL(result, current_leaf);
+
+                        stack_item_destroy(stack_item);
+                        stack_destroy(stack);
+
+                        return NO_ERROR;
+                }
+
+                current_leaf = current_leaf->right;
+
+                stack_item_destroy(stack_item);
+        }
+
+        stack_destroy(stack);
+
+        return NOT_FOUND_ERROR;
 }
 
 enum natwm_error leaf_find_parent(struct leaf *leaf, struct leaf **parent)
