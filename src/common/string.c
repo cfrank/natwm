@@ -42,8 +42,8 @@ ATTR_NONNULL enum natwm_error string_append(char **destination,
                                             const char *append)
 {
         size_t destination_size = strlen(*destination);
-        size_t append_size = strlen(append);
-        size_t result_size = (destination_size + append_size) + 1;
+        size_t append_size = strlen(append) + 1;
+        size_t result_size = destination_size + append_size;
         char *tmp = realloc(*destination, result_size);
 
         if (tmp == NULL) {
@@ -54,7 +54,7 @@ ATTR_NONNULL enum natwm_error string_append(char **destination,
 
         *destination = tmp;
 
-        strncpy(*destination + destination_size, append, result_size);
+        strncpy(*destination + destination_size, append, append_size);
 
         return NO_ERROR;
 }
