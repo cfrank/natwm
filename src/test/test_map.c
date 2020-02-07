@@ -203,6 +203,47 @@ static void test_map_insert_multiple_non_string_key(void **state)
         assert_int_equal(expected_key_second, *(size_t *)second_entry->key);
 }
 
+static void test_map_insert_duplicate_non_string_key(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        struct map *map = map_init();
+
+        if (map == NULL) {
+                assert_true(false);
+        }
+
+        map_set_key_size_function(map, determine_number_key_size);
+
+        size_t expected_key = 1234;
+        const char *expected_value_first = "first value";
+        const char *expected_value_second = "second value";
+        size_t expected_bucket_count = 1;
+
+        assert_int_equal(
+                NO_ERROR,
+                map_insert(map, &expected_key, (char *)expected_value_first));
+        assert_int_equal(expected_bucket_count, map->bucket_count);
+
+        struct map_entry *entry_first = map_get(map, &expected_key);
+
+        assert_non_null(entry_first);
+        assert_string_equal(expected_value_first,
+                            (const char *)entry_first->value);
+        assert_int_equal(expected_key, *(size_t *)entry_first->key);
+        assert_int_equal(
+                NO_ERROR,
+                map_insert(map, &expected_key, (char *)expected_value_second));
+        assert_int_equal(expected_bucket_count, map->bucket_count);
+
+        struct map_entry *entry_second = map_get(map, &expected_key);
+
+        assert_non_null(entry_second);
+        assert_string_equal(expected_value_second,
+                            (const char *)entry_second->value);
+        assert_int_equal(expected_key, *(size_t *)entry_second->key);
+}
+
 static void test_map_insert_load_factor_disabled(void **state)
 {
         struct map *map = *(struct map **)state;
@@ -466,6 +507,7 @@ int main(void)
                         test_map_insert_null_key, test_setup, test_teardown),
                 cmocka_unit_test(test_map_insert_non_string_key),
                 cmocka_unit_test(test_map_insert_multiple_non_string_key),
+                cmocka_unit_test(test_map_insert_duplicate_non_string_key),
                 cmocka_unit_test_setup_teardown(
                         test_map_insert_load_factor_disabled,
                         test_setup,
