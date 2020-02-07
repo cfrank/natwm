@@ -1,4 +1,5 @@
-// Copyright 2019 Chris Fraexpected_key// Licensed under BSD-3-Clause
+// Copyright 2019 Chris Frank
+// Licensed under BSD-3-Clause
 // Refer to the license.txt file included in the root of the project
 
 #include <setjmp.h>
@@ -159,6 +160,8 @@ static void test_map_insert_non_string_key(void **state)
         assert_non_null(entry);
         assert_int_equal(expected_key, *(size_t *)entry->key);
         assert_string_equal(expected_value, (const char *)entry->value);
+
+        map_destroy(map);
 }
 
 static void test_map_insert_multiple_non_string_key(void **state)
@@ -201,6 +204,8 @@ static void test_map_insert_multiple_non_string_key(void **state)
         assert_string_equal(expected_value_second,
                             (const char *)second_entry->value);
         assert_int_equal(expected_key_second, *(size_t *)second_entry->key);
+
+        map_destroy(map);
 }
 
 static void test_map_insert_duplicate_non_string_key(void **state)
@@ -242,6 +247,8 @@ static void test_map_insert_duplicate_non_string_key(void **state)
         assert_string_equal(expected_value_second,
                             (const char *)entry_second->value);
         assert_int_equal(expected_key, *(size_t *)entry_second->key);
+
+        map_destroy(map);
 }
 
 static void test_map_insert_load_factor_disabled(void **state)
