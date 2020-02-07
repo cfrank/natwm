@@ -3,6 +3,7 @@
 
 #include <setjmp.h>
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -55,6 +56,13 @@ static void test_value_destroy(void *data)
 
         free(value->test_values);
         free(value);
+}
+
+static size_t determine_number_key_size(const void *key)
+{
+        UNUSED_FUNCTION_PARAM(key);
+
+        return sizeof(size_t *);
 }
 
 static int test_setup(void **state)
@@ -124,6 +132,75 @@ static void test_map_insert_null_key(void **state)
         struct map *map = *(struct map **)state;
 
         assert_int_equal(GENERIC_ERROR, map_insert(map, NULL, NULL));
+}
+
+static void test_map_insert_non_string_key(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        // We don't want to override the key sizing of the rest of the tests
+        struct map *map = map_init();
+
+        if (map == NULL) {
+                assert_true(false);
+        }
+
+        map_set_key_size_function(map, determine_number_key_size);
+
+        size_t expected_key = 12345;
+        const char *expected_value = "value";
+
+        assert_int_equal(
+                NO_ERROR,
+                map_insert(map, &expected_key, (char *)expected_value));
+
+        struct map_entry *entry = map_get(map, &expected_key);
+
+        assert_non_null(entry);
+        assert_int_equal(expected_key, *(size_t *)entry->key);
+        assert_string_equal(expected_value, (const char *)entry->value);
+}
+
+static void test_map_insert_multiple_non_string_key(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        struct map *map = map_init();
+
+        if (map == NULL) {
+                assert_true(false);
+        }
+
+        map_set_key_size_function(map, determine_number_key_size);
+
+        size_t expected_key_first = 1234;
+        size_t expected_key_second = 4321;
+        const char *expected_value_first = "first value";
+        const char *expected_value_second = "second value";
+        size_t expected_bucket_count = 2;
+
+        assert_int_equal(NO_ERROR,
+                         map_insert(map,
+                                    &expected_key_first,
+                                    (char *)expected_value_first));
+        assert_int_equal(NO_ERROR,
+                         map_insert(map,
+                                    &expected_key_second,
+                                    (char *)expected_value_second));
+
+        assert_int_equal(expected_bucket_count, map->bucket_count);
+
+        struct map_entry *first_entry = map_get(map, &expected_key_first);
+        struct map_entry *second_entry = map_get(map, &expected_key_second);
+
+        assert_non_null(first_entry);
+        assert_non_null(second_entry);
+        assert_string_equal(expected_value_first,
+                            (const char *)first_entry->value);
+        assert_int_equal(expected_key_first, *(size_t *)first_entry->key);
+        assert_string_equal(expected_value_second,
+                            (const char *)second_entry->value);
+        assert_int_equal(expected_key_second, *(size_t *)second_entry->key);
 }
 
 static void test_map_insert_load_factor_disabled(void **state)
@@ -271,22 +348,6 @@ static void test_map_delete_unknown(void **state)
         assert_int_equal(NOT_FOUND_ERROR, map_delete(map, "unknown"));
 }
 
-static void test_map_delete_resize(void **state)
-{
-        struct map *map = *(struct map **)state;
-        const char *expected_key = "test";
-
-        map_insert(map, "test1", "value");
-        map_insert(map, expected_key, "value");
-        // This will trigger resize
-        map_insert(map, "test3", "value");
-
-        assert_int_equal(NO_ERROR, map_delete(map, expected_key));
-        // TODO: This should be 4 not 8
-        assert_int_equal(8, map->length);
-        assert_null(map_get(map, expected_key));
-}
-
 static void test_map_delete_duplicate(void **state)
 {
         struct map *map = *(struct map **)state;
@@ -403,6 +464,8 @@ int main(void)
                         test_map_insert_null_value, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(
                         test_map_insert_null_key, test_setup, test_teardown),
+                cmocka_unit_test(test_map_insert_non_string_key),
+                cmocka_unit_test(test_map_insert_multiple_non_string_key),
                 cmocka_unit_test_setup_teardown(
                         test_map_insert_load_factor_disabled,
                         test_setup,
@@ -425,8 +488,6 @@ int main(void)
                         test_map_delete_null, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(
                         test_map_delete_unknown, test_setup, test_teardown),
-                cmocka_unit_test_setup_teardown(
-                        test_map_delete_resize, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(
                         test_map_delete_duplicate, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(
