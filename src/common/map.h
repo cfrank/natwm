@@ -69,7 +69,7 @@ struct map_entry {
         // Pro: Smaller entry memory footprint
         // Con: Increased computation when calculating DIB
         uint32_t hash;
-        const char *key;
+        const void *key;
         void *value;
 };
 
@@ -97,6 +97,8 @@ struct map_entry *map_get(const struct map *map, const void *key);
 enum natwm_error map_delete(struct map *map, const void *key);
 
 int map_set_hash_function(struct map *map, map_hash_function_t function);
+int map_set_key_size_function(struct map *map,
+                              map_key_size_function_t function);
 void map_set_entry_free_function(struct map *map,
                                  map_entry_free_function_t function);
 void map_set_setting_flag(struct map *map, enum map_settings flag);

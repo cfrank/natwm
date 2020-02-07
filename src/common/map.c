@@ -150,7 +150,8 @@ static enum natwm_error map_search(const struct map *map, const void *key,
 
                 struct map_entry *entry = map->entries[current_index];
 
-                if (!is_entry_present(entry) || strcmp(key, entry->key) != 0) {
+                if (!is_entry_present(entry)
+                    || memcmp(key, entry->key, key_size) != 0) {
                         current_index += 1;
 
                         continue;
@@ -502,12 +503,26 @@ enum natwm_error map_delete(struct map *map, const void *key)
 // Set a hashing function for use when inserting and re-hashing entries
 int map_set_hash_function(struct map *map, map_hash_function_t function)
 {
-        if (map->hash_function != NULL && map->bucket_count > 0) {
+        if (map->bucket_count > 0) {
                 // Since we have entries we can't use a different hashing func
                 return -1;
         }
 
         map->hash_function = function;
+
+        return 0;
+}
+
+// Set the key sizing function.
+int map_set_key_size_function(struct map *map, map_key_size_function_t function)
+{
+        if (map->bucket_count > 0) {
+                // Since we have already added entries to the map we can't
+                // change how we determine key size.
+                return -1;
+        }
+
+        map->key_size_function = function;
 
         return 0;
 }
