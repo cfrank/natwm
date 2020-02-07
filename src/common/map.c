@@ -18,10 +18,17 @@ static enum natwm_error map_insert_entry(struct map *map,
 
 // Default map hashing function
 // Uses Murmur v3 32bit
-static ATTR_CONST uint32_t default_key_hash(const char *key)
+static ATTR_CONST uint32_t default_hash_function(const void *key, size_t size)
 {
         // TODO: Should thought be put into a seed for the hash
-        return hash_murmur3_32(key, strlen(key), 0);
+        return hash_murmur3_32(key, size, 0);
+}
+
+// Default key size function
+// This will return the correct size of a string key
+static size_t default_key_size_function(const void *key)
+{
+        return strlen(key);
 }
 
 // Given a map_entry determine if it holds valid data and is present
@@ -124,7 +131,7 @@ static enum natwm_error map_probe(struct map *map, struct map_entry *entry,
         return CAPACITY_ERROR;
 }
 
-static enum natwm_error map_search(const struct map *map, const char *key,
+static enum natwm_error map_search(const struct map *map, const void *key,
                                    uint32_t *index)
 {
         if (key == NULL || index == NULL) {
@@ -132,7 +139,9 @@ static enum natwm_error map_search(const struct map *map, const char *key,
         }
 
         // Initialize index with initial bucket index
-        uint32_t current_index = map->hash_function(key) % map->length;
+        size_t key_size = map->key_size_function(key);
+        uint32_t current_index
+                = map->hash_function(key, key_size) % map->length;
 
         for (size_t i = 0; i <= map->length; ++i) {
                 if ((current_index) >= map->length) {
@@ -314,7 +323,7 @@ static enum natwm_error map_insert_entry(struct map *map,
 }
 
 // Given a hash, key, and value construct a map entry
-enum natwm_error entry_init(uint32_t hash, const char *key, void *value,
+enum natwm_error entry_init(uint32_t hash, const void *key, void *value,
                             struct map_entry **dest)
 {
         if (key == NULL || dest == NULL) {
@@ -378,7 +387,8 @@ struct map *map_init(void)
                 return NULL;
         }
 
-        map->hash_function = default_key_hash;
+        map->hash_function = default_hash_function;
+        map->key_size_function = default_key_size_function;
         map->free_function = NULL;
         map->setting_flags = MAP_FLAG_IGNORE_THRESHOLDS_EMPTY;
         map->event_flags = EVENT_FLAG_NORMAL;
@@ -408,14 +418,15 @@ void map_destroy(struct map *map)
 }
 
 // Insert an entry into a map
-enum natwm_error map_insert(struct map *map, const char *key, void *value)
+enum natwm_error map_insert(struct map *map, const void *key, void *value)
 {
         if (key == NULL) {
                 return GENERIC_ERROR;
         }
 
         struct map_entry *entry = NULL;
-        uint32_t hash = map->hash_function(key);
+        size_t key_size = map->key_size_function(key);
+        uint32_t hash = map->hash_function(key, key_size);
         enum natwm_error error = entry_init(hash, key, value, &entry);
 
         if (error != NO_ERROR) {
@@ -425,7 +436,7 @@ enum natwm_error map_insert(struct map *map, const char *key, void *value)
         return map_insert_entry(map, entry);
 }
 
-struct map_entry *map_get(const struct map *map, const char *key)
+struct map_entry *map_get(const struct map *map, const void *key)
 {
         uint32_t index = 0;
 
@@ -437,7 +448,7 @@ struct map_entry *map_get(const struct map *map, const char *key)
 }
 
 // TODO: Add resize when threshold goes below MAP_LOAD_FACTOR_LOW
-enum natwm_error map_delete(struct map *map, const char *key)
+enum natwm_error map_delete(struct map *map, const void *key)
 {
         uint32_t dest_index = 0;
         enum natwm_error err = map_search(map, key, &dest_index);
@@ -527,7 +538,7 @@ void map_remove_setting_flag(struct map *map, enum map_settings flag)
 /**
  * Type specific getters
  */
-uint32_t map_get_uint32(const struct map *map, const char *key,
+uint32_t map_get_uint32(const struct map *map, const void *key,
                         enum natwm_error *error)
 {
         struct map_entry *entry = map_get(map, key);

@@ -33,7 +33,10 @@
  */
 
 // Function which takes a key and returns a hash
-typedef uint32_t (*map_hash_function_t)(const char *key);
+typedef uint32_t (*map_hash_function_t)(const void *key, size_t size);
+
+// Function for finding the size of a supplied key
+typedef size_t (*map_key_size_function_t)(const void *key);
 
 // Function which takes data and frees the memory allocated for it
 typedef void (*map_entry_free_function_t)(void *data);
@@ -77,20 +80,21 @@ struct map {
         struct map_entry **entries;
         pthread_mutex_t mutex;
         map_hash_function_t hash_function;
+        map_key_size_function_t key_size_function;
         map_entry_free_function_t free_function;
         enum map_settings setting_flags;
         enum map_events event_flags;
 };
 
-enum natwm_error entry_init(uint32_t hash, const char *key, void *value,
+enum natwm_error entry_init(uint32_t hash, const void *key, void *value,
                             struct map_entry **dest);
 void map_entry_destroy(const struct map *map, struct map_entry *entry);
 
 struct map *map_init(void);
 void map_destroy(struct map *map);
-enum natwm_error map_insert(struct map *map, const char *key, void *value);
-struct map_entry *map_get(const struct map *map, const char *key);
-enum natwm_error map_delete(struct map *map, const char *key);
+enum natwm_error map_insert(struct map *map, const void *key, void *value);
+struct map_entry *map_get(const struct map *map, const void *key);
+enum natwm_error map_delete(struct map *map, const void *key);
 
 int map_set_hash_function(struct map *map, map_hash_function_t function);
 void map_set_entry_free_function(struct map *map,
@@ -98,5 +102,5 @@ void map_set_entry_free_function(struct map *map,
 void map_set_setting_flag(struct map *map, enum map_settings flag);
 void map_remove_setting_flag(struct map *map, enum map_settings flag);
 
-uint32_t map_get_uint32(const struct map *map, const char *key,
+uint32_t map_get_uint32(const struct map *map, const void *key,
                         enum natwm_error *error);
