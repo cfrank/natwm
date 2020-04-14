@@ -140,11 +140,43 @@ void stack_item_destroy(struct stack_item *item)
         free(item);
 }
 
+void stack_item_destroy_callback(struct stack_item *item,
+                                 stack_data_free_function free_function)
+{
+        if (free_function == NULL) {
+                stack_item_destroy(item);
+
+                return;
+        }
+
+        free_function((void *)item->data);
+}
+
 void stack_destroy(struct stack *stack)
 {
         struct stack_item *curr = NULL;
 
         while ((curr = stack_pop(stack)) != NULL) {
+                stack_item_destroy(curr);
+        }
+
+        free(stack);
+}
+
+void stack_destroy_callback(struct stack *stack,
+                            stack_data_free_function free_function)
+{
+        if (free_function == NULL) {
+                stack_destroy(stack);
+
+                return;
+        }
+
+        struct stack_item *curr = NULL;
+
+        while ((curr = stack_pop(stack)) != NULL) {
+                free_function((void *)curr->data);
+
                 stack_item_destroy(curr);
         }
 

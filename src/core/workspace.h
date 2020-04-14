@@ -8,15 +8,15 @@
 #include <xcb/xcb.h>
 
 #include <common/error.h>
-#include <common/tree.h>
+#include <common/stack.h>
 
+#include "client.h"
 #include "state.h"
-#include "tile.h"
 
 struct workspace_list {
         size_t count;
         size_t active_index;
-        struct tile_theme *theme;
+        struct client_theme *theme;
         struct workspace **workspaces;
 };
 
@@ -25,8 +25,8 @@ struct workspace {
         bool is_visible;
         bool is_focused;
         bool is_floating;
-        struct tree *tiles;
-        struct tile *active_tile;
+        struct stack *clients;
+        struct client *active_client;
 };
 
 struct workspace_list *workspace_list_create(size_t count);

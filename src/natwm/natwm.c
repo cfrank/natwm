@@ -14,12 +14,12 @@
 #include <common/logger.h>
 #include <common/map.h>
 #include <common/util.h>
+#include <core/client.h>
 #include <core/config/config.h>
 #include <core/events/event.h>
 #include <core/ewmh.h>
 #include <core/monitor.h>
 #include <core/state.h>
-#include <core/tile.h>
 #include <core/workspace.h>
 
 struct argument_options {
@@ -343,19 +343,14 @@ int main(int argc, char **argv)
 
         state->workspace_list = workspace_list;
 
-        // Before we start creating tiles let's make an initial settings cache
-        // based on the present configuration. This will save us trips to the
-        // config map when setting up new windows
+        // Before we can start registering clients we need to load the theme
+        // from the configuration file. This will save us trips to the config
+        // map when registering clients.
         //
         // TODO: Set defaults so we don't have a hard requirement on the user
         // settings these in their configuration
-        if (tile_theme_init(state->config, &state->workspace_list->theme)
+        if (client_theme_create(state->config, &state->workspace_list->theme)
             != NO_ERROR) {
-                goto free_and_error;
-        }
-
-        // Attach tiles to workspaces and initialize them
-        if (attach_tiles_to_workspace(state) != NO_ERROR) {
                 goto free_and_error;
         }
 

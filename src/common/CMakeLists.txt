@@ -16,8 +16,6 @@ add_library(common STATIC
     string.h
     theme.c
     theme.h
-    tree.c
-    tree.h
     types.h
     util.c
     util.h

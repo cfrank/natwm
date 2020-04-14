@@ -31,8 +31,5 @@
 
 #define DEFAULT_BORDER_WIDTH 1
 
-#define TILE_BORDER_WIDTH_CONFIG_STRING "tile.border_width"
-#define TILE_BORDER_COLOR_CONFIG_STRING "tile.border_color"
-#define TILE_BACKGROUND_COLOR_CONFIG_STRING "tile.background_color"
-#define WINDOW_BORDER_WIDTH_CONFIG_STRING "window.border_width"
 #define WINDOW_BORDER_COLOR_CONFIG_STRING "window.border_color"
+#define WINDOW_BORDER_WIDTH_CONFIG_STRING "window.border_width"

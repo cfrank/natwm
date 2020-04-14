@@ -7,8 +7,8 @@
 #include <common/constants.h>
 #include <common/logger.h>
 
+#include <core/client.h>
 #include <core/monitor.h>
-#include <core/tile.h>
 
 #include "event.h"
 #include "randr-event.h"
@@ -18,9 +18,9 @@ event_handle_map_request(const struct natwm_state *state,
                          xcb_map_request_event_t *event)
 {
         xcb_window_t window = event->window;
-        struct tile *tile = tile_register_client(state, &window);
+        struct client *client = client_register_window(state, window);
 
-        if (tile == NULL) {
+        if (client == NULL) {
                 return RESOLUTION_FAILURE;
         }
 

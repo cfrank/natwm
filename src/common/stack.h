@@ -5,9 +5,11 @@
 #pragma once
 
 #include <stdbool.h>
-#include <stdint.h>
+#include <stddef.h>
 
 #include "error.h"
+
+typedef void (*stack_data_free_function)(void *data);
 
 struct stack_item {
         struct stack_item *next;
@@ -33,4 +35,8 @@ struct stack_item *stack_pop(struct stack *stack);
 struct stack_item *stack_dequeue(struct stack *state);
 
 void stack_item_destroy(struct stack_item *item);
+void stack_item_destroy_callback(struct stack_item *item,
+                                 stack_data_free_function free_function);
 void stack_destroy(struct stack *state);
+void stack_destroy_callback(struct stack *stack,
+                            stack_data_free_function free_function);

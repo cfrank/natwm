@@ -1,4 +1,6 @@
 add_library(core STATIC
+    client.c
+    client.h
     config/config.c
     config/config.h
     config/parser.c
@@ -17,8 +19,6 @@ add_library(core STATIC
     randr.h
     state.c
     state.h
-    tile.c
-    tile.h
     workspace.c
     workspace.h
     xinerama.c
