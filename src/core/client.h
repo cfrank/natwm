@@ -8,7 +8,6 @@
 
 #include <common/error.h>
 #include <common/map.h>
-#include <common/stack.h>
 #include <common/theme.h>
 
 #include "state.h"
