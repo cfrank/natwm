@@ -11,7 +11,6 @@
 #include "config/config.h"
 #include "ewmh.h"
 #include "monitor.h"
-#include "tile.h"
 #include "workspace.h"
 
 static const char *DEFAULT_WORKSPACE_NAMES[10] = {
@@ -27,13 +26,11 @@ static const char *DEFAULT_WORKSPACE_NAMES[10] = {
         "ten",
 };
 
-static void workspace_tiles_destroy_callback(struct leaf *leaf)
+static void workspace_client_destroy_callback(void *data)
 {
-        if (leaf != NULL && leaf->data != NULL) {
-                tile_destroy((struct tile *)leaf->data);
-        }
+        struct client *client = (struct client *)data;
 
-        leaf_destroy(leaf);
+        client_destroy(client);
 }
 
 /**
@@ -136,9 +133,9 @@ struct workspace *workspace_create(const char *name)
         workspace->is_visible = false;
         workspace->is_focused = false;
         workspace->is_floating = false;
-        workspace->tiles = tree_create(NULL);
+        workspace->clients = stack_create();
 
-        if (workspace->tiles == NULL) {
+        if (workspace->clients == NULL) {
                 free(workspace);
 
                 return NULL;
@@ -201,7 +198,7 @@ struct workspace *workspace_list_get_focused(struct workspace_list *list)
 void workspace_list_destroy(struct workspace_list *workspace_list)
 {
         if (workspace_list->theme != NULL) {
-                tile_theme_destroy(workspace_list->theme);
+                client_theme_destroy(workspace_list->theme);
         }
 
         for (size_t i = 0; i < workspace_list->count; ++i) {
@@ -216,9 +213,9 @@ void workspace_list_destroy(struct workspace_list *workspace_list)
 
 void workspace_destroy(struct workspace *workspace)
 {
-        if (workspace->tiles != NULL) {
-                tree_destroy(workspace->tiles,
-                             workspace_tiles_destroy_callback);
+        if (workspace->clients != NULL) {
+                stack_destroy_callback(workspace->clients,
+                                       workspace_client_destroy_callback);
         }
 
         free(workspace);

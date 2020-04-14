@@ -45,15 +45,6 @@ add_natwm_test(test_theme
     TEST_NAME ThemeTest
 )
 
-# Common/Tree
-add_natwm_test(test_tree
-    SOURCES test_tree.c
-    LINK_LIBRARIES
-        ${CMOCKA_SHARED_LIBRARY}
-        common
-    TEST_NAME TreeTest
-)
-
 # Core
 # Core/Config
 add_natwm_test(test_config

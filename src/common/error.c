@@ -6,7 +6,7 @@
 
 #include "error.h"
 
-const char *error_to_string(enum natwm_error error)
+const char *natwm_error_to_string(enum natwm_error error)
 {
         switch (error) {
         case MEMORY_ALLOCATION_ERROR:

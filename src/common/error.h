@@ -14,4 +14,4 @@ enum natwm_error {
         NO_ERROR = 1U << 6U, // No error
 };
 
-const char *error_to_string(enum natwm_error error);
+const char *natwm_error_to_string(enum natwm_error error);
