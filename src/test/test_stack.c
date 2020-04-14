@@ -13,6 +13,48 @@
 #include <common/constants.h>
 #include <common/stack.h>
 
+// Set up for *_destroy_callback tests
+
+struct non_primitive_type {
+        const char *string;
+        size_t number;
+};
+
+struct non_primitive_type *npt_create(const char *string, size_t number)
+{
+        struct non_primitive_type *npt
+                = malloc(sizeof(struct non_primitive_type));
+
+        if (npt == NULL) {
+                return NULL;
+        }
+
+        npt->string = string;
+        npt->number = number;
+
+        return npt;
+}
+
+static void npt_destroy(struct non_primitive_type *npt)
+{
+        function_called();
+
+        if (npt == NULL) {
+                return;
+        }
+
+        free(npt);
+}
+
+static void stack_data_destroy_callback(void *data)
+{
+        function_called();
+
+        struct non_primitive_type *npt = (struct non_primitive_type *)data;
+
+        npt_destroy(npt);
+}
+
 static int test_setup(void **state)
 {
         struct stack *stack = stack_create();
@@ -299,6 +341,64 @@ static void test_stack_dequeue_empty(void **state)
         assert_false(stack_has_item(stack));
 }
 
+static void test_stack_destroy_callback(void **state)
+{
+        // Need to create our own NPT stack+items
+        UNUSED_FUNCTION_PARAM(state);
+
+        struct stack *stack = stack_create();
+
+        assert_non_null(stack);
+
+        struct non_primitive_type *first = npt_create("Test", 14);
+
+        assert_int_equal(NO_ERROR, stack_push(stack, first));
+
+        assert_int_equal(1, stack->length);
+        assert_non_null(stack->head);
+
+        expect_function_call(stack_data_destroy_callback);
+        expect_function_call(npt_destroy);
+
+        stack_destroy_callback(stack, stack_data_destroy_callback);
+}
+
+static void test_stack_destroy_callback_multiple(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        struct stack *stack = stack_create();
+
+        assert_non_null(stack);
+
+        const char *expected_string = "Head item";
+        struct non_primitive_type *first = npt_create("Tail Item", 1);
+        struct non_primitive_type *second = npt_create(expected_string, 2);
+
+        assert_int_equal(NO_ERROR, stack_push(stack, first));
+        assert_int_equal(NO_ERROR, stack_push(stack, second));
+
+        assert_int_equal(2, stack->length);
+        assert_non_null(stack->head->next);
+
+        expect_function_call(stack_data_destroy_callback);
+        expect_function_call(npt_destroy);
+
+        struct stack_item *item_head = stack_pop(stack);
+
+        assert_non_null(item_head);
+
+        stack_item_destroy_callback(item_head, stack_data_destroy_callback);
+
+        assert_int_equal(1, stack->length);
+        assert_null(stack->head->next);
+
+        expect_function_call(stack_data_destroy_callback);
+        expect_function_call(npt_destroy);
+
+        stack_destroy_callback(stack, stack_data_destroy_callback);
+}
+
 int main(void)
 {
         const struct CMUnitTest tests[] = {
@@ -337,6 +437,8 @@ int main(void)
                         test_stack_dequeue_multiple, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(
                         test_stack_dequeue_empty, test_setup, test_teardown),
+                cmocka_unit_test(test_stack_destroy_callback),
+                cmocka_unit_test(test_stack_destroy_callback_multiple),
         };
 
         return cmocka_run_group_tests(tests, NULL, NULL);
