@@ -182,17 +182,38 @@ enum natwm_error workspace_list_init(const struct natwm_state *state,
         return NO_ERROR;
 }
 
-struct workspace *workspace_list_get_focused(struct workspace_list *list)
+enum natwm_error workspace_add_client(struct natwm_state *state,
+                                      struct client *client)
 {
-        for (size_t i = 0; i < list->count; ++i) {
-                struct workspace *workspace = list->workspaces[i];
+        struct workspace_list *list = state->workspace_list;
+        struct workspace *focused_workspace = workspace_list_get_focused(list);
+        struct client *previous_client = focused_workspace->active_client;
+        enum natwm_error err = GENERIC_ERROR;
 
-                if (workspace->is_focused) {
-                        return workspace;
-                }
+        // We will be modifying the state - need to lock until done
+        natwm_state_lock(state);
+
+        if ((err = stack_push(focused_workspace->clients, client))
+            != NO_ERROR) {
+                return err;
         }
 
-        return NULL;
+        focused_workspace->active_client = client;
+
+        natwm_state_unlock(state);
+
+        if (previous_client != NULL) {
+                client_set_unfocused(state, previous_client);
+        }
+
+        client_set_focused(state, client);
+
+        return NO_ERROR;
+}
+
+struct workspace *workspace_list_get_focused(const struct workspace_list *list)
+{
+        return list->workspaces[list->active_index];
 }
 
 void workspace_list_destroy(struct workspace_list *workspace_list)

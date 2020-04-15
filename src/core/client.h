@@ -39,8 +39,11 @@ struct client {
 };
 
 struct client *client_create(xcb_window_t window, xcb_rectangle_t rect);
-struct client *client_register_window(const struct natwm_state *state,
+struct client *client_register_window(struct natwm_state *state,
                                       xcb_window_t window);
+void client_set_focused(const struct natwm_state *state, struct client *client);
+void client_set_unfocused(const struct natwm_state *state,
+                          struct client *client);
 
 enum natwm_error client_theme_create(const struct map *config_map,
                                      struct client_theme **result);
