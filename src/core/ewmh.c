@@ -133,6 +133,12 @@ void ewmh_init(const struct natwm_state *state)
                                         (uint32_t)NATWM_WORKSPACE_COUNT);
 }
 
+void ewmh_update_active_window(const struct natwm_state *state,
+                               xcb_window_t window)
+{
+        xcb_ewmh_set_active_window(state->ewmh, state->screen_num, window);
+}
+
 void ewmh_update_desktop_viewport(const struct natwm_state *state,
                                   const struct monitor_list *list)
 {

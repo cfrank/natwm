@@ -7,9 +7,10 @@
 #include <common/constants.h>
 #include <common/logger.h>
 
-#include <core/workspace.h>
-
 #include "client.h"
+#include "ewmh.h"
+#include "monitor.h"
+#include "workspace.h"
 
 static enum natwm_error get_window_rect(xcb_connection_t *connection,
                                         xcb_window_t window,
@@ -107,8 +108,14 @@ struct client *client_register_window(struct natwm_state *state,
 {
         struct workspace *focused_workspace
                 = workspace_list_get_focused(state->workspace_list);
+        struct monitor *workspace_monitor = monitor_list_get_workspace_monitor(
+                state->monitor_list, focused_workspace);
 
-        if (focused_workspace == NULL) {
+        if (focused_workspace == NULL || workspace_monitor == NULL) {
+                // Should not happen
+                LOG_WARNING(natwm_logger,
+                            "Failed to regiser window - Invalid focused "
+                            "workspace or monitor");
                 return NULL;
         }
 
@@ -119,7 +126,12 @@ struct client *client_register_window(struct natwm_state *state,
                 return NULL;
         }
 
-        struct client *client = client_create(window, rect);
+        xcb_rectangle_t normalized_rect
+                = client_clamp_rect_to_monitor(rect, workspace_monitor->rect);
+
+        // Adjust window rect for workspace monitor
+
+        struct client *client = client_create(window, normalized_rect);
 
         if (client == NULL) {
                 return NULL;
@@ -146,6 +158,19 @@ struct client *client_register_window(struct natwm_state *state,
         return client;
 }
 
+xcb_rectangle_t client_clamp_rect_to_monitor(xcb_rectangle_t window_rect,
+                                             xcb_rectangle_t monitor_rect)
+{
+        xcb_rectangle_t new_rect = {
+                .width = MIN(monitor_rect.width, window_rect.width),
+                .height = MIN(monitor_rect.height, window_rect.height),
+                .x = MAX(monitor_rect.x, window_rect.x),
+                .y = MAX(monitor_rect.y, window_rect.y),
+        };
+
+        return new_rect;
+}
+
 void client_set_focused(const struct natwm_state *state, struct client *client)
 {
         if (client == NULL || client->state == CLIENT_FOCUSED) {
@@ -160,6 +185,8 @@ void client_set_focused(const struct natwm_state *state, struct client *client)
                      client,
                      theme->border_width->focused,
                      theme->color->focused->color_value);
+
+        ewmh_update_active_window(state, client->child);
 
         xcb_flush(state->xcb);
 }
