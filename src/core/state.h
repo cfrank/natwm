@@ -28,6 +28,8 @@ struct natwm_state {
 };
 
 struct natwm_state *natwm_state_create(void);
-void natwm_state_destroy(struct natwm_state *state);
+void natwm_state_lock(struct natwm_state *state);
+void natwm_state_unlock(struct natwm_state *state);
 void natwm_state_update_config(struct natwm_state *state,
                                const struct map *new_config);
+void natwm_state_destroy(struct natwm_state *state);

@@ -23,6 +23,10 @@
                 (*dest) = value;                                               \
         }
 
+// Copied from https://github.com/openbsd/src/blob/master/sys/sys/param.h
+#define MIN(a, b) (((a) < (b)) ? (a) : (b))
+#define MAX(a, b) (((a) > (b)) ? (a) : (b))
+
 #define NATWM_CONFIG_FILE "natwm/natwm.config"
 
 #define NATWM_WORKSPACE_COUNT 10

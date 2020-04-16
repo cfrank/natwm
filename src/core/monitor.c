@@ -305,6 +305,7 @@ monitor_list_get_workspace_monitor(const struct monitor_list *monitor_list,
                         continue;
                 }
 
+                // TODO: Not sure if matching strings is the best way to do this
                 if (strcmp(monitor->workspace->name, workspace->name) == 0) {
                         return monitor;
                 }

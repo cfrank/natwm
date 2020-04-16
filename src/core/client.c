@@ -7,9 +7,10 @@
 #include <common/constants.h>
 #include <common/logger.h>
 
-#include <core/workspace.h>
-
 #include "client.h"
+#include "ewmh.h"
+#include "monitor.h"
+#include "workspace.h"
 
 static enum natwm_error get_window_rect(xcb_connection_t *connection,
                                         xcb_window_t window,
@@ -39,7 +40,7 @@ static enum natwm_error get_window_rect(xcb_connection_t *connection,
 
 static xcb_window_t create_parent_window(const struct natwm_state *state,
                                          xcb_rectangle_t rect,
-                                         struct client_theme *theme)
+                                         const struct client_theme *theme)
 {
         // Create the parent which will contain the window decorations
         xcb_window_t parent = xcb_generate_id(state->xcb);
@@ -66,6 +67,27 @@ static xcb_window_t create_parent_window(const struct natwm_state *state,
         return parent;
 }
 
+static void update_theme(xcb_connection_t *connection,
+                         const struct client *client, uint16_t border_width,
+                         uint32_t border_color)
+{
+        uint32_t values[] = {
+                border_width,
+        };
+
+        xcb_configure_window(connection,
+                             client->parent,
+                             XCB_CONFIG_WINDOW_BORDER_WIDTH,
+                             values);
+
+        if (border_width > 0) {
+                xcb_change_window_attributes(connection,
+                                             client->parent,
+                                             XCB_CW_BORDER_PIXEL,
+                                             &border_color);
+        }
+}
+
 struct client *client_create(xcb_window_t window, xcb_rectangle_t rect)
 {
         struct client *client = malloc(sizeof(struct client));
@@ -81,13 +103,19 @@ struct client *client_create(xcb_window_t window, xcb_rectangle_t rect)
         return client;
 }
 
-struct client *client_register_window(const struct natwm_state *state,
+struct client *client_register_window(struct natwm_state *state,
                                       xcb_window_t window)
 {
         struct workspace *focused_workspace
                 = workspace_list_get_focused(state->workspace_list);
+        struct monitor *workspace_monitor = monitor_list_get_workspace_monitor(
+                state->monitor_list, focused_workspace);
 
-        if (focused_workspace == NULL) {
+        if (focused_workspace == NULL || workspace_monitor == NULL) {
+                // Should not happen
+                LOG_WARNING(natwm_logger,
+                            "Failed to regiser window - Invalid focused "
+                            "workspace or monitor");
                 return NULL;
         }
 
@@ -98,7 +126,11 @@ struct client *client_register_window(const struct natwm_state *state,
                 return NULL;
         }
 
-        struct client *client = client_create(window, rect);
+        // Adjust window rect to fit workspace monitor
+        xcb_rectangle_t normalized_rect
+                = client_clamp_rect_to_monitor(rect, workspace_monitor->rect);
+
+        struct client *client = client_create(window, normalized_rect);
 
         if (client == NULL) {
                 return NULL;
@@ -111,8 +143,7 @@ struct client *client_register_window(const struct natwm_state *state,
 
         client->parent = parent_window;
 
-        // Add the client to the focused window
-        stack_push(focused_workspace->clients, client);
+        workspace_add_client(state, client);
 
         xcb_reparent_window(state->xcb, client->child, client->parent, 0, 0);
 
@@ -124,6 +155,58 @@ struct client *client_register_window(const struct natwm_state *state,
         xcb_flush(state->xcb);
 
         return client;
+}
+
+xcb_rectangle_t client_clamp_rect_to_monitor(xcb_rectangle_t window_rect,
+                                             xcb_rectangle_t monitor_rect)
+{
+        xcb_rectangle_t new_rect = {
+                .width = MIN(monitor_rect.width, window_rect.width),
+                .height = MIN(monitor_rect.height, window_rect.height),
+                .x = MAX(monitor_rect.x, window_rect.x),
+                .y = MAX(monitor_rect.y, window_rect.y),
+        };
+
+        return new_rect;
+}
+
+void client_set_focused(const struct natwm_state *state, struct client *client)
+{
+        if (client == NULL || client->state == CLIENT_FOCUSED) {
+                return;
+        }
+
+        struct client_theme *theme = state->workspace_list->theme;
+
+        client->state = CLIENT_FOCUSED;
+
+        update_theme(state->xcb,
+                     client,
+                     theme->border_width->focused,
+                     theme->color->focused->color_value);
+
+        ewmh_update_active_window(state, client->child);
+
+        xcb_flush(state->xcb);
+}
+
+void client_set_unfocused(const struct natwm_state *state,
+                          struct client *client)
+{
+        if (client == NULL || client->state == CLIENT_UNFOCUSED) {
+                return;
+        }
+
+        struct client_theme *theme = state->workspace_list->theme;
+
+        client->state = CLIENT_UNFOCUSED;
+
+        update_theme(state->xcb,
+                     client,
+                     theme->border_width->unfocused,
+                     theme->color->unfocused->color_value);
+
+        xcb_flush(state->xcb);
 }
 
 enum natwm_error client_theme_create(const struct map *config_map,

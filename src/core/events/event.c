@@ -13,9 +13,8 @@
 #include "event.h"
 #include "randr-event.h"
 
-static enum natwm_error
-event_handle_map_request(const struct natwm_state *state,
-                         xcb_map_request_event_t *event)
+static enum natwm_error event_handle_map_request(struct natwm_state *state,
+                                                 xcb_map_request_event_t *event)
 {
         xcb_window_t window = event->window;
         struct client *client = client_register_window(state, window);
@@ -27,7 +26,7 @@ event_handle_map_request(const struct natwm_state *state,
         return NO_ERROR;
 }
 
-enum natwm_error event_handle(const struct natwm_state *state,
+enum natwm_error event_handle(struct natwm_state *state,
                               xcb_generic_event_t *event)
 {
         enum natwm_error err = GENERIC_ERROR;
