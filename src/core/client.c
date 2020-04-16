@@ -126,10 +126,9 @@ struct client *client_register_window(struct natwm_state *state,
                 return NULL;
         }
 
+        // Adjust window rect to fit workspace monitor
         xcb_rectangle_t normalized_rect
                 = client_clamp_rect_to_monitor(rect, workspace_monitor->rect);
-
-        // Adjust window rect for workspace monitor
 
         struct client *client = client_create(window, normalized_rect);
 
