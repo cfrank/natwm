@@ -31,6 +31,7 @@ target_link_libraries(core
         pthread
         xcb
         xcb-ewmh
+        xcb-icccm
         xcb-randr
         xcb-xinerama
 )
