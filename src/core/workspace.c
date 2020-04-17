@@ -134,6 +134,7 @@ struct workspace *workspace_create(const char *name)
         workspace->is_focused = false;
         workspace->is_floating = false;
         workspace->clients = stack_create();
+        workspace->active_client = NULL;
 
         if (workspace->clients == NULL) {
                 free(workspace);
@@ -202,7 +203,7 @@ enum natwm_error workspace_add_client(struct natwm_state *state,
 
         natwm_state_unlock(state);
 
-        if (previous_client != NULL) {
+        if (previous_client) {
                 client_set_unfocused(state, previous_client);
         }
 
