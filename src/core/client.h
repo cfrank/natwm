@@ -19,6 +19,13 @@ enum client_state {
         CLIENT_STICKY,
 };
 
+enum client_hints {
+        FRAME_EXTENTS = 1U << 0U,
+        WM_ALLOWED_ACTIONS = 1U << 1U,
+        WM_DESKTOP = 1U << 2U,
+        CLIENT_HINTS_ALL = FRAME_EXTENTS | WM_ALLOWED_ACTIONS | WM_DESKTOP,
+};
+
 /**
  * This is the global theme for all clients.
  *
@@ -43,9 +50,17 @@ struct client *client_register_window(struct natwm_state *state,
                                       xcb_window_t window);
 xcb_rectangle_t client_clamp_rect_to_monitor(xcb_rectangle_t client_rect,
                                              xcb_rectangle_t monitor_rect);
+uint16_t client_get_active_border_width(const struct client_theme *theme,
+                                        const struct client *client);
+struct color_value *
+client_get_active_border_color(const struct client_theme *theme,
+                               const struct client *client);
 void client_set_focused(const struct natwm_state *state, struct client *client);
 void client_set_unfocused(const struct natwm_state *state,
                           struct client *client);
+enum natwm_error client_update_hints(const struct natwm_state *state,
+                                     const struct client *client,
+                                     enum client_hints hints);
 
 enum natwm_error client_theme_create(const struct map *config_map,
                                      struct client_theme **result);

@@ -173,6 +173,8 @@ struct client *client_register_window(struct natwm_state *state,
                 return NULL;
         }
 
+        client_update_hints(state, client, CLIENT_HINTS_ALL);
+
         xcb_change_save_set(state->xcb, XCB_SET_MODE_INSERT, client->window);
 
         workspace_add_client(state, client);
@@ -198,6 +200,41 @@ xcb_rectangle_t client_clamp_rect_to_monitor(xcb_rectangle_t window_rect,
         };
 
         return new_rect;
+}
+
+uint16_t client_get_active_border_width(const struct client_theme *theme,
+                                        const struct client *client)
+{
+        switch (client->state) {
+        case CLIENT_FOCUSED:
+                return theme->border_width->focused;
+        case CLIENT_UNFOCUSED:
+                return theme->border_width->unfocused;
+        case CLIENT_URGENT:
+                return theme->border_width->urgent;
+        case CLIENT_STICKY:
+                return theme->border_width->sticky;
+        default:
+                return theme->border_width->unfocused;
+        }
+}
+
+struct color_value *
+client_get_active_border_color(const struct client_theme *theme,
+                               const struct client *client)
+{
+        switch (client->state) {
+        case CLIENT_FOCUSED:
+                return theme->color->focused;
+        case CLIENT_UNFOCUSED:
+                return theme->color->unfocused;
+        case CLIENT_URGENT:
+                return theme->color->urgent;
+        case CLIENT_STICKY:
+                return theme->color->sticky;
+        default:
+                return theme->color->unfocused;
+        }
 }
 
 void client_set_focused(const struct natwm_state *state, struct client *client)
@@ -237,6 +274,25 @@ void client_set_unfocused(const struct natwm_state *state,
                      theme->color->unfocused->color_value);
 
         xcb_flush(state->xcb);
+}
+
+enum natwm_error client_update_hints(const struct natwm_state *state,
+                                     const struct client *client,
+                                     enum client_hints hints)
+{
+        if (!client) {
+                return INVALID_INPUT_ERROR;
+        }
+
+        if (hints & FRAME_EXTENTS) {
+                struct client_theme *theme = state->workspace_list->theme;
+                uint32_t border_width
+                        = client_get_active_border_width(theme, client);
+
+                ewmh_update_frame_extents(state, client->window, border_width);
+        }
+
+        return NO_ERROR;
 }
 
 enum natwm_error client_theme_create(const struct map *config_map,
