@@ -257,9 +257,7 @@ void workspace_list_destroy(struct workspace_list *workspace_list)
                 client_theme_destroy(workspace_list->theme);
         }
 
-        if (workspace_list->client_map->bucket_count > 0) {
-                map_destroy(workspace_list->client_map);
-        }
+        map_destroy(workspace_list->client_map);
 
         for (size_t i = 0; i < workspace_list->count; ++i) {
                 if (workspace_list->workspaces[i] != NULL) {
