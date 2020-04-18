@@ -177,7 +177,7 @@ struct client *client_register_window(struct natwm_state *state,
 
         xcb_change_save_set(state->xcb, XCB_SET_MODE_INSERT, client->window);
 
-        workspace_add_client(state, client);
+        workspace_add_client(state, focused_workspace->index, client);
 
         if (focused_workspace->is_visible) {
                 xcb_map_window(state->xcb, client->frame);
