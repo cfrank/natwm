@@ -81,7 +81,7 @@ workspace_init(const struct config_array *workspace_names, size_t index)
         const char *name = DEFAULT_WORKSPACE_NAMES[index];
 
         if (workspace_names == NULL || index >= workspace_names->length) {
-                return workspace_create(name, index);
+                goto create_default_named_workspace;
         }
 
         const struct config_value *name_value = workspace_names->values[index];
@@ -90,7 +90,7 @@ workspace_init(const struct config_array *workspace_names, size_t index)
                 LOG_WARNING(
                         natwm_logger, "Ignoring invalid workspace name", name);
 
-                return workspace_create(name, index);
+                goto create_default_named_workspace;
         }
 
         if (strlen(name_value->data.string) > NATWM_WORKSPACE_NAME_MAX_LEN) {
@@ -100,10 +100,15 @@ workspace_init(const struct config_array *workspace_names, size_t index)
                         name_value->data.string,
                         NATWM_WORKSPACE_NAME_MAX_LEN);
 
-                return workspace_create(name, index);
+                goto create_default_named_workspace;
         }
 
         return workspace_create(name_value->data.string, index);
+
+create_default_named_workspace:
+        // We couldn't find a valid user specified workspace name - fall back
+        // to using one from DEFAULT_WORKSPACE_NAMES
+        return workspace_create(name, index);
 }
 
 struct workspace_list *workspace_list_create(size_t count)
