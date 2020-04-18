@@ -87,7 +87,7 @@ static enum natwm_error reparent_window(xcb_connection_t *connection,
         return NO_ERROR;
 }
 
-static void update_theme(xcb_connection_t *connection,
+static void update_theme(const struct natwm_state *state,
                          const struct client *client, uint16_t border_width,
                          uint32_t border_color)
 {
@@ -95,17 +95,19 @@ static void update_theme(xcb_connection_t *connection,
                 border_width,
         };
 
-        xcb_configure_window(connection,
+        xcb_configure_window(state->xcb,
                              client->frame,
                              XCB_CONFIG_WINDOW_BORDER_WIDTH,
                              values);
 
         if (border_width > 0) {
-                xcb_change_window_attributes(connection,
+                xcb_change_window_attributes(state->xcb,
                                              client->frame,
                                              XCB_CW_BORDER_PIXEL,
                                              &border_color);
         }
+
+        client_update_hints(state, client, FRAME_EXTENTS);
 }
 
 struct client *client_create(xcb_window_t window, xcb_rectangle_t rect)
@@ -173,11 +175,11 @@ struct client *client_register_window(struct natwm_state *state,
                 return NULL;
         }
 
-        client_update_hints(state, client, CLIENT_HINTS_ALL);
-
         xcb_change_save_set(state->xcb, XCB_SET_MODE_INSERT, client->window);
 
         workspace_add_client(state, focused_workspace->index, client);
+
+        client_update_hints(state, client, CLIENT_HINTS_ALL);
 
         if (focused_workspace->is_visible) {
                 xcb_map_window(state->xcb, client->frame);
@@ -247,7 +249,7 @@ void client_set_focused(const struct natwm_state *state, struct client *client)
 
         client->state = CLIENT_FOCUSED;
 
-        update_theme(state->xcb,
+        update_theme(state,
                      client,
                      theme->border_width->focused,
                      theme->color->focused->color_value);
@@ -268,7 +270,7 @@ void client_set_unfocused(const struct natwm_state *state,
 
         client->state = CLIENT_UNFOCUSED;
 
-        update_theme(state->xcb,
+        update_theme(state,
                      client,
                      theme->border_width->unfocused,
                      theme->color->unfocused->color_value);
@@ -289,7 +291,24 @@ enum natwm_error client_update_hints(const struct natwm_state *state,
                 uint32_t border_width
                         = client_get_active_border_width(theme, client);
 
-                ewmh_update_frame_extents(state, client->window, border_width);
+                ewmh_update_window_frame_extents(
+                        state, client->window, border_width);
+        }
+
+        if (hints & WM_DESKTOP) {
+                struct workspace *workspace
+                        = workspace_list_find_client_workspace(
+                                state->workspace_list, client);
+
+                if (workspace == NULL) {
+                        LOG_INFO(natwm_logger,
+                                 "Failed to find current desktop");
+
+                        return RESOLUTION_FAILURE;
+                }
+
+                ewmh_update_window_desktop(
+                        state, client->window, workspace->index);
         }
 
         return NO_ERROR;

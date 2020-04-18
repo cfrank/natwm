@@ -211,7 +211,7 @@ enum natwm_error workspace_add_client(struct natwm_state *state, size_t index,
         }
 
         // Cache which workspace this client is currenty active on
-        map_insert(list->client_map, &client->window, &index);
+        map_insert(list->client_map, &client->window, &workspace->index);
 
         workspace->active_client = client;
 
@@ -236,6 +236,11 @@ workspace_list_find_client_workspace(const struct workspace_list *list,
                                      const struct client *client)
 {
         struct map_entry *entry = map_get(list->client_map, &client->window);
+
+        if (entry == NULL) {
+                return NULL;
+        }
+
         size_t index = *(size_t *)entry->value;
 
         return list->workspaces[index];
