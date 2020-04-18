@@ -83,8 +83,6 @@ void ewmh_init(const struct natwm_state *state)
                 state->ewmh->_NET_MOVERESIZE_WINDOW,
                 state->ewmh->_NET_REQUEST_FRAME_EXTENTS,
                 // Application window properties
-                state->ewmh->_NET_WM_NAME,
-                state->ewmh->_NET_WM_VISIBLE_NAME,
                 state->ewmh->_NET_WM_DESKTOP,
                 state->ewmh->_NET_WM_WINDOW_TYPE,
                 state->ewmh->_NET_WM_STATE,
@@ -198,6 +196,24 @@ void ewmh_update_current_desktop(const struct natwm_state *state,
 
         xcb_ewmh_set_current_desktop(
                 state->ewmh, state->screen_num, (uint32_t)current_index);
+}
+
+void ewmh_update_window_frame_extents(const struct natwm_state *state,
+                                      xcb_window_t window,
+                                      uint32_t border_width)
+{
+        xcb_ewmh_set_frame_extents(state->ewmh,
+                                   window,
+                                   border_width,
+                                   border_width,
+                                   border_width,
+                                   border_width);
+}
+
+void ewmh_update_window_desktop(const struct natwm_state *state,
+                                xcb_window_t window, size_t index)
+{
+        xcb_ewmh_set_wm_desktop(state->ewmh, window, (uint32_t)index);
 }
 
 void ewmh_destroy(xcb_ewmh_connection_t *ewmh_connection)

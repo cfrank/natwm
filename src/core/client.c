@@ -3,6 +3,7 @@
 // Refer to the license.txt file included in the root of the project
 
 #include <stdlib.h>
+#include <xcb/xcb_icccm.h>
 
 #include <common/constants.h>
 #include <common/logger.h>
@@ -38,12 +39,12 @@ static enum natwm_error get_window_rect(xcb_connection_t *connection,
         return NO_ERROR;
 }
 
-static xcb_window_t create_parent_window(const struct natwm_state *state,
-                                         xcb_rectangle_t rect,
-                                         const struct client_theme *theme)
+static xcb_window_t create_frame_window(const struct natwm_state *state,
+                                        xcb_rectangle_t rect,
+                                        const struct client_theme *theme)
 {
         // Create the parent which will contain the window decorations
-        xcb_window_t parent = xcb_generate_id(state->xcb);
+        xcb_window_t frame = xcb_generate_id(state->xcb);
         uint32_t mask = XCB_CW_BORDER_PIXEL | XCB_CW_SAVE_UNDER;
         uint32_t values[] = {
                 theme->color->unfocused->color_value,
@@ -51,8 +52,8 @@ static xcb_window_t create_parent_window(const struct natwm_state *state,
         };
 
         xcb_create_window(state->xcb,
-                          XCB_COPY_FROM_PARENT,
-                          parent,
+                          state->screen->root_depth,
+                          frame,
                           state->screen->root,
                           rect.x,
                           rect.y,
@@ -64,10 +65,29 @@ static xcb_window_t create_parent_window(const struct natwm_state *state,
                           mask,
                           values);
 
-        return parent;
+        xcb_icccm_set_wm_class(
+                state->xcb, frame, sizeof(FRAME_CLASS_NAME), FRAME_CLASS_NAME);
+
+        return frame;
 }
 
-static void update_theme(xcb_connection_t *connection,
+static enum natwm_error reparent_window(xcb_connection_t *connection,
+                                        xcb_window_t parent, xcb_window_t child)
+{
+        xcb_void_cookie_t cookie
+                = xcb_reparent_window_checked(connection, child, parent, 0, 0);
+        xcb_generic_error_t *err = xcb_request_check(connection, cookie);
+
+        if (err != XCB_NONE) {
+                free(err);
+
+                return RESOLUTION_FAILURE;
+        }
+
+        return NO_ERROR;
+}
+
+static void update_theme(const struct natwm_state *state,
                          const struct client *client, uint16_t border_width,
                          uint32_t border_color)
 {
@@ -75,17 +95,19 @@ static void update_theme(xcb_connection_t *connection,
                 border_width,
         };
 
-        xcb_configure_window(connection,
-                             client->parent,
+        xcb_configure_window(state->xcb,
+                             client->frame,
                              XCB_CONFIG_WINDOW_BORDER_WIDTH,
                              values);
 
         if (border_width > 0) {
-                xcb_change_window_attributes(connection,
-                                             client->parent,
+                xcb_change_window_attributes(state->xcb,
+                                             client->frame,
                                              XCB_CW_BORDER_PIXEL,
                                              &border_color);
         }
+
+        client_update_hints(state, client, FRAME_EXTENTS);
 }
 
 struct client *client_create(xcb_window_t window, xcb_rectangle_t rect)
@@ -96,7 +118,7 @@ struct client *client_create(xcb_window_t window, xcb_rectangle_t rect)
                 return NULL;
         }
 
-        client->child = window;
+        client->window = window;
         client->rect = rect;
         client->state = CLIENT_UNFOCUSED;
 
@@ -138,18 +160,30 @@ struct client *client_register_window(struct natwm_state *state,
 
         // Load the client theme from the workspace list
         struct client_theme *theme = state->workspace_list->theme;
-        xcb_window_t parent_window
-                = create_parent_window(state, client->rect, theme);
 
-        client->parent = parent_window;
+        client->frame = create_frame_window(state, client->rect, theme);
 
-        workspace_add_client(state, client);
+        if (reparent_window(state->xcb, client->frame, client->window)
+            != NO_ERROR) {
+                // Failed to set the frame as the windows parent
+                LOG_WARNING(natwm_logger, "Failed to reparent window");
 
-        xcb_reparent_window(state->xcb, client->child, client->parent, 0, 0);
+                xcb_destroy_window(state->xcb, client->frame);
+
+                client_destroy(client);
+
+                return NULL;
+        }
+
+        xcb_change_save_set(state->xcb, XCB_SET_MODE_INSERT, client->window);
+
+        workspace_add_client(state, focused_workspace->index, client);
+
+        client_update_hints(state, client, CLIENT_HINTS_ALL);
 
         if (focused_workspace->is_visible) {
-                xcb_map_window(state->xcb, client->parent);
-                xcb_map_window(state->xcb, client->child);
+                xcb_map_window(state->xcb, client->frame);
+                xcb_map_window(state->xcb, client->window);
         }
 
         xcb_flush(state->xcb);
@@ -170,6 +204,41 @@ xcb_rectangle_t client_clamp_rect_to_monitor(xcb_rectangle_t window_rect,
         return new_rect;
 }
 
+uint16_t client_get_active_border_width(const struct client_theme *theme,
+                                        const struct client *client)
+{
+        switch (client->state) {
+        case CLIENT_FOCUSED:
+                return theme->border_width->focused;
+        case CLIENT_UNFOCUSED:
+                return theme->border_width->unfocused;
+        case CLIENT_URGENT:
+                return theme->border_width->urgent;
+        case CLIENT_STICKY:
+                return theme->border_width->sticky;
+        default:
+                return theme->border_width->unfocused;
+        }
+}
+
+struct color_value *
+client_get_active_border_color(const struct client_theme *theme,
+                               const struct client *client)
+{
+        switch (client->state) {
+        case CLIENT_FOCUSED:
+                return theme->color->focused;
+        case CLIENT_UNFOCUSED:
+                return theme->color->unfocused;
+        case CLIENT_URGENT:
+                return theme->color->urgent;
+        case CLIENT_STICKY:
+                return theme->color->sticky;
+        default:
+                return theme->color->unfocused;
+        }
+}
+
 void client_set_focused(const struct natwm_state *state, struct client *client)
 {
         if (client == NULL || client->state == CLIENT_FOCUSED) {
@@ -180,12 +249,12 @@ void client_set_focused(const struct natwm_state *state, struct client *client)
 
         client->state = CLIENT_FOCUSED;
 
-        update_theme(state->xcb,
+        update_theme(state,
                      client,
                      theme->border_width->focused,
                      theme->color->focused->color_value);
 
-        ewmh_update_active_window(state, client->child);
+        ewmh_update_active_window(state, client->window);
 
         xcb_flush(state->xcb);
 }
@@ -201,12 +270,48 @@ void client_set_unfocused(const struct natwm_state *state,
 
         client->state = CLIENT_UNFOCUSED;
 
-        update_theme(state->xcb,
+        update_theme(state,
                      client,
                      theme->border_width->unfocused,
                      theme->color->unfocused->color_value);
 
         xcb_flush(state->xcb);
+}
+
+enum natwm_error client_update_hints(const struct natwm_state *state,
+                                     const struct client *client,
+                                     enum client_hints hints)
+{
+        if (!client) {
+                return INVALID_INPUT_ERROR;
+        }
+
+        if (hints & FRAME_EXTENTS) {
+                struct client_theme *theme = state->workspace_list->theme;
+                uint32_t border_width
+                        = client_get_active_border_width(theme, client);
+
+                ewmh_update_window_frame_extents(
+                        state, client->window, border_width);
+        }
+
+        if (hints & WM_DESKTOP) {
+                struct workspace *workspace
+                        = workspace_list_find_client_workspace(
+                                state->workspace_list, client);
+
+                if (workspace == NULL) {
+                        LOG_INFO(natwm_logger,
+                                 "Failed to find current desktop");
+
+                        return RESOLUTION_FAILURE;
+                }
+
+                ewmh_update_window_desktop(
+                        state, client->window, workspace->index);
+        }
+
+        return NO_ERROR;
 }
 
 enum natwm_error client_theme_create(const struct map *config_map,

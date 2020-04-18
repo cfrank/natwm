@@ -18,4 +18,9 @@ void ewmh_update_desktop_names(const struct natwm_state *state,
                                const struct workspace_list *list);
 void ewmh_update_current_desktop(const struct natwm_state *state,
                                  size_t current_index);
+void ewmh_update_window_frame_extents(const struct natwm_state *state,
+                                      xcb_window_t window,
+                                      uint32_t border_width);
+void ewmh_update_window_desktop(const struct natwm_state *state,
+                                xcb_window_t window, size_t index);
 void ewmh_destroy(xcb_ewmh_connection_t *ewmh_connection);

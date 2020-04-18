@@ -33,6 +33,13 @@ static void workspace_client_destroy_callback(void *data)
         client_destroy(client);
 }
 
+static size_t get_client_list_key_size(const void *window)
+{
+        UNUSED_FUNCTION_PARAM(window);
+
+        return sizeof(xcb_window_t *);
+}
+
 /**
  * On first load we should give each monitor a workspace. The ordering of the
  * monitors is based on the order we recieve information about them in the
@@ -74,7 +81,7 @@ workspace_init(const struct config_array *workspace_names, size_t index)
         const char *name = DEFAULT_WORKSPACE_NAMES[index];
 
         if (workspace_names == NULL || index >= workspace_names->length) {
-                return workspace_create(name);
+                goto create_default_named_workspace;
         }
 
         const struct config_value *name_value = workspace_names->values[index];
@@ -83,7 +90,7 @@ workspace_init(const struct config_array *workspace_names, size_t index)
                 LOG_WARNING(
                         natwm_logger, "Ignoring invalid workspace name", name);
 
-                return workspace_create(name);
+                goto create_default_named_workspace;
         }
 
         if (strlen(name_value->data.string) > NATWM_WORKSPACE_NAME_MAX_LEN) {
@@ -93,10 +100,15 @@ workspace_init(const struct config_array *workspace_names, size_t index)
                         name_value->data.string,
                         NATWM_WORKSPACE_NAME_MAX_LEN);
 
-                return workspace_create(name);
+                goto create_default_named_workspace;
         }
 
-        return workspace_create(name_value->data.string);
+        return workspace_create(name_value->data.string, index);
+
+create_default_named_workspace:
+        // We couldn't find a valid user specified workspace name - fall back
+        // to using one from DEFAULT_WORKSPACE_NAMES
+        return workspace_create(name, index);
 }
 
 struct workspace_list *workspace_list_create(size_t count)
@@ -110,6 +122,11 @@ struct workspace_list *workspace_list_create(size_t count)
 
         workspace_list->count = count;
         workspace_list->theme = NULL;
+        workspace_list->client_map = map_init();
+
+        map_set_key_size_function(workspace_list->client_map,
+                                  get_client_list_key_size);
+
         workspace_list->workspaces = calloc(count, sizeof(struct workspace *));
 
         if (workspace_list->workspaces == NULL) {
@@ -121,7 +138,7 @@ struct workspace_list *workspace_list_create(size_t count)
         return workspace_list;
 }
 
-struct workspace *workspace_create(const char *name)
+struct workspace *workspace_create(const char *name, size_t index)
 {
         struct workspace *workspace = malloc(sizeof(struct workspace));
 
@@ -130,10 +147,11 @@ struct workspace *workspace_create(const char *name)
         }
 
         workspace->name = name;
+        workspace->index = index;
         workspace->is_visible = false;
         workspace->is_focused = false;
-        workspace->is_floating = false;
         workspace->clients = stack_create();
+        workspace->active_client = NULL;
 
         if (workspace->clients == NULL) {
                 free(workspace);
@@ -182,28 +200,30 @@ enum natwm_error workspace_list_init(const struct natwm_state *state,
         return NO_ERROR;
 }
 
-enum natwm_error workspace_add_client(struct natwm_state *state,
+enum natwm_error workspace_add_client(struct natwm_state *state, size_t index,
                                       struct client *client)
 {
         struct workspace_list *list = state->workspace_list;
-        struct workspace *focused_workspace = workspace_list_get_focused(list);
-        struct client *previous_client = focused_workspace->active_client;
+        struct workspace *workspace = list->workspaces[index];
+        struct client *previous_focused_client = workspace->active_client;
         enum natwm_error err = GENERIC_ERROR;
 
         // We will be modifying the state - need to lock until done
         natwm_state_lock(state);
 
-        if ((err = stack_push(focused_workspace->clients, client))
-            != NO_ERROR) {
+        if ((err = stack_push(workspace->clients, client)) != NO_ERROR) {
                 return err;
         }
 
-        focused_workspace->active_client = client;
+        // Cache which workspace this client is currenty active on
+        map_insert(list->client_map, &client->window, &workspace->index);
+
+        workspace->active_client = client;
 
         natwm_state_unlock(state);
 
-        if (previous_client != NULL) {
-                client_set_unfocused(state, previous_client);
+        if (previous_focused_client) {
+                client_set_unfocused(state, previous_focused_client);
         }
 
         client_set_focused(state, client);
@@ -216,11 +236,28 @@ struct workspace *workspace_list_get_focused(const struct workspace_list *list)
         return list->workspaces[list->active_index];
 }
 
+struct workspace *
+workspace_list_find_client_workspace(const struct workspace_list *list,
+                                     const struct client *client)
+{
+        struct map_entry *entry = map_get(list->client_map, &client->window);
+
+        if (entry == NULL) {
+                return NULL;
+        }
+
+        size_t index = *(size_t *)entry->value;
+
+        return list->workspaces[index];
+}
+
 void workspace_list_destroy(struct workspace_list *workspace_list)
 {
         if (workspace_list->theme != NULL) {
                 client_theme_destroy(workspace_list->theme);
         }
+
+        map_destroy(workspace_list->client_map);
 
         for (size_t i = 0; i < workspace_list->count; ++i) {
                 if (workspace_list->workspaces[i] != NULL) {
