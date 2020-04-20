@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <stdbool.h>
 #include <xcb/xcb.h>
 
 #include <common/error.h>
@@ -13,10 +14,10 @@
 #include "state.h"
 
 enum client_state {
-        CLIENT_FOCUSED,
-        CLIENT_UNFOCUSED,
-        CLIENT_URGENT,
-        CLIENT_STICKY,
+        CLIENT_URGENT = 1U << 0U,
+        CLIENT_STICKY = 1U << 1U,
+        CLIENT_HIDDEN = 1U << 2U,
+        CLIENT_NORMAL = 1U << 3U,
 };
 
 enum client_hints {
@@ -42,6 +43,7 @@ struct client {
         xcb_window_t frame;
         xcb_window_t window;
         xcb_rectangle_t rect;
+        bool is_focused;
         enum client_state state;
 };
 
