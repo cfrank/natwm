@@ -139,6 +139,8 @@ static int root_window_subscribe(const struct natwm_state *state)
                 state->xcb, state->screen->root, XCB_CW_EVENT_MASK, &root_mask);
         xcb_generic_error_t *error = xcb_request_check(state->xcb, cookie);
 
+        xcb_flush(state->xcb);
+
         if (error != NULL) {
                 // We will fail if there is already a window manager present
                 free(error);

@@ -45,10 +45,14 @@ static xcb_window_t create_frame_window(const struct natwm_state *state,
 {
         // Create the parent which will contain the window decorations
         xcb_window_t frame = xcb_generate_id(state->xcb);
-        uint32_t mask = XCB_CW_BORDER_PIXEL | XCB_CW_SAVE_UNDER;
+        uint32_t mask
+                = XCB_CW_BORDER_PIXEL | XCB_CW_EVENT_MASK | XCB_CW_COLORMAP;
         uint32_t values[] = {
                 theme->color->unfocused->color_value,
-                1,
+                XCB_EVENT_MASK_STRUCTURE_NOTIFY
+                        | XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY
+                        | XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT,
+                state->screen->default_colormap,
         };
 
         xcb_create_window(state->xcb,
