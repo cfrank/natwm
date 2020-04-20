@@ -5,6 +5,7 @@
 #pragma once
 
 #include <pthread.h>
+#include <stdbool.h>
 #include <stdint.h>
 
 #include <common/error.h>
@@ -37,6 +38,10 @@ typedef uint32_t (*map_hash_function_t)(const void *key, size_t size);
 
 // Function for finding the size of a supplied key
 typedef size_t (*map_key_size_function_t)(const void *key);
+
+// Function for comparing keys
+typedef bool (*map_key_compare_function_t)(const void *one, const void *two,
+                                           size_t key_size);
 
 // Function which takes data and frees the memory allocated for it
 typedef void (*map_entry_free_function_t)(void *data);
@@ -81,6 +86,7 @@ struct map {
         pthread_mutex_t mutex;
         map_hash_function_t hash_function;
         map_key_size_function_t key_size_function;
+        map_key_compare_function_t key_compare_function;
         map_entry_free_function_t free_function;
         enum map_settings setting_flags;
         enum map_events event_flags;
@@ -99,6 +105,8 @@ enum natwm_error map_delete(struct map *map, const void *key);
 int map_set_hash_function(struct map *map, map_hash_function_t function);
 int map_set_key_size_function(struct map *map,
                               map_key_size_function_t function);
+int map_set_key_compare_function(struct map *map,
+                                 map_key_compare_function_t function);
 void map_set_entry_free_function(struct map *map,
                                  map_entry_free_function_t function);
 void map_set_setting_flag(struct map *map, enum map_settings flag);
