@@ -23,6 +23,21 @@ struct test_value {
         uint32_t *test_values;
 };
 
+static size_t determine_number_key_size(const void *key)
+{
+        UNUSED_FUNCTION_PARAM(key);
+
+        return sizeof(size_t *);
+}
+
+static bool non_trivial_key_compare_function(const void *one, const void *two,
+                                             size_t key_size)
+{
+        UNUSED_FUNCTION_PARAM(key_size);
+
+        return *(size_t *)one == *(size_t *)two;
+}
+
 static struct test_value *test_value_init(void)
 {
         struct test_value *value = malloc(sizeof(struct test_value));
@@ -57,13 +72,6 @@ static void test_value_destroy(void *data)
 
         free(value->test_values);
         free(value);
-}
-
-static size_t determine_number_key_size(const void *key)
-{
-        UNUSED_FUNCTION_PARAM(key);
-
-        return sizeof(size_t *);
 }
 
 static int test_setup(void **state)
@@ -142,9 +150,7 @@ static void test_map_insert_non_string_key(void **state)
         // We don't want to override the key sizing of the rest of the tests
         struct map *map = map_init();
 
-        if (map == NULL) {
-                assert_true(false);
-        }
+        assert_non_null(map);
 
         map_set_key_size_function(map, determine_number_key_size);
 
@@ -170,9 +176,7 @@ static void test_map_insert_multiple_non_string_key(void **state)
 
         struct map *map = map_init();
 
-        if (map == NULL) {
-                assert_true(false);
-        }
+        assert_non_null(map);
 
         map_set_key_size_function(map, determine_number_key_size);
 
@@ -214,9 +218,7 @@ static void test_map_insert_duplicate_non_string_key(void **state)
 
         struct map *map = map_init();
 
-        if (map == NULL) {
-                assert_true(false);
-        }
+        assert_non_null(map);
 
         map_set_key_size_function(map, determine_number_key_size);
 
@@ -247,6 +249,85 @@ static void test_map_insert_duplicate_non_string_key(void **state)
         assert_string_equal(expected_value_second,
                             (const char *)entry_second->value);
         assert_int_equal(expected_key, *(size_t *)entry_second->key);
+
+        map_destroy(map);
+}
+
+static void test_map_complex_key_compare(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        struct map *map = map_init();
+
+        assert_non_null(map);
+
+        map_set_key_size_function(map, determine_number_key_size);
+        map_set_key_compare_function(map, non_trivial_key_compare_function);
+
+        // Both keys are the same value but when passed will point to different
+        // locations - thus we need a key compare function to determine if they
+        // are the same
+        size_t expected_key = 1234;
+        size_t passed_key = 1234;
+        const char *expected_value = "value";
+
+        assert_int_equal(
+                NO_ERROR,
+                map_insert(map, &expected_key, (char *)expected_value));
+        assert_int_equal(1, map->bucket_count);
+
+        struct map_entry *entry = map_get(map, &passed_key);
+
+        assert_non_null(entry);
+        assert_int_equal(expected_key, *(size_t *)entry->key);
+        assert_string_equal(expected_value, (const char *)entry->value);
+
+        map_destroy(map);
+}
+
+static void test_map_complex_key_compare_insert_duplicate(void **state)
+{
+        UNUSED_FUNCTION_PARAM(state);
+
+        struct map *map = map_init();
+
+        assert_non_null(map);
+
+        map_set_key_size_function(map, determine_number_key_size);
+        map_set_key_compare_function(map, non_trivial_key_compare_function);
+
+        // The keys are the same but they will point to different locations,
+        // this will require the use of the key_compare_function to recognize
+        // that they are duplicates
+        size_t expected_key = 1234;
+        size_t expected_key_duplicate = 1234;
+        const char *expected_value_first = "first value";
+        const char *expected_value_second = "second value";
+
+        assert_int_equal(
+                NO_ERROR,
+                map_insert(map, &expected_key, (char *)expected_value_first));
+        assert_int_equal(1, map->bucket_count);
+
+        struct map_entry *entry_first = map_get(map, &expected_key);
+
+        assert_non_null(entry_first);
+        assert_int_equal(expected_key, *(size_t *)entry_first->key);
+        assert_string_equal(expected_value_first,
+                            (const char *)entry_first->value);
+
+        assert_int_equal(NO_ERROR,
+                         map_insert(map,
+                                    &expected_key_duplicate,
+                                    (char *)expected_value_second));
+        assert_int_equal(1, map->bucket_count);
+
+        struct map_entry *entry_second = map_get(map, &expected_key);
+
+        assert_non_null(entry_second);
+        assert_int_equal(expected_key, *(size_t *)entry_second->key);
+        assert_string_equal(expected_value_second,
+                            (const char *)entry_second->value);
 
         map_destroy(map);
 }
@@ -515,6 +596,8 @@ int main(void)
                 cmocka_unit_test(test_map_insert_non_string_key),
                 cmocka_unit_test(test_map_insert_multiple_non_string_key),
                 cmocka_unit_test(test_map_insert_duplicate_non_string_key),
+                cmocka_unit_test(test_map_complex_key_compare),
+                cmocka_unit_test(test_map_complex_key_compare_insert_duplicate),
                 cmocka_unit_test_setup_teardown(
                         test_map_insert_load_factor_disabled,
                         test_setup,

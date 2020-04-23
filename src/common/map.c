@@ -31,6 +31,20 @@ static size_t default_key_size_function(const void *key)
         return strlen(key);
 }
 
+// Default key compare function
+// This will compare two strings
+static bool default_key_compare_function(const void *one, const void *two,
+                                         size_t key_size)
+{
+        UNUSED_FUNCTION_PARAM(key_size);
+
+        if (strcmp(one, two) == 0) {
+                return true;
+        }
+
+        return false;
+}
+
 // Given a map_entry determine if it holds valid data and is present
 static bool is_entry_present(const struct map_entry *entry)
 {
@@ -151,7 +165,7 @@ static enum natwm_error map_search(const struct map *map, const void *key,
                 struct map_entry *entry = map->entries[current_index];
 
                 if (!is_entry_present(entry)
-                    || memcmp(key, entry->key, key_size) != 0) {
+                    || !map->key_compare_function(key, entry->key, key_size)) {
                         current_index += 1;
 
                         continue;
@@ -272,8 +286,12 @@ static enum natwm_error map_insert_entry(struct map *map,
         uint32_t initial_index = entry->hash % map->length;
         struct map_entry *present_entry = map->entries[initial_index];
         bool is_hash_collision = is_entry_present(present_entry);
+        size_t key_size = map->key_size_function(entry->key);
 
-        if (is_hash_collision && strcmp(present_entry->key, entry->key) == 0) {
+        // If there is a collision with the same key overwrite it
+        if (is_hash_collision
+            && map->key_compare_function(
+                    entry->key, present_entry->key, key_size)) {
                 map_entry_destroy(map, present_entry);
 
                 map->entries[initial_index] = entry;
@@ -390,6 +408,7 @@ struct map *map_init(void)
 
         map->hash_function = default_hash_function;
         map->key_size_function = default_key_size_function;
+        map->key_compare_function = default_key_compare_function;
         map->free_function = NULL;
         map->setting_flags = MAP_FLAG_IGNORE_THRESHOLDS_EMPTY;
         map->event_flags = EVENT_FLAG_NORMAL;
@@ -523,6 +542,21 @@ int map_set_key_size_function(struct map *map, map_key_size_function_t function)
         }
 
         map->key_size_function = function;
+
+        return 0;
+}
+
+// Set the key compare function
+int map_set_key_compare_function(struct map *map,
+                                 map_key_compare_function_t function)
+{
+        if (map->bucket_count > 0) {
+                // Since we have added entries we can't change how we compare
+                // keys
+                return -1;
+        }
+
+        map->key_compare_function = function;
 
         return 0;
 }
