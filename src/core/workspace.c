@@ -40,6 +40,16 @@ static size_t get_client_list_key_size(const void *window)
         return sizeof(xcb_window_t *);
 }
 
+static bool compare_windows(const void *one, const void *two, size_t key_size)
+{
+        UNUSED_FUNCTION_PARAM(key_size);
+
+        xcb_window_t window_one = *(xcb_window_t *)one;
+        xcb_window_t window_two = *(xcb_window_t *)two;
+
+        return window_one == window_two;
+}
+
 /**
  * On first load we should give each monitor a workspace. The ordering of the
  * monitors is based on the order we recieve information about them in the
@@ -124,6 +134,8 @@ struct workspace_list *workspace_list_create(size_t count)
         workspace_list->theme = NULL;
         workspace_list->client_map = map_init();
 
+        map_set_key_compare_function(workspace_list->client_map,
+                                     compare_windows);
         map_set_key_size_function(workspace_list->client_map,
                                   get_client_list_key_size);
 
