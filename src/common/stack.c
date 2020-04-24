@@ -119,7 +119,7 @@ const struct stack_item *stack_peek_n(const struct stack *stack, size_t index)
         struct stack_item *curr = stack->head;
         size_t i = 0;
 
-        while (i <= index && curr != NULL && curr->next != NULL) {
+        while (i < index && curr != NULL && curr->next != NULL) {
                 curr = curr->next;
 
                 ++i;
@@ -173,6 +173,8 @@ void stack_item_destroy_callback(struct stack_item *item,
         }
 
         free_function((void *)item->data);
+
+        stack_item_destroy(item);
 }
 
 void stack_destroy(struct stack *stack)
