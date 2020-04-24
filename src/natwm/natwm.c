@@ -164,6 +164,8 @@ static void *start_wm_events_thread(void *passed_state)
 
                         free(event);
 
+                        xcb_flush(state->xcb);
+
                         continue;
                 }
 
