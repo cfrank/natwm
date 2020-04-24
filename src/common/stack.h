@@ -21,6 +21,10 @@ struct stack {
         struct stack_item *head;
 };
 
+#define STACK_FOR_EACH(stack, item)                                            \
+        for (struct stack_item * (item) = (stack)->head; (item) != NULL;       \
+             (item) = (item)->next)
+
 struct stack *stack_create(void);
 struct stack_item *stack_item_create(void *data);
 
