@@ -30,10 +30,12 @@ static enum natwm_error
 event_handle_unmap_notify(struct natwm_state *state,
                           xcb_unmap_notify_event_t *event)
 {
-        UNUSED_FUNCTION_PARAM(state);
-        UNUSED_FUNCTION_PARAM(event);
+        xcb_window_t window = event->window;
+        enum natwm_error err = client_unmap_window(state, window);
 
-        LOG_INFO(natwm_logger, "Handle UNMAP notify");
+        if (err != NO_ERROR) {
+                return err;
+        }
 
         return NO_ERROR;
 }
@@ -53,10 +55,6 @@ enum natwm_error event_handle(struct natwm_state *state,
                 err = event_handle_unmap_notify(
                         state, (xcb_unmap_notify_event_t *)event);
                 break;
-        }
-
-        if (err != NO_ERROR) {
-                return err;
         }
 
         // If we are using the randr extension then we support additional events
