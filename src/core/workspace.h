@@ -35,11 +35,22 @@ struct workspace_list *workspace_list_create(size_t count);
 struct workspace *workspace_create(const char *tag_name, size_t index);
 enum natwm_error workspace_list_init(const struct natwm_state *state,
                                      struct workspace_list **result);
-enum natwm_error workspace_add_client(struct natwm_state *state, size_t index,
+enum natwm_error workspace_add_client(struct natwm_state *state,
+                                      struct workspace *workspace,
                                       struct client *client);
+struct client *workspace_find_window_client(const struct workspace *workspace,
+                                            xcb_window_t window);
+enum natwm_error workspace_update_focused(const struct natwm_state *state,
+                                          struct workspace *list);
 struct workspace *workspace_list_get_focused(const struct workspace_list *list);
 struct workspace *
 workspace_list_find_client_workspace(const struct workspace_list *list,
                                      const struct client *client);
+struct workspace *
+workspace_list_find_window_workspace(const struct workspace_list *list,
+                                     xcb_window_t window);
+struct client *
+workspace_list_find_window_client(const struct workspace_list *list,
+                                  xcb_window_t window);
 void workspace_list_destroy(struct workspace_list *workspace_list);
 void workspace_destroy(struct workspace *workspace);

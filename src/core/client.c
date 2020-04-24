@@ -45,10 +45,14 @@ static xcb_window_t create_frame_window(const struct natwm_state *state,
 {
         // Create the parent which will contain the window decorations
         xcb_window_t frame = xcb_generate_id(state->xcb);
-        uint32_t mask = XCB_CW_BORDER_PIXEL | XCB_CW_SAVE_UNDER;
+        uint32_t mask
+                = XCB_CW_BORDER_PIXEL | XCB_CW_EVENT_MASK | XCB_CW_COLORMAP;
         uint32_t values[] = {
                 theme->color->unfocused->color_value,
-                1,
+                XCB_EVENT_MASK_STRUCTURE_NOTIFY
+                        | XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY
+                        | XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT,
+                state->screen->default_colormap,
         };
 
         xcb_create_window(state->xcb,
@@ -110,6 +114,22 @@ static void update_theme(const struct natwm_state *state,
         client_update_hints(state, client, FRAME_EXTENTS);
 }
 
+static void update_stack_mode(const struct natwm_state *state,
+                              const struct client *client,
+                              xcb_stack_mode_t stack_mode)
+{
+        uint32_t values[] = {
+                stack_mode,
+        };
+
+        xcb_configure_window(state->xcb,
+                             client->frame,
+                             XCB_CONFIG_WINDOW_STACK_MODE,
+                             values);
+
+        xcb_flush(state->xcb);
+}
+
 struct client *client_create(xcb_window_t window, xcb_rectangle_t rect)
 {
         struct client *client = malloc(sizeof(struct client));
@@ -120,7 +140,8 @@ struct client *client_create(xcb_window_t window, xcb_rectangle_t rect)
 
         client->window = window;
         client->rect = rect;
-        client->state = CLIENT_UNFOCUSED;
+        client->is_focused = false;
+        client->state = CLIENT_NORMAL;
 
         return client;
 }
@@ -168,27 +189,60 @@ struct client *client_register_window(struct natwm_state *state,
                 // Failed to set the frame as the windows parent
                 LOG_WARNING(natwm_logger, "Failed to reparent window");
 
-                xcb_destroy_window(state->xcb, client->frame);
-
-                client_destroy(client);
-
-                return NULL;
+                goto handle_error;
         }
 
         xcb_change_save_set(state->xcb, XCB_SET_MODE_INSERT, client->window);
 
-        workspace_add_client(state, focused_workspace->index, client);
+        if (workspace_add_client(state, focused_workspace, client)
+            != NO_ERROR) {
+                LOG_WARNING(natwm_logger, "Failed to add client to workspace");
+
+                goto handle_error;
+        }
 
         client_update_hints(state, client, CLIENT_HINTS_ALL);
 
-        if (focused_workspace->is_visible) {
-                xcb_map_window(state->xcb, client->frame);
-                xcb_map_window(state->xcb, client->window);
-        }
+        xcb_map_window(state->xcb, client->frame);
+        xcb_map_window(state->xcb, client->window);
 
         xcb_flush(state->xcb);
 
         return client;
+
+handle_error:
+        xcb_destroy_window(state->xcb, client->frame);
+
+        client_destroy(client);
+
+        return NULL;
+}
+
+enum natwm_error client_unmap_window(struct natwm_state *state,
+                                     xcb_window_t window)
+{
+        struct workspace *workspace = workspace_list_find_window_workspace(
+                state->workspace_list, window);
+
+        if (workspace == NULL) {
+                // We do not have this window in our registry - ignore
+                return NO_ERROR;
+        }
+
+        struct client *client = workspace_find_window_client(workspace, window);
+
+        if (client == NULL) {
+                LOG_WARNING(natwm_logger, "Failed to find client during unmap");
+                return NOT_FOUND_ERROR;
+        }
+
+        client->state = CLIENT_HIDDEN;
+
+        workspace_update_focused(state, workspace);
+
+        xcb_unmap_window(state->xcb, client->frame);
+
+        return NO_ERROR;
 }
 
 xcb_rectangle_t client_clamp_rect_to_monitor(xcb_rectangle_t window_rect,
@@ -207,75 +261,85 @@ xcb_rectangle_t client_clamp_rect_to_monitor(xcb_rectangle_t window_rect,
 uint16_t client_get_active_border_width(const struct client_theme *theme,
                                         const struct client *client)
 {
-        switch (client->state) {
-        case CLIENT_FOCUSED:
-                return theme->border_width->focused;
-        case CLIENT_UNFOCUSED:
-                return theme->border_width->unfocused;
-        case CLIENT_URGENT:
+        if (client->state == CLIENT_URGENT) {
                 return theme->border_width->urgent;
-        case CLIENT_STICKY:
-                return theme->border_width->sticky;
-        default:
-                return theme->border_width->unfocused;
         }
+
+        if (client->state == CLIENT_STICKY) {
+                return theme->border_width->sticky;
+        }
+
+        if (client->is_focused) {
+                return theme->border_width->focused;
+        }
+
+        return theme->border_width->unfocused;
 }
 
 struct color_value *
 client_get_active_border_color(const struct client_theme *theme,
                                const struct client *client)
 {
-        switch (client->state) {
-        case CLIENT_FOCUSED:
-                return theme->color->focused;
-        case CLIENT_UNFOCUSED:
-                return theme->color->unfocused;
-        case CLIENT_URGENT:
+        if (client->state == CLIENT_URGENT) {
                 return theme->color->urgent;
-        case CLIENT_STICKY:
-                return theme->color->sticky;
-        default:
-                return theme->color->unfocused;
         }
+
+        if (client->state == CLIENT_STICKY) {
+                return theme->color->sticky;
+        }
+
+        if (client->is_focused) {
+                return theme->color->focused;
+        }
+
+        return theme->color->unfocused;
 }
 
 void client_set_focused(const struct natwm_state *state, struct client *client)
 {
-        if (client == NULL || client->state == CLIENT_FOCUSED) {
+        if (client == NULL || client->is_focused) {
                 return;
         }
 
         struct client_theme *theme = state->workspace_list->theme;
 
-        client->state = CLIENT_FOCUSED;
+        client->is_focused = true;
+
+        ewmh_update_active_window(state, client->window);
+
+        update_stack_mode(state, client, XCB_STACK_MODE_ABOVE);
+
+        if (client->state != CLIENT_NORMAL) {
+                return;
+        }
 
         update_theme(state,
                      client,
                      theme->border_width->focused,
                      theme->color->focused->color_value);
-
-        ewmh_update_active_window(state, client->window);
-
-        xcb_flush(state->xcb);
 }
 
 void client_set_unfocused(const struct natwm_state *state,
                           struct client *client)
 {
-        if (client == NULL || client->state == CLIENT_UNFOCUSED) {
+        if (client == NULL || client->is_focused == false) {
                 return;
         }
 
         struct client_theme *theme = state->workspace_list->theme;
 
-        client->state = CLIENT_UNFOCUSED;
+        client->is_focused = false;
+
+        update_stack_mode(state, client, XCB_STACK_MODE_BELOW);
+
+        if (client->state != CLIENT_NORMAL) {
+                return;
+        }
 
         update_theme(state,
                      client,
                      theme->border_width->unfocused,
                      theme->color->unfocused->color_value);
-
-        xcb_flush(state->xcb);
 }
 
 enum natwm_error client_update_hints(const struct natwm_state *state,

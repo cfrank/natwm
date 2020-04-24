@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <stdbool.h>
 #include <xcb/xcb.h>
 
 #include <common/error.h>
@@ -13,10 +14,10 @@
 #include "state.h"
 
 enum client_state {
-        CLIENT_FOCUSED,
-        CLIENT_UNFOCUSED,
         CLIENT_URGENT,
         CLIENT_STICKY,
+        CLIENT_HIDDEN,
+        CLIENT_NORMAL,
 };
 
 enum client_hints {
@@ -42,12 +43,15 @@ struct client {
         xcb_window_t frame;
         xcb_window_t window;
         xcb_rectangle_t rect;
+        bool is_focused;
         enum client_state state;
 };
 
 struct client *client_create(xcb_window_t window, xcb_rectangle_t rect);
 struct client *client_register_window(struct natwm_state *state,
                                       xcb_window_t window);
+enum natwm_error client_unmap_window(struct natwm_state *state,
+                                     xcb_window_t window);
 xcb_rectangle_t client_clamp_rect_to_monitor(xcb_rectangle_t client_rect,
                                              xcb_rectangle_t monitor_rect);
 uint16_t client_get_active_border_width(const struct client_theme *theme,
