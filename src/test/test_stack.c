@@ -283,6 +283,99 @@ static void test_stack_pop_empty(void **state)
         assert_false(stack_has_item(stack));
 }
 
+static void test_stack_peek(void **state)
+{
+        struct stack *stack = *(struct stack **)state;
+        size_t expected_data = 14;
+
+        assert_int_equal(NO_ERROR, stack_push(stack, &expected_data));
+        assert_true(stack_has_item(stack));
+
+        const struct stack_item *stack_item = stack_peek(stack);
+
+        assert_non_null(stack_item);
+        assert_int_equal(expected_data, *(size_t *)stack_item->data);
+        assert_true(stack_has_item(stack));
+        assert_int_equal(1, stack->length);
+}
+
+static void test_stack_peek_multiple(void **state)
+{
+        struct stack *stack = *(struct stack **)state;
+        size_t first = 123;
+        size_t expected_data = 123;
+
+        assert_int_equal(NO_ERROR, stack_push(stack, &first));
+        assert_true(stack_has_item(stack));
+        assert_int_equal(NO_ERROR, stack_push(stack, &expected_data));
+        assert_int_equal(2, stack->length);
+
+        const struct stack_item *stack_item = stack_peek(stack);
+
+        assert_non_null(stack_item);
+        assert_int_equal(expected_data, *(size_t *)stack_item->data);
+        assert_true(stack_has_item(stack));
+        assert_int_equal(2, stack->length);
+}
+
+static void test_stack_peek_empty(void **state)
+{
+        struct stack *stack = *(struct stack **)state;
+        size_t data = 14;
+
+        assert_false(stack_has_item(stack));
+        assert_null(stack_peek(stack));
+        assert_int_equal(NO_ERROR, stack_push(stack, &data));
+        assert_true(stack_has_item(stack));
+        assert_int_equal(1, stack->length);
+
+        struct stack_item *stack_item = stack_pop(stack);
+
+        assert_non_null(stack_item);
+        assert_false(stack_has_item(stack));
+        assert_null(stack_peek(stack));
+
+        stack_item_destroy(stack_item);
+}
+
+static void test_stack_peek_n(void **state)
+{
+        struct stack *stack = *(struct stack **)state;
+        size_t expected_data_first = 123;
+        size_t expected_data_second = 456;
+        size_t expected_data_third = 456;
+
+        assert_false(stack_has_item(stack));
+        assert_int_equal(NO_ERROR, stack_push(stack, &expected_data_first));
+        assert_int_equal(NO_ERROR, stack_push(stack, &expected_data_second));
+        assert_int_equal(NO_ERROR, stack_push(stack, &expected_data_third));
+        assert_true(stack_has_item(stack));
+        assert_int_equal(3, stack->length);
+
+        const struct stack_item *stack_item_zero = stack_peek_n(stack, 0);
+        const struct stack_item *stack_item_one = stack_peek_n(stack, 1);
+        const struct stack_item *stack_item_two = stack_peek_n(stack, 2);
+
+        assert_non_null(stack_item_zero);
+        assert_non_null(stack_item_one);
+        assert_non_null(stack_item_two);
+        assert_true(stack_has_item(stack));
+        assert_int_equal(3, stack->length);
+        assert_int_equal(expected_data_third, *(size_t *)stack_item_zero->data);
+        assert_int_equal(expected_data_second, *(size_t *)stack_item_one->data);
+        assert_int_equal(expected_data_first, *(size_t *)stack_item_two->data);
+}
+
+static void test_stack_peek_n_not_found(void **state)
+{
+        struct stack *stack = *(struct stack **)state;
+
+        assert_false(stack_has_item(stack));
+        assert_null(stack_peek_n(stack, 0));
+        assert_null(stack_peek_n(stack, 5));
+        assert_null(stack_peek_n(stack, 10));
+}
+
 static void test_stack_dequeue(void **state)
 {
         struct stack *stack = *(struct stack **)state;
@@ -431,6 +524,16 @@ int main(void)
                         test_stack_pop_multiple, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(
                         test_stack_pop_empty, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(
+                        test_stack_peek, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(
+                        test_stack_peek_multiple, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(
+                        test_stack_peek_empty, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(
+                        test_stack_peek_n, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(
+                        test_stack_peek_n_not_found, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(
                         test_stack_dequeue, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(

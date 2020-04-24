@@ -34,7 +34,7 @@ struct stack_item *stack_item_create(void *data)
         return item;
 }
 
-bool stack_has_item(struct stack *stack)
+bool stack_has_item(const struct stack *stack)
 {
         return stack->head != NULL;
 }
@@ -110,6 +110,29 @@ struct stack_item *stack_pop(struct stack *stack)
         return item;
 }
 
+const struct stack_item *stack_peek_n(const struct stack *stack, size_t index)
+{
+        if (!stack_has_item(stack) || stack->length < index) {
+                return NULL;
+        }
+
+        struct stack_item *curr = stack->head;
+        size_t i = 0;
+
+        while (i < index && curr != NULL && curr->next != NULL) {
+                curr = curr->next;
+
+                ++i;
+        }
+
+        return curr;
+}
+
+const struct stack_item *stack_peek(const struct stack *stack)
+{
+        return stack_peek_n(stack, 0);
+}
+
 struct stack_item *stack_dequeue(struct stack *stack)
 {
         if (!stack_has_item(stack)) {
@@ -150,6 +173,8 @@ void stack_item_destroy_callback(struct stack_item *item,
         }
 
         free_function((void *)item->data);
+
+        stack_item_destroy(item);
 }
 
 void stack_destroy(struct stack *stack)
