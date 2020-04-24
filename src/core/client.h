@@ -14,10 +14,10 @@
 #include "state.h"
 
 enum client_state {
-        CLIENT_URGENT = 1U << 0U,
-        CLIENT_STICKY = 1U << 1U,
-        CLIENT_HIDDEN = 1U << 2U,
-        CLIENT_NORMAL = 1U << 3U,
+        CLIENT_URGENT,
+        CLIENT_STICKY,
+        CLIENT_HIDDEN,
+        CLIENT_NORMAL,
 };
 
 enum client_hints {
