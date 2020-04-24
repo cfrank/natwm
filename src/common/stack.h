@@ -24,7 +24,7 @@ struct stack {
 struct stack *stack_create(void);
 struct stack_item *stack_item_create(void *data);
 
-bool stack_has_item(struct stack *stack);
+bool stack_has_item(const struct stack *stack);
 
 void stack_push_item(struct stack *stack, struct stack_item *item);
 enum natwm_error stack_push(struct stack *stack, void *data);
@@ -32,6 +32,8 @@ void stack_enqueue_item(struct stack *stack, struct stack_item *item);
 enum natwm_error stack_enqueue(struct stack *stack, void *data);
 
 struct stack_item *stack_pop(struct stack *stack);
+const struct stack_item *stack_peek(const struct stack *stack);
+const struct stack_item *stack_peek_n(const struct stack *stack, size_t index);
 struct stack_item *stack_dequeue(struct stack *state);
 
 void stack_item_destroy(struct stack_item *item);
