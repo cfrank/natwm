@@ -50,6 +50,8 @@ struct client {
 struct client *client_create(xcb_window_t window, xcb_rectangle_t rect);
 struct client *client_register_window(struct natwm_state *state,
                                       xcb_window_t window);
+enum natwm_error client_unmap_window(struct natwm_state *state,
+                                     xcb_window_t window);
 xcb_rectangle_t client_clamp_rect_to_monitor(xcb_rectangle_t client_rect,
                                              xcb_rectangle_t monitor_rect);
 uint16_t client_get_active_border_width(const struct client_theme *theme,

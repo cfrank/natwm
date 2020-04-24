@@ -140,6 +140,7 @@ struct client *client_create(xcb_window_t window, xcb_rectangle_t rect)
 
         client->window = window;
         client->rect = rect;
+        client->is_focused = false;
         client->state = CLIENT_NORMAL;
 
         return client;
@@ -188,27 +189,60 @@ struct client *client_register_window(struct natwm_state *state,
                 // Failed to set the frame as the windows parent
                 LOG_WARNING(natwm_logger, "Failed to reparent window");
 
-                xcb_destroy_window(state->xcb, client->frame);
-
-                client_destroy(client);
-
-                return NULL;
+                goto handle_error;
         }
 
         xcb_change_save_set(state->xcb, XCB_SET_MODE_INSERT, client->window);
 
-        workspace_add_client(state, focused_workspace->index, client);
+        if (workspace_add_client(state, focused_workspace, client)
+            != NO_ERROR) {
+                LOG_WARNING(natwm_logger, "Failed to add client to workspace");
+
+                goto handle_error;
+        }
 
         client_update_hints(state, client, CLIENT_HINTS_ALL);
 
-        if (focused_workspace->is_visible) {
-                xcb_map_window(state->xcb, client->frame);
-                xcb_map_window(state->xcb, client->window);
-        }
+        xcb_map_window(state->xcb, client->frame);
+        xcb_map_window(state->xcb, client->window);
 
         xcb_flush(state->xcb);
 
         return client;
+
+handle_error:
+        xcb_destroy_window(state->xcb, client->frame);
+
+        client_destroy(client);
+
+        return NULL;
+}
+
+enum natwm_error client_unmap_window(struct natwm_state *state,
+                                     xcb_window_t window)
+{
+        struct workspace *workspace = workspace_list_find_window_workspace(
+                state->workspace_list, window);
+
+        if (workspace == NULL) {
+                // We do not have this window in our registry - ignore
+                return NO_ERROR;
+        }
+
+        struct client *client = workspace_find_window_client(workspace, window);
+
+        if (client == NULL) {
+                LOG_WARNING(natwm_logger, "Failed to find client during unmap");
+                return NOT_FOUND_ERROR;
+        }
+
+        client->state = CLIENT_HIDDEN;
+
+        workspace_update_focused(state, workspace);
+
+        xcb_unmap_window(state->xcb, client->frame);
+
+        return NO_ERROR;
 }
 
 xcb_rectangle_t client_clamp_rect_to_monitor(xcb_rectangle_t window_rect,

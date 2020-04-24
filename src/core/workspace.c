@@ -2,6 +2,7 @@
 // Licensed under BSD-3-Clause
 // Refer to the license.txt file included in the root of the project
 
+#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -212,11 +213,11 @@ enum natwm_error workspace_list_init(const struct natwm_state *state,
         return NO_ERROR;
 }
 
-enum natwm_error workspace_add_client(struct natwm_state *state, size_t index,
+enum natwm_error workspace_add_client(struct natwm_state *state,
+                                      struct workspace *workspace,
                                       struct client *client)
 {
         struct workspace_list *list = state->workspace_list;
-        struct workspace *workspace = list->workspaces[index];
         struct client *previous_focused_client = workspace->active_client;
         enum natwm_error err = GENERIC_ERROR;
 
@@ -243,16 +244,64 @@ enum natwm_error workspace_add_client(struct natwm_state *state, size_t index,
         return NO_ERROR;
 }
 
+struct client *workspace_find_window_client(const struct workspace *workspace,
+                                            xcb_window_t window)
+{
+        STACK_FOR_EACH(workspace->clients, client_item)
+        {
+                struct client *client = (struct client *)client_item->data;
+
+                if (client->window == window) {
+                        return client;
+                }
+        }
+
+        return NULL;
+}
+
+enum natwm_error workspace_update_focused(const struct natwm_state *state,
+                                          struct workspace *workspace)
+{
+        if (!workspace->is_visible) {
+                // If the workspace is not visible there is no need to update
+                // the focused client.
+
+                return NO_ERROR;
+        }
+
+        STACK_FOR_EACH(workspace->clients, client_item)
+        {
+                struct client *client = (struct client *)client_item->data;
+
+                if (client->state == CLIENT_HIDDEN) {
+                        continue;
+                }
+
+                if (client->is_focused) {
+                        return NO_ERROR;
+                }
+
+                // We found a visible client which needs to be focused
+                workspace->active_client = client;
+
+                client_set_focused(state, client);
+
+                return NO_ERROR;
+        }
+
+        return NOT_FOUND_ERROR;
+}
+
 struct workspace *workspace_list_get_focused(const struct workspace_list *list)
 {
         return list->workspaces[list->active_index];
 }
 
 struct workspace *
-workspace_list_find_client_workspace(const struct workspace_list *list,
-                                     const struct client *client)
+workspace_list_find_window_workspace(const struct workspace_list *list,
+                                     xcb_window_t window)
 {
-        struct map_entry *entry = map_get(list->client_map, &client->window);
+        struct map_entry *entry = map_get(list->client_map, &window);
 
         if (entry == NULL) {
                 return NULL;
@@ -260,7 +309,33 @@ workspace_list_find_client_workspace(const struct workspace_list *list,
 
         size_t index = *(size_t *)entry->value;
 
+        assert(index < list->count);
+
         return list->workspaces[index];
+}
+
+struct workspace *
+workspace_list_find_client_workspace(const struct workspace_list *list,
+                                     const struct client *client)
+{
+        return workspace_list_find_window_workspace(list, client->window);
+}
+
+struct client *
+workspace_list_find_window_client(const struct workspace_list *list,
+                                  xcb_window_t window)
+{
+        for (size_t i = 0; i < list->count; ++i) {
+                struct workspace *workspace = list->workspaces[i];
+                struct client *client
+                        = workspace_find_window_client(workspace, window);
+
+                if (client != NULL) {
+                        return client;
+                }
+        }
+
+        return NULL;
 }
 
 void workspace_list_destroy(struct workspace_list *workspace_list)
