@@ -23,10 +23,9 @@ struct list {
         for (struct node * (item) = (list)->head; (item) != NULL;              \
              (item) = (item)->next)
 
-struct node *create_node(const void *data);
-void destroy_node(struct node *node);
+struct node *node_create(const void *data);
+struct list *list_create(void);
 
-struct list *create_list(void);
 struct node *list_insert_after(struct list *list, struct node *node,
                                const void *data);
 struct node *list_insert_before(struct list *list, struct node *node,
@@ -35,5 +34,7 @@ struct node *list_insert(struct list *list, const void *data);
 struct node *list_insert_end(struct list *list, const void *data);
 void list_remove(struct list *list, struct node *node);
 bool list_is_empty(const struct list *list);
-void destroy_list(struct list *list);
-void empty_list(struct list *list);
+
+void node_destroy(struct node *node);
+void list_destroy(struct list *list);
+void list_empty(struct list *list);

@@ -15,7 +15,7 @@
 
 static int test_setup(void **state)
 {
-        struct list *list = create_list();
+        struct list *list = list_create();
 
         if (list == NULL) {
                 return EXIT_FAILURE;
@@ -28,7 +28,7 @@ static int test_setup(void **state)
 
 static int test_teardown(void **state)
 {
-        destroy_list(*(struct list **)state);
+        list_destroy(*(struct list **)state);
 
         return EXIT_SUCCESS;
 }
@@ -38,14 +38,14 @@ static void test_node_creation_succeeds(void **state)
         UNUSED_FUNCTION_PARAM(state);
 
         int expected_data = 10;
-        struct node *node = create_node(&expected_data);
+        struct node *node = node_create(&expected_data);
 
         assert_non_null(node);
         assert_null(node->next);
         assert_null(node->previous);
         assert_int_equal(expected_data, *(const int *)node->data);
 
-        destroy_node(node);
+        node_create(node);
 }
 
 static void test_list_creation_succeeds(void **state)
@@ -235,7 +235,7 @@ static void test_list_remove_head_node(void **state)
         assert_int_equal(1, list->size);
 
         list_remove(list, node);
-        destroy_node(node);
+        node_destroy(node);
 
         assert_int_equal(0, list->size);
         assert_null(list->head);
@@ -255,7 +255,7 @@ static void test_list_remove_tail_node(void **state)
 
         // Get rid of the tail
         list_remove(list, tail_node);
-        destroy_node(tail_node);
+        node_destroy(tail_node);
 
         assert_int_equal(1, list->size);
 
@@ -279,7 +279,7 @@ static void test_list_remove_middle_node(void **state)
                 middle_node, list->head->next, sizeof(struct node *));
 
         list_remove(list, middle_node);
-        destroy_node(middle_node);
+        node_destroy(middle_node);
 
         // Removing the middle node should leave the head and tail the
         // same
@@ -313,14 +313,14 @@ static void test_list_empty_succeeds(void **state)
 
         assert_int_equal(3, list->size);
 
-        empty_list(list);
+        list_empty(list);
 
         assert_int_equal(0, list->size);
         assert_true(list_is_empty(list));
 
-        destroy_node(first);
-        destroy_node(second);
-        destroy_node(third);
+        node_destroy(first);
+        node_destroy(second);
+        node_destroy(third);
 }
 
 int main(void)
