@@ -7,7 +7,7 @@
 
 #include "list.h"
 
-struct node *create_node(const void *data)
+struct node *node_create(const void *data)
 {
         struct node *node = malloc(sizeof(struct node));
 
@@ -22,12 +22,7 @@ struct node *create_node(const void *data)
         return node;
 }
 
-void destroy_node(struct node *node)
-{
-        free(node);
-}
-
-struct list *create_list(void)
+struct list *list_create(void)
 {
         struct list *list = malloc(sizeof(struct list));
 
@@ -45,7 +40,7 @@ struct list *create_list(void)
 struct node *list_insert_after(struct list *list, struct node *node,
                                const void *data)
 {
-        struct node *new_node = create_node(data);
+        struct node *new_node = node_create(data);
 
         if (new_node == NULL) {
                 return NULL;
@@ -69,7 +64,7 @@ struct node *list_insert_after(struct list *list, struct node *node,
 struct node *list_insert_before(struct list *list, struct node *node,
                                 const void *data)
 {
-        struct node *new_node = create_node(data);
+        struct node *new_node = node_create(data);
 
         if (new_node == NULL) {
                 return NULL;
@@ -93,7 +88,7 @@ struct node *list_insert_before(struct list *list, struct node *node,
 struct node *list_insert(struct list *list, const void *data)
 {
         if (list->head == NULL) {
-                struct node *new_node = create_node(data);
+                struct node *new_node = node_create(data);
 
                 if (new_node == NULL) {
                         return NULL;
@@ -153,21 +148,26 @@ static void clear_list(struct list *list, bool destroy)
                 list_remove(list, node);
 
                 if (destroy) {
-                        destroy_node(node);
+                        node_destroy(node);
                 }
 
                 node = next;
         }
 }
 
-void destroy_list(struct list *list)
+void node_destroy(struct node *node)
+{
+        free(node);
+}
+
+void list_destroy(struct list *list)
 {
         clear_list(list, true);
 
         free(list);
 }
 
-void empty_list(struct list *list)
+void list_empty(struct list *list)
 {
         clear_list(list, false);
 }

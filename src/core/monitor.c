@@ -91,7 +91,7 @@ static void monitor_list_set_offsets(const struct natwm_state *state,
 static enum natwm_error monitors_from_randr(const struct natwm_state *state,
                                             struct list **result)
 {
-        struct list *monitor_list = create_list();
+        struct list *monitor_list = list_create();
 
         if (monitor_list == NULL) {
                 return MEMORY_ALLOCATION_ERROR;
@@ -103,7 +103,7 @@ static enum natwm_error monitors_from_randr(const struct natwm_state *state,
                 = randr_get_screens(state, &monitors, &monitor_length);
 
         if (err != NO_ERROR) {
-                destroy_list(monitor_list);
+                list_destroy(monitor_list);
 
                 return err;
         }
@@ -123,7 +123,7 @@ static enum natwm_error monitors_from_randr(const struct natwm_state *state,
 
                 if (monitor == NULL) {
                         monitors_destroy(monitor_list);
-                        destroy_list(monitor_list);
+                        list_destroy(monitor_list);
 
                         return MEMORY_ALLOCATION_ERROR;
                 }
@@ -143,7 +143,7 @@ static enum natwm_error monitors_from_randr(const struct natwm_state *state,
 static enum natwm_error monitors_from_xinerama(const struct natwm_state *state,
                                                struct list **result)
 {
-        struct list *monitor_list = create_list();
+        struct list *monitor_list = list_create();
 
         if (monitor_list == NULL) {
                 return MEMORY_ALLOCATION_ERROR;
@@ -155,7 +155,7 @@ static enum natwm_error monitors_from_xinerama(const struct natwm_state *state,
                 = xinerama_get_screens(state, &rects, &monitor_length);
 
         if (err != NO_ERROR) {
-                destroy_list(monitor_list);
+                list_destroy(monitor_list);
 
                 return err;
         }
@@ -166,7 +166,7 @@ static enum natwm_error monitors_from_xinerama(const struct natwm_state *state,
 
                 if (monitor == NULL) {
                         monitors_destroy(monitor_list);
-                        destroy_list(monitor_list);
+                        list_destroy(monitor_list);
                         free(rects);
 
                         return MEMORY_ALLOCATION_ERROR;
@@ -185,7 +185,7 @@ static enum natwm_error monitors_from_xinerama(const struct natwm_state *state,
 static enum natwm_error monitor_from_x(const struct natwm_state *state,
                                        struct list **result)
 {
-        struct list *monitor_list = create_list();
+        struct list *monitor_list = list_create();
 
         if (monitor_list == NULL) {
                 return MEMORY_ALLOCATION_ERROR;
@@ -201,7 +201,7 @@ static enum natwm_error monitor_from_x(const struct natwm_state *state,
         struct monitor *monitor = monitor_create(0, rect, NULL);
 
         if (monitor == NULL) {
-                destroy_list(monitor_list);
+                list_destroy(monitor_list);
 
                 return MEMORY_ALLOCATION_ERROR;
         }
@@ -378,7 +378,7 @@ enum natwm_error monitor_setup(const struct natwm_state *state,
 
         if (monitor_list == NULL) {
                 free(extension);
-                destroy_list(monitors);
+                list_destroy(monitors);
 
                 return MEMORY_ALLOCATION_ERROR;
         }
@@ -397,7 +397,7 @@ void monitor_list_destroy(struct monitor_list *monitor_list)
 {
         free(monitor_list->extension);
         monitors_destroy(monitor_list->monitors);
-        destroy_list(monitor_list->monitors);
+        list_destroy(monitor_list->monitors);
         free(monitor_list);
 }
 

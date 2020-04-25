@@ -290,7 +290,7 @@ enum natwm_error string_split(const char *string, char delimiter,
 {
         // We will create a list of each item we find, then push them all
         // into an array once we find the total number
-        struct list *found_items = create_list();
+        struct list *found_items = list_create();
 
         if (found_items == NULL) {
                 return MEMORY_ALLOCATION_ERROR;
@@ -351,7 +351,7 @@ enum natwm_error string_split(const char *string, char delimiter,
         *length = found_items->size;
 
         // We have no need for this list anymore
-        destroy_list(found_items);
+        list_destroy(found_items);
 
         return NO_ERROR;
 
@@ -365,7 +365,7 @@ free_and_error:
                 }
         }
 
-        destroy_list(found_items);
+        list_destroy(found_items);
 
         return err;
 }

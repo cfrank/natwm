@@ -179,7 +179,7 @@ static enum natwm_error array_split_value_items_string(const char *string,
                                                        char ***result,
                                                        size_t *length)
 {
-        struct list *list = create_list();
+        struct list *list = list_create();
 
         if (list == NULL) {
                 return MEMORY_ALLOCATION_ERROR;
@@ -235,7 +235,7 @@ static enum natwm_error array_split_value_items_string(const char *string,
         *result = array_items;
         *length = list->size;
 
-        destroy_list(list);
+        list_destroy(list);
 
         return NO_ERROR;
 
@@ -247,7 +247,7 @@ free_and_error:
                 }
         }
 
-        destroy_list(list);
+        list_destroy(list);
 
         return GENERIC_ERROR;
 }
