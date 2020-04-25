@@ -27,13 +27,6 @@ static const char *DEFAULT_WORKSPACE_NAMES[10] = {
         "ten",
 };
 
-static void workspace_client_destroy_callback(void *data)
-{
-        struct client *client = (struct client *)data;
-
-        client_destroy(client);
-}
-
 static size_t get_client_list_key_size(const void *window)
 {
         UNUSED_FUNCTION_PARAM(window);
@@ -163,7 +156,7 @@ struct workspace *workspace_create(const char *name, size_t index)
         workspace->index = index;
         workspace->is_visible = false;
         workspace->is_focused = false;
-        workspace->clients = stack_create();
+        workspace->clients = list_create();
         workspace->active_client = NULL;
 
         if (workspace->clients == NULL) {
@@ -195,7 +188,7 @@ enum natwm_error workspace_list_init(const struct natwm_state *state,
                         = workspace_init(workspace_names, i);
 
                 if (workspace == NULL) {
-                        workspace_list_destroy(workspace_list);
+                        workspace_list_destroy(state, workspace_list);
 
                         return MEMORY_ALLOCATION_ERROR;
                 }
@@ -219,13 +212,14 @@ enum natwm_error workspace_add_client(struct natwm_state *state,
 {
         struct workspace_list *list = state->workspace_list;
         struct client *previous_focused_client = workspace->active_client;
-        enum natwm_error err = GENERIC_ERROR;
 
         // We will be modifying the state - need to lock until done
         natwm_state_lock(state);
 
-        if ((err = stack_push(workspace->clients, client)) != NO_ERROR) {
-                return err;
+        if (list_insert(workspace->clients, client) == NULL) {
+                natwm_state_unlock(state);
+
+                return MEMORY_ALLOCATION_ERROR;
         }
 
         // Cache which workspace this client is currenty active on
@@ -247,7 +241,7 @@ enum natwm_error workspace_add_client(struct natwm_state *state,
 struct client *workspace_find_window_client(const struct workspace *workspace,
                                             xcb_window_t window)
 {
-        STACK_FOR_EACH(workspace->clients, client_item)
+        LIST_FOR_EACH(workspace->clients, client_item)
         {
                 struct client *client = (struct client *)client_item->data;
 
@@ -269,7 +263,7 @@ enum natwm_error workspace_update_focused(const struct natwm_state *state,
                 return NO_ERROR;
         }
 
-        STACK_FOR_EACH(workspace->clients, client_item)
+        LIST_FOR_EACH(workspace->clients, client_item)
         {
                 struct client *client = (struct client *)client_item->data;
 
@@ -338,7 +332,8 @@ workspace_list_find_window_client(const struct workspace_list *list,
         return NULL;
 }
 
-void workspace_list_destroy(struct workspace_list *workspace_list)
+void workspace_list_destroy(const struct natwm_state *state,
+                            struct workspace_list *workspace_list)
 {
         if (workspace_list->theme != NULL) {
                 client_theme_destroy(workspace_list->theme);
@@ -348,7 +343,7 @@ void workspace_list_destroy(struct workspace_list *workspace_list)
 
         for (size_t i = 0; i < workspace_list->count; ++i) {
                 if (workspace_list->workspaces[i] != NULL) {
-                        workspace_destroy(workspace_list->workspaces[i]);
+                        workspace_destroy(state, workspace_list->workspaces[i]);
                 }
         }
 
@@ -356,11 +351,21 @@ void workspace_list_destroy(struct workspace_list *workspace_list)
         free(workspace_list);
 }
 
-void workspace_destroy(struct workspace *workspace)
+void workspace_destroy(const struct natwm_state *state,
+                       struct workspace *workspace)
 {
         if (workspace->clients != NULL) {
-                stack_destroy_callback(workspace->clients,
-                                       workspace_client_destroy_callback);
+                LIST_FOR_EACH(workspace->clients, client_item)
+                {
+                        struct client *client
+                                = (struct client *)client_item->data;
+
+                        xcb_destroy_window(state->xcb, client->frame);
+
+                        client_destroy(client);
+                }
+
+                list_destroy(workspace->clients);
         }
 
         free(workspace);
