@@ -38,10 +38,13 @@ enum natwm_error workspace_list_init(const struct natwm_state *state,
 enum natwm_error workspace_add_client(struct natwm_state *state,
                                       struct workspace *workspace,
                                       struct client *client);
+enum natwm_error workspace_remove_client(struct natwm_state *state,
+                                         struct workspace *workspace,
+                                         struct client *client);
 struct client *workspace_find_window_client(const struct workspace *workspace,
                                             xcb_window_t window);
-enum natwm_error workspace_update_focused(const struct natwm_state *state,
-                                          struct workspace *list);
+enum natwm_error workspace_reset_focus(struct natwm_state *state,
+                                       struct workspace *workspace);
 struct workspace *workspace_list_get_focused(const struct workspace_list *list);
 struct workspace *
 workspace_list_find_client_workspace(const struct workspace_list *list,
