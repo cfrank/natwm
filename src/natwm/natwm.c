@@ -318,6 +318,15 @@ int main(int argc, char **argv)
 
         state->screen = default_screen;
 
+        // Attempt to register for substructure events
+        if (root_window_subscribe(state) != 0) {
+                LOG_ERROR(natwm_logger,
+                          "Failed to subscribe to root events: Other window "
+                          "manager is present");
+
+                goto free_and_error;
+        }
+
         xcb_ewmh_connection_t *ewmh = ewmh_create(xcb);
 
         if (ewmh == NULL) {
@@ -355,15 +364,6 @@ int main(int argc, char **argv)
         // settings these in their configuration
         if (client_theme_create(state->config, &state->workspace_list->theme)
             != NO_ERROR) {
-                goto free_and_error;
-        }
-
-        // Attempt to register for substructure events
-        if (root_window_subscribe(state) != 0) {
-                LOG_ERROR(natwm_logger,
-                          "Failed to subscribe to root events: Other window "
-                          "manager is present");
-
                 goto free_and_error;
         }
 
