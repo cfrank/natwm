@@ -13,15 +13,28 @@
 #include "event.h"
 #include "randr-event.h"
 
+static enum natwm_error
+event_handle_destroy_notify(struct natwm_state *state,
+                            xcb_destroy_notify_event_t *event)
+{
+        xcb_window_t window = event->window;
+        enum natwm_error err = client_destroy_window(state, window);
+
+        if (err != NO_ERROR) {
+                // A failure here would corrupt the integrity of the workspace
+                // list.
+                return err;
+        }
+
+        return NO_ERROR;
+}
+
 static enum natwm_error event_handle_map_request(struct natwm_state *state,
                                                  xcb_map_request_event_t *event)
 {
         xcb_window_t window = event->window;
-        struct client *client = client_register_window(state, window);
 
-        if (client == NULL) {
-                return RESOLUTION_FAILURE;
-        }
+        client_register_window(state, window);
 
         return NO_ERROR;
 }
@@ -31,11 +44,8 @@ event_handle_unmap_notify(struct natwm_state *state,
                           xcb_unmap_notify_event_t *event)
 {
         xcb_window_t window = event->window;
-        enum natwm_error err = client_unmap_window(state, window);
 
-        if (err != NO_ERROR) {
-                return err;
-        }
+        client_unmap_window(state, window);
 
         return NO_ERROR;
 }
@@ -47,6 +57,10 @@ enum natwm_error event_handle(struct natwm_state *state,
         uint8_t type = (uint8_t)(event->response_type & ~0x80);
 
         switch (type) {
+        case XCB_DESTROY_NOTIFY:
+                err = event_handle_destroy_notify(
+                        state, (xcb_destroy_notify_event_t *)event);
+                break;
         case XCB_MAP_REQUEST:
                 err = event_handle_map_request(
                         state, (xcb_map_request_event_t *)event);
