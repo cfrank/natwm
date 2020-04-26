@@ -45,7 +45,7 @@ static void test_node_creation_succeeds(void **state)
         assert_null(node->previous);
         assert_int_equal(expected_data, *(const int *)node->data);
 
-        node_create(node);
+        node_destroy(node);
 }
 
 static void test_list_creation_succeeds(void **state)
@@ -226,6 +226,90 @@ static void test_list_insert_end_occupied_list(void **state)
         assert_memory_equal(head_node, list->head, sizeof(struct node *));
 }
 
+static void test_list_move_node_to_head(void **state)
+{
+        struct list *list = *(struct list **)state;
+
+        // Expected data for the node which will be moved
+        size_t expected_data = 14;
+        // Expected data for the node which will be the existing head
+        size_t expected_data_next = 41;
+        struct node *expected_node = list_insert(list, &expected_data);
+
+        assert_non_null(expected_node);
+
+        assert_non_null(list_insert(list, NULL));
+        assert_non_null(list_insert(list, NULL));
+        assert_non_null(list_insert(list, NULL));
+        assert_non_null(list_insert(list, NULL));
+
+        struct node *expected_node_next
+                = list_insert(list, &expected_data_next);
+
+        assert_false(list_is_empty(list));
+        assert_int_equal(6, list->size);
+
+        assert_int_equal(expected_data, *(size_t *)list->tail->data);
+
+        assert_non_null(
+                list_insert_node_after(list, list->tail, node_create(NULL)));
+
+        assert_memory_not_equal(
+                expected_node, list->tail, sizeof(struct node *));
+
+        assert_int_equal(expected_data_next, *(size_t *)list->head->data);
+
+        list_move_node_to_head(list, expected_node);
+
+        assert_memory_equal(expected_node, list->head, sizeof(struct node *));
+        assert_memory_equal(
+                expected_node_next, expected_node->next, sizeof(struct node *));
+        assert_int_equal(expected_data, *(size_t *)list->head->data);
+}
+
+static void test_list_move_node_to_tail(void **state)
+{
+        struct list *list = *(struct list **)state;
+
+        size_t expected_data = 14;
+        size_t expected_previous = 28;
+        // Create what will become the "old" tail
+        struct node *expected_previous_node
+                = list_insert(list, &expected_previous);
+
+        // Add some additional nodes
+        assert_non_null(list_insert(list, NULL));
+        assert_non_null(list_insert(list, NULL));
+        assert_non_null(list_insert(list, NULL));
+        assert_non_null(list_insert(list, NULL));
+
+        // Asserts to make sure the expected "old" tail is currently the tail
+        assert_non_null(expected_previous_node);
+        assert_memory_equal(
+                expected_previous_node, list->tail, sizeof(struct node *));
+        assert_int_equal(expected_previous, *(size_t *)list->tail->data);
+
+        // Add what will become to the "new" tail
+        struct node *expected_node = list_insert(list, &expected_data);
+
+        // Asserts to make sure the expected "new" tail is currently the head
+        assert_non_null(expected_node);
+        assert_memory_equal(expected_node, list->head, sizeof(struct node *));
+        assert_int_equal(expected_data, *(size_t *)list->head->data);
+
+        // Move head to tail
+        list_move_node_to_tail(list, list->head);
+
+        // Asserts to make sure the "new" tail is moved from head to tail
+        assert_memory_equal(expected_node, list->tail, sizeof(struct node *));
+        assert_int_equal(expected_data, *(size_t *)list->tail->data);
+        assert_memory_equal(expected_previous_node,
+                            list->tail->previous,
+                            sizeof(struct node *));
+        assert_memory_not_equal(
+                expected_node, list->head, sizeof(struct node *));
+}
+
 static void test_list_remove_head_node(void **state)
 {
         struct list *list = *(struct list **)state;
@@ -358,6 +442,10 @@ int main(void)
                         test_list_insert_end_occupied_list,
                         test_setup,
                         test_teardown),
+                cmocka_unit_test_setup_teardown(
+                        test_list_move_node_to_head, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(
+                        test_list_move_node_to_tail, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(
                         test_list_remove_head_node, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(
