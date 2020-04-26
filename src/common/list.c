@@ -7,6 +7,24 @@
 
 #include "list.h"
 
+static void clear_list(struct list *list, bool destroy)
+{
+        struct node *node = list->head;
+        struct node *next = NULL;
+
+        while (node != NULL) {
+                next = node->next;
+
+                list_remove(list, node);
+
+                if (destroy) {
+                        node_destroy(node);
+                }
+
+                node = next;
+        }
+}
+
 struct node *node_create(const void *data)
 {
         struct node *node = malloc(sizeof(struct node));
@@ -37,71 +55,87 @@ struct list *list_create(void)
         return list;
 }
 
-struct node *list_insert_after(struct list *list, struct node *node,
-                               const void *data)
+struct node *list_insert_node_after(struct list *list, struct node *existing,
+                                    struct node *new)
 {
-        struct node *new_node = node_create(data);
-
-        if (new_node == NULL) {
+        if (list == NULL || existing == NULL || new == NULL) {
                 return NULL;
         }
 
-        new_node->previous = node;
+        new->previous = existing;
 
-        if (node->next == NULL) {
-                list->tail = new_node;
+        if (existing->next == NULL) {
+                list->tail = new;
         } else {
-                new_node->next = node->next;
-                node->next->previous = new_node;
+                new->next = existing->next;
+                existing->next->previous = new;
         }
 
-        node->next = new_node;
+        existing->next = new;
+
         ++list->size;
 
-        return new_node;
+        return new;
+}
+
+struct node *list_insert_after(struct list *list, struct node *node,
+                               const void *data)
+{
+        return list_insert_node_after(list, node, node_create(data));
+}
+
+struct node *list_insert_node_before(struct list *list, struct node *existing,
+                                     struct node *new)
+{
+        if (list == NULL || existing == NULL || new == NULL) {
+                return NULL;
+        }
+
+        new->next = existing;
+
+        if (existing->previous == NULL) {
+                // If the existing node is the head then we need to make the
+                // new node the new head
+                list->head = new;
+        } else {
+                new->previous = existing;
+                existing->previous->next = new;
+        }
+
+        existing->previous = new;
+
+        ++list->size;
+
+        return new;
 }
 
 struct node *list_insert_before(struct list *list, struct node *node,
                                 const void *data)
 {
-        struct node *new_node = node_create(data);
+        return list_insert_node_before(list, node, node_create(data));
+}
 
-        if (new_node == NULL) {
+struct node *list_insert_node(struct list *list, struct node *node)
+{
+        if (list == NULL || node == NULL) {
                 return NULL;
         }
 
-        new_node->next = node;
+        if (list->head == NULL) {
+                list->head = node;
+                list->tail = node;
 
-        if (node->previous == NULL) {
-                list->head = new_node;
+                ++list->size;
+
+                return node;
         } else {
-                new_node->previous = node;
-                node->previous->next = new_node;
+                return list_insert_node_before(list, list->head, node);
         }
-
-        node->previous = new_node;
-        ++list->size;
-
-        return new_node;
 }
 
 struct node *list_insert(struct list *list, const void *data)
 {
-        if (list->head == NULL) {
-                struct node *new_node = node_create(data);
-
-                if (new_node == NULL) {
-                        return NULL;
-                }
-
-                list->head = new_node;
-                list->tail = new_node;
-                ++list->size;
-
-                return new_node;
-        } else {
-                return list_insert_before(list, list->head, data);
-        }
+        return list_insert_node(list, node_create(data));
 }
 
 struct node *list_insert_end(struct list *list, const void *data)
@@ -111,6 +145,28 @@ struct node *list_insert_end(struct list *list, const void *data)
         } else {
                 return list_insert_after(list, list->tail, data);
         }
+}
+
+void list_move_node_to_head(struct list *list, struct node *node)
+{
+        if (node->previous == NULL) {
+                return;
+        }
+
+        list_remove(list, node);
+
+        list_insert_node(list, node);
+}
+
+void list_move_node_to_tail(struct list *list, struct node *node)
+{
+        if (node->next == NULL) {
+                return;
+        }
+
+        list_remove(list, node);
+
+        list_insert_node_after(list, list->tail, node);
 }
 
 void list_remove(struct list *list, struct node *node)
@@ -129,30 +185,15 @@ void list_remove(struct list *list, struct node *node)
                 node->next->previous = node->previous;
         }
 
+        node->next = NULL;
+        node->previous = NULL;
+
         --list->size;
 }
 
 bool list_is_empty(const struct list *list)
 {
         return list->size == 0;
-}
-
-static void clear_list(struct list *list, bool destroy)
-{
-        struct node *node = list->head;
-        struct node *next = NULL;
-
-        while (node != NULL) {
-                next = node->next;
-
-                list_remove(list, node);
-
-                if (destroy) {
-                        node_destroy(node);
-                }
-
-                node = next;
-        }
 }
 
 void node_destroy(struct node *node)
