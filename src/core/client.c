@@ -138,12 +138,54 @@ struct client *client_create(xcb_window_t window, xcb_rectangle_t rect)
                 return NULL;
         }
 
+        client->frame = XCB_NONE;
         client->window = window;
         client->rect = rect;
         client->is_focused = false;
         client->state = CLIENT_NORMAL;
 
         return client;
+}
+
+enum natwm_error client_destroy_window(struct natwm_state *state,
+                                       xcb_window_t window)
+{
+        struct workspace *workspace = workspace_list_find_window_workspace(
+                state->workspace_list, window);
+
+        if (workspace == NULL) {
+                // This window is not registered with us
+                xcb_destroy_window(state->xcb, window);
+
+                return NO_ERROR;
+        }
+
+        struct client *client = workspace_find_window_client(workspace, window);
+
+        if (client == NULL) {
+                LOG_WARNING(natwm_logger,
+                            "Failed to find client during destroy");
+
+                xcb_destroy_window(state->xcb, window);
+
+                return NOT_FOUND_ERROR;
+        }
+
+        enum natwm_error err
+                = workspace_remove_client(state, workspace, client);
+
+        if (err != NO_ERROR) {
+                return err;
+        }
+
+        xcb_change_save_set(state->xcb, XCB_SET_MODE_DELETE, client->window);
+
+        xcb_destroy_window(state->xcb, client->frame);
+        xcb_destroy_window(state->xcb, client->window);
+
+        client_destroy(client);
+
+        return NO_ERROR;
 }
 
 struct client *client_register_window(struct natwm_state *state,
@@ -157,7 +199,7 @@ struct client *client_register_window(struct natwm_state *state,
         if (focused_workspace == NULL || workspace_monitor == NULL) {
                 // Should not happen
                 LOG_WARNING(natwm_logger,
-                            "Failed to regiser window - Invalid focused "
+                            "Failed to register window - Invalid focused "
                             "workspace or monitor");
                 return NULL;
         }
@@ -225,20 +267,27 @@ enum natwm_error client_unmap_window(struct natwm_state *state,
                 state->workspace_list, window);
 
         if (workspace == NULL) {
-                // We do not have this window in our registry - ignore
+                // We do not have this window in our registry
+
+                xcb_unmap_window(state->xcb, window);
+
                 return NO_ERROR;
         }
 
         struct client *client = workspace_find_window_client(workspace, window);
 
         if (client == NULL) {
-                LOG_WARNING(natwm_logger, "Failed to find client during unmap");
+                LOG_ERROR(natwm_logger,
+                          "Failed to find registered client during unmap");
+
+                xcb_unmap_window(state->xcb, window);
+
                 return NOT_FOUND_ERROR;
         }
 
         client->state = CLIENT_HIDDEN;
 
-        workspace_update_focused(state, workspace);
+        workspace_reset_focus(state, workspace);
 
         xcb_unmap_window(state->xcb, client->frame);
 
@@ -329,8 +378,6 @@ void client_set_unfocused(const struct natwm_state *state,
         struct client_theme *theme = state->workspace_list->theme;
 
         client->is_focused = false;
-
-        update_stack_mode(state, client, XCB_STACK_MODE_BELOW);
 
         if (client->state != CLIENT_NORMAL) {
                 return;

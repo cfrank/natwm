@@ -59,16 +59,8 @@ void natwm_state_destroy(struct natwm_state *state)
                 return;
         }
 
-        if (state->xcb != NULL) {
-                xcb_disconnect(state->xcb);
-        }
-
-        if (state->ewmh != NULL) {
-                ewmh_destroy(state->ewmh);
-        }
-
         if (state->workspace_list != NULL) {
-                workspace_list_destroy(state->workspace_list);
+                workspace_list_destroy(state, state->workspace_list);
         }
 
         if (state->monitor_list != NULL) {
@@ -77,6 +69,14 @@ void natwm_state_destroy(struct natwm_state *state)
 
         if (state->config != NULL) {
                 config_destroy((struct map *)state->config);
+        }
+
+        if (state->ewmh != NULL) {
+                ewmh_destroy(state->ewmh);
+        }
+
+        if (state->xcb != NULL) {
+                xcb_disconnect(state->xcb);
         }
 
         pthread_mutex_destroy(&state->mutex);

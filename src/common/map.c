@@ -375,6 +375,8 @@ void map_entry_destroy(const struct map *map, struct map_entry *entry)
 
                 if (map->setting_flags & MAP_FLAG_USE_FREE_FUNC) {
                         if (map->free_function == NULL) {
+                                free(entry);
+
                                 return;
                         }
 

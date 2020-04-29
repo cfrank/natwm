@@ -48,6 +48,8 @@ struct client {
 };
 
 struct client *client_create(xcb_window_t window, xcb_rectangle_t rect);
+enum natwm_error client_destroy_window(struct natwm_state *state,
+                                       xcb_window_t window);
 struct client *client_register_window(struct natwm_state *state,
                                       xcb_window_t window);
 enum natwm_error client_unmap_window(struct natwm_state *state,

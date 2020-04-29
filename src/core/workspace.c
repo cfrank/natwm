@@ -27,13 +27,6 @@ static const char *DEFAULT_WORKSPACE_NAMES[10] = {
         "ten",
 };
 
-static void workspace_client_destroy_callback(void *data)
-{
-        struct client *client = (struct client *)data;
-
-        client_destroy(client);
-}
-
 static size_t get_client_list_key_size(const void *window)
 {
         UNUSED_FUNCTION_PARAM(window);
@@ -151,6 +144,42 @@ struct workspace_list *workspace_list_create(size_t count)
         return workspace_list;
 }
 
+static struct client *get_client_from_client_node(struct node *client_node)
+{
+        struct client *client = (struct client *)client_node->data;
+
+        return client;
+}
+
+static struct node *get_client_node_from_client(struct list *client_list,
+                                                struct client *client)
+{
+        LIST_FOR_EACH(client_list, node)
+        {
+                struct client *client_item = get_client_from_client_node(node);
+
+                if (client->window == client_item->window) {
+                        return node;
+                }
+        }
+
+        return NULL;
+}
+
+static void focus_client(struct natwm_state *state, struct workspace *workspace,
+                         struct node *node, struct client *client)
+{
+        natwm_state_lock(state);
+
+        workspace->active_client = client;
+
+        list_move_node_to_head(workspace->clients, node);
+
+        client_set_focused(state, client);
+
+        natwm_state_unlock(state);
+}
+
 struct workspace *workspace_create(const char *name, size_t index)
 {
         struct workspace *workspace = malloc(sizeof(struct workspace));
@@ -163,7 +192,7 @@ struct workspace *workspace_create(const char *name, size_t index)
         workspace->index = index;
         workspace->is_visible = false;
         workspace->is_focused = false;
-        workspace->clients = stack_create();
+        workspace->clients = list_create();
         workspace->active_client = NULL;
 
         if (workspace->clients == NULL) {
@@ -195,7 +224,7 @@ enum natwm_error workspace_list_init(const struct natwm_state *state,
                         = workspace_init(workspace_names, i);
 
                 if (workspace == NULL) {
-                        workspace_list_destroy(workspace_list);
+                        workspace_list_destroy(state, workspace_list);
 
                         return MEMORY_ALLOCATION_ERROR;
                 }
@@ -213,19 +242,70 @@ enum natwm_error workspace_list_init(const struct natwm_state *state,
         return NO_ERROR;
 }
 
+enum natwm_error workspace_focus_existing_client(struct natwm_state *state,
+                                                 struct workspace *workspace,
+                                                 struct client *client)
+{
+        if (client->is_focused || client->state == CLIENT_HIDDEN) {
+                return INVALID_INPUT_ERROR;
+        }
+
+        struct node *client_node
+                = get_client_node_from_client(workspace->clients, client);
+
+        if (client_node == NULL) {
+                return NOT_FOUND_ERROR;
+        }
+
+        focus_client(state, workspace, client_node, client);
+
+        return NO_ERROR;
+}
+
+enum natwm_error workspace_reset_focus(struct natwm_state *state,
+                                       struct workspace *workspace)
+{
+        if (!workspace->is_visible) {
+                // If the workspace is not visible there is no need to
+                // update the focused client.
+
+                return NO_ERROR;
+        }
+
+        LIST_FOR_EACH(workspace->clients, node)
+        {
+                struct client *client = get_client_from_client_node(node);
+
+                if (client->state == CLIENT_HIDDEN) {
+                        continue;
+                }
+
+                if (client->is_focused) {
+                        return NO_ERROR;
+                }
+
+                focus_client(state, workspace, node, client);
+
+                return NO_ERROR;
+        }
+
+        return NOT_FOUND_ERROR;
+}
+
 enum natwm_error workspace_add_client(struct natwm_state *state,
                                       struct workspace *workspace,
                                       struct client *client)
 {
         struct workspace_list *list = state->workspace_list;
         struct client *previous_focused_client = workspace->active_client;
-        enum natwm_error err = GENERIC_ERROR;
 
         // We will be modifying the state - need to lock until done
         natwm_state_lock(state);
 
-        if ((err = stack_push(workspace->clients, client)) != NO_ERROR) {
-                return err;
+        if (list_insert(workspace->clients, client) == NULL) {
+                natwm_state_unlock(state);
+
+                return MEMORY_ALLOCATION_ERROR;
         }
 
         // Cache which workspace this client is currenty active on
@@ -244,12 +324,44 @@ enum natwm_error workspace_add_client(struct natwm_state *state,
         return NO_ERROR;
 }
 
+enum natwm_error workspace_remove_client(struct natwm_state *state,
+                                         struct workspace *workspace,
+                                         struct client *client)
+{
+        struct node *client_node
+                = get_client_node_from_client(workspace->clients, client);
+
+        if (client_node == NULL) {
+                return NOT_FOUND_ERROR;
+        }
+
+        natwm_state_lock(state);
+
+        list_remove(workspace->clients, client_node);
+
+        node_destroy(client_node);
+
+        map_delete(state->workspace_list->client_map, &client->window);
+
+        natwm_state_unlock(state);
+
+        if (client->is_focused) {
+                workspace_reset_focus(state, workspace);
+        }
+
+        return NO_ERROR;
+}
+
 struct client *workspace_find_window_client(const struct workspace *workspace,
                                             xcb_window_t window)
 {
-        STACK_FOR_EACH(workspace->clients, client_item)
+        LIST_FOR_EACH(workspace->clients, node)
         {
-                struct client *client = (struct client *)client_item->data;
+                struct client *client = get_client_from_client_node(node);
+
+                if (client == NULL) {
+                        continue;
+                }
 
                 if (client->window == window) {
                         return client;
@@ -257,39 +369,6 @@ struct client *workspace_find_window_client(const struct workspace *workspace,
         }
 
         return NULL;
-}
-
-enum natwm_error workspace_update_focused(const struct natwm_state *state,
-                                          struct workspace *workspace)
-{
-        if (!workspace->is_visible) {
-                // If the workspace is not visible there is no need to update
-                // the focused client.
-
-                return NO_ERROR;
-        }
-
-        STACK_FOR_EACH(workspace->clients, client_item)
-        {
-                struct client *client = (struct client *)client_item->data;
-
-                if (client->state == CLIENT_HIDDEN) {
-                        continue;
-                }
-
-                if (client->is_focused) {
-                        return NO_ERROR;
-                }
-
-                // We found a visible client which needs to be focused
-                workspace->active_client = client;
-
-                client_set_focused(state, client);
-
-                return NO_ERROR;
-        }
-
-        return NOT_FOUND_ERROR;
 }
 
 struct workspace *workspace_list_get_focused(const struct workspace_list *list)
@@ -338,7 +417,8 @@ workspace_list_find_window_client(const struct workspace_list *list,
         return NULL;
 }
 
-void workspace_list_destroy(struct workspace_list *workspace_list)
+void workspace_list_destroy(const struct natwm_state *state,
+                            struct workspace_list *workspace_list)
 {
         if (workspace_list->theme != NULL) {
                 client_theme_destroy(workspace_list->theme);
@@ -348,7 +428,7 @@ void workspace_list_destroy(struct workspace_list *workspace_list)
 
         for (size_t i = 0; i < workspace_list->count; ++i) {
                 if (workspace_list->workspaces[i] != NULL) {
-                        workspace_destroy(workspace_list->workspaces[i]);
+                        workspace_destroy(state, workspace_list->workspaces[i]);
                 }
         }
 
@@ -356,11 +436,21 @@ void workspace_list_destroy(struct workspace_list *workspace_list)
         free(workspace_list);
 }
 
-void workspace_destroy(struct workspace *workspace)
+void workspace_destroy(const struct natwm_state *state,
+                       struct workspace *workspace)
 {
         if (workspace->clients != NULL) {
-                stack_destroy_callback(workspace->clients,
-                                       workspace_client_destroy_callback);
+                LIST_FOR_EACH(workspace->clients, client_item)
+                {
+                        struct client *client
+                                = (struct client *)client_item->data;
+
+                        xcb_destroy_window(state->xcb, client->frame);
+
+                        client_destroy(client);
+                }
+
+                list_destroy(workspace->clients);
         }
 
         free(workspace);
