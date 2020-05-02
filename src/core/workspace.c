@@ -146,9 +146,7 @@ struct workspace_list *workspace_list_create(size_t count)
 
 static struct client *get_client_from_client_node(struct node *client_node)
 {
-        struct client *client = (struct client *)client_node->data;
-
-        return client;
+        return (struct client *)client_node->data;
 }
 
 static struct node *get_client_node_from_client(struct list *client_list,
@@ -440,10 +438,10 @@ void workspace_destroy(const struct natwm_state *state,
                        struct workspace *workspace)
 {
         if (workspace->clients != NULL) {
-                LIST_FOR_EACH(workspace->clients, client_item)
+                LIST_FOR_EACH(workspace->clients, node)
                 {
                         struct client *client
-                                = (struct client *)client_item->data;
+                                = get_client_from_client_node(node);
 
                         xcb_destroy_window(state->xcb, client->frame);
 

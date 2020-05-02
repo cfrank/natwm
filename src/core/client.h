@@ -6,6 +6,7 @@
 
 #include <stdbool.h>
 #include <xcb/xcb.h>
+#include <xcb/xcb_icccm.h>
 
 #include <common/error.h>
 #include <common/map.h>
@@ -43,19 +44,21 @@ struct client {
         xcb_window_t frame;
         xcb_window_t window;
         xcb_rectangle_t rect;
+        xcb_size_hints_t size_hints;
         bool is_focused;
         enum client_state state;
 };
 
-struct client *client_create(xcb_window_t window, xcb_rectangle_t rect);
+struct client *client_create(xcb_window_t window, xcb_rectangle_t rect,
+                             xcb_size_hints_t hints);
 enum natwm_error client_destroy_window(struct natwm_state *state,
                                        xcb_window_t window);
 struct client *client_register_window(struct natwm_state *state,
                                       xcb_window_t window);
 enum natwm_error client_unmap_window(struct natwm_state *state,
                                      xcb_window_t window);
-xcb_rectangle_t client_clamp_rect_to_monitor(xcb_rectangle_t client_rect,
-                                             xcb_rectangle_t monitor_rect);
+xcb_rectangle_t client_initialize_rect(struct client *client,
+                                       xcb_rectangle_t monitor_rect);
 uint16_t client_get_active_border_width(const struct client_theme *theme,
                                         const struct client *client);
 struct color_value *
