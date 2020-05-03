@@ -61,39 +61,39 @@ static enum natwm_error get_size_hints(xcb_connection_t *connection,
 static xcb_rectangle_t clamp_rect_to_monitor(xcb_rectangle_t rect,
                                              xcb_rectangle_t monitor_rect)
 {
-        xcb_rectangle_t new_rect = rect;
+        int32_t x = rect.x;
+        int32_t y = rect.y;
+        int32_t width = rect.width;
+        int32_t height = rect.height;
+        int32_t end_x_pos = width + x;
+        int32_t end_y_pos = height + y;
 
-        // Clamp initial width/position to monitor
-        new_rect.x = MAX(monitor_rect.x, new_rect.x);
-        new_rect.y = MAX(new_rect.y, monitor_rect.y);
-        new_rect.width = MIN(new_rect.width, monitor_rect.width);
-        new_rect.height = MIN(new_rect.height, monitor_rect.height);
+        if (end_x_pos > monitor_rect.width) {
+                int32_t overflow = end_x_pos - monitor_rect.width;
+                int32_t new_x = x - overflow;
 
-        if ((new_rect.width + new_rect.x) > monitor_rect.width) {
-                int32_t overflow
-                        = (new_rect.width + new_rect.x) - monitor_rect.width;
-
-                assert(overflow <= INT16_MAX);
-                assert((int16_t)new_rect.x - (int16_t)overflow >= 0);
-
-                int16_t new_x
-                        = (int16_t)((int16_t)new_rect.x - (int16_t)overflow);
-
-                new_rect.x = MAX(monitor_rect.x, new_x);
+                x = MAX(monitor_rect.x, new_x);
+                width = MIN(monitor_rect.width, width);
+        } else {
+                x = MAX(monitor_rect.x, x);
         }
 
-        if ((new_rect.height + new_rect.y) > monitor_rect.height) {
-                int32_t overflow
-                        = (new_rect.height + new_rect.y) - monitor_rect.height;
+        if (end_y_pos > monitor_rect.height) {
+                int32_t overflow = end_y_pos - monitor_rect.width;
+                int32_t new_y = y - overflow;
 
-                assert(overflow <= INT16_MAX);
-                assert((int16_t)new_rect.y - (int16_t)overflow >= 0);
-
-                int16_t new_y
-                        = (int16_t)((int16_t)new_rect.y - (int16_t)overflow);
-
-                new_rect.y = MAX(monitor_rect.y, new_y);
+                y = MAX(monitor_rect.y, new_y);
+                height = MIN(monitor_rect.height, height);
+        } else {
+                y = MAX(monitor_rect.y, y);
         }
+
+        xcb_rectangle_t new_rect = {
+                .x = (int16_t)x,
+                .y = (int16_t)y,
+                .width = (uint16_t)width,
+                .height = (uint16_t)height,
+        };
 
         return new_rect;
 }
@@ -151,48 +151,57 @@ static enum natwm_error reparent_window(xcb_connection_t *connection,
 }
 
 static void update_theme(const struct natwm_state *state, struct client *client,
-                         uint16_t border_width, uint32_t border_color)
+                         uint16_t previous_border_width)
 {
-        // Make sure the new size doesn't overflow the monitor
-        struct workspace *workspace = workspace_list_find_client_workspace(
-                state->workspace_list, client);
-        struct monitor *monitor = monitor_list_get_workspace_monitor(
-                state->monitor_list, workspace);
+        uint16_t current_border_width = client_get_active_border_width(
+                state->workspace_list->theme, client);
+        const struct color_value *border_color = client_get_active_border_color(
+                state->workspace_list->theme, client);
 
-        uint32_t border_padding = (uint32_t)(border_width * 2);
-        int16_t new_width = (int16_t)(client->rect.width - border_padding);
-        int16_t new_height = (int16_t)(client->rect.height - border_padding);
-
-        assert(new_width >= 0);
-        assert(new_width >= 0);
-
-        if (new_width > monitor->rect.width
-            || new_height > monitor->rect.height) {
-                xcb_rectangle_t new_rect
-                        = clamp_rect_to_monitor(client->rect, monitor->rect);
-
-                client->rect = new_rect;
-        }
-
-        uint16_t mask = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y
-                | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT
-                | XCB_CONFIG_WINDOW_BORDER_WIDTH;
-        uint32_t values[] = {
-                (uint32_t)client->rect.x,
-                (uint32_t)client->rect.y,
-                (uint32_t)new_width,
-                (uint32_t)new_height,
-                border_width,
-        };
-
-        xcb_configure_window(state->xcb, client->frame, mask, values);
-
-        if (border_width > 0) {
+        if (previous_border_width == current_border_width) {
                 xcb_change_window_attributes(state->xcb,
                                              client->frame,
                                              XCB_CW_BORDER_PIXEL,
-                                             &border_color);
+                                             &border_color->color_value);
+
+                return;
         }
+
+        int32_t border_diff
+                = (previous_border_width - current_border_width) * 2;
+        int32_t new_width = client->rect.width + border_diff;
+        int32_t new_height = client->rect.height + border_diff;
+
+        client->rect.width = (uint16_t)MAX(0, new_width);
+        client->rect.height = (uint16_t)MAX(0, new_height);
+
+        // Update the client
+        uint16_t client_mask
+                = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
+        uint32_t client_values[] = {
+                client->rect.width,
+                client->rect.height,
+        };
+
+        xcb_configure_window(
+                state->xcb, client->window, client_mask, client_values);
+
+        // Update the frame
+        uint16_t frame_mask = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT
+                | XCB_CONFIG_WINDOW_BORDER_WIDTH;
+        uint32_t frame_values[] = {
+                client->rect.width,
+                client->rect.height,
+                current_border_width,
+        };
+
+        xcb_configure_window(
+                state->xcb, client->frame, frame_mask, frame_values);
+
+        xcb_change_window_attributes(state->xcb,
+                                     client->frame,
+                                     XCB_CW_BORDER_PIXEL,
+                                     &border_color->color_value);
 
         client_update_hints(state, client, FRAME_EXTENTS);
 }
@@ -312,29 +321,23 @@ struct client *client_register_window(struct natwm_state *state,
                 return NULL;
         }
 
-        // Adjust window rect to fit workspace monitor
-        client->rect = client_initialize_rect(client, workspace_monitor->rect);
-
         // Load the client theme from the workspace list
         struct client_theme *theme = state->workspace_list->theme;
+
+        // Adjust window rect to fit workspace monitor
+        client->rect = client_initialize_rect(client,
+                                              theme->border_width->unfocused,
+                                              workspace_monitor->rect);
+
         // Set the adjusted rect to the client window
         uint16_t mask = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y
                 | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT
                 | XCB_CONFIG_WINDOW_BORDER_WIDTH;
-        uint32_t border_padding = (uint32_t)theme->border_width->unfocused * 2;
-
-        assert(border_padding <= INT16_MAX);
-
-        int16_t width = (int16_t)(client->rect.width - border_padding);
-        int16_t height = (int16_t)(client->rect.height - border_padding);
-
-        assert(width >= 0 && height >= 0);
-
         uint32_t values[] = {
-                (uint32_t)client->rect.x,
-                (uint32_t)client->rect.y,
-                (uint16_t)width,
-                (uint16_t)height,
+                (uint16_t)client->rect.x,
+                (uint16_t)client->rect.y,
+                client->rect.width,
+                client->rect.height,
                 0,
         };
 
@@ -413,6 +416,7 @@ enum natwm_error client_unmap_window(struct natwm_state *state,
 }
 
 xcb_rectangle_t client_initialize_rect(struct client *client,
+                                       uint16_t border_width,
                                        xcb_rectangle_t monitor_rect)
 {
         xcb_rectangle_t new_rect = client->rect;
@@ -433,7 +437,17 @@ xcb_rectangle_t client_initialize_rect(struct client *client,
                 new_rect.height = (uint16_t)client->size_hints.height;
         }
 
-        return clamp_rect_to_monitor(new_rect, monitor_rect);
+        new_rect = clamp_rect_to_monitor(new_rect, monitor_rect);
+
+        // Account for initial border_width
+        int32_t border_padding = border_width * 2;
+        int32_t final_width = new_rect.width - border_padding;
+        int32_t final_height = new_rect.height - border_padding;
+
+        new_rect.width = (uint16_t)(MAX(0, final_width));
+        new_rect.height = (uint16_t)(MAX(0, final_height));
+
+        return new_rect;
 }
 
 uint16_t client_get_active_border_width(const struct client_theme *theme,
@@ -491,10 +505,7 @@ void client_set_focused(const struct natwm_state *state, struct client *client)
                 return;
         }
 
-        update_theme(state,
-                     client,
-                     theme->border_width->focused,
-                     theme->color->focused->color_value);
+        update_theme(state, client, theme->border_width->unfocused);
 }
 
 void client_set_unfocused(const struct natwm_state *state,
@@ -512,10 +523,7 @@ void client_set_unfocused(const struct natwm_state *state,
                 return;
         }
 
-        update_theme(state,
-                     client,
-                     theme->border_width->unfocused,
-                     theme->color->unfocused->color_value);
+        update_theme(state, client, theme->border_width->focused);
 }
 
 enum natwm_error client_update_hints(const struct natwm_state *state,
