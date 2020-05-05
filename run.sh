@@ -79,7 +79,8 @@ else
 fi
 
 export DISPLAY=:14
-xterm &
+feh --bg-center ~/Documents/wallpapers/pixel.jpg &
+urxvt &
 $($BIN)
 
 killall $XEPHYR

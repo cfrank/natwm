@@ -12,6 +12,8 @@
 #include <common/hash.h>
 #include "map.h"
 
+static const int EMPTY_ENTRY = 1;
+
 // Forward declarations
 static enum natwm_error map_insert_entry(struct map *map,
                                          struct map_entry *entry);
@@ -317,6 +319,13 @@ static enum natwm_error map_insert_entry(struct map *map,
 
         if (!is_hash_collision) {
                 // No collision - just insert here
+                if (map->entries[initial_index] != NULL
+                    && map->entries[initial_index]->value == &EMPTY_ENTRY) {
+                        // We previously had a value here - delete it and
+                        // replace
+                        map_entry_destroy(map, map->entries[initial_index]);
+                }
+
                 map->entries[initial_index] = entry;
                 map->bucket_count += 1;
 
@@ -366,7 +375,7 @@ void map_entry_destroy(const struct map *map, struct map_entry *entry)
 {
         if (is_entry_present(entry)) {
                 if (map->setting_flags & MAP_FLAG_FREE_ENTRY_KEY) {
-                        free((char *)entry->key);
+                        free((void *)entry->key);
                 }
 
                 if (map->setting_flags & MAP_FLAG_USE_FREE) {
@@ -513,8 +522,7 @@ enum natwm_error map_delete(struct map *map, const void *key)
 
         // Mark entry as deleted
         delete_entry->key = NULL;
-        delete_entry->value = NULL;
-        delete_entry = NULL;
+        delete_entry->value = (void *)&EMPTY_ENTRY;
 
         map->bucket_count -= 1;
 
