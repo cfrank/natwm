@@ -79,7 +79,7 @@ else
 fi
 
 export DISPLAY=:14
-xterm &
+urxvt &
 $($BIN)
 
 killall $XEPHYR

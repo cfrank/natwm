@@ -128,6 +128,12 @@ struct workspace_list *workspace_list_create(size_t count)
         workspace_list->theme = NULL;
         workspace_list->client_map = map_init();
 
+        if (workspace_list->client_map == NULL) {
+                free(workspace_list);
+
+                return NULL;
+        }
+
         map_set_key_compare_function(workspace_list->client_map,
                                      compare_windows);
         map_set_key_size_function(workspace_list->client_map,
@@ -136,6 +142,8 @@ struct workspace_list *workspace_list_create(size_t count)
         workspace_list->workspaces = calloc(count, sizeof(struct workspace *));
 
         if (workspace_list->workspaces == NULL) {
+                map_destroy(workspace_list->client_map);
+
                 free(workspace_list);
 
                 return NULL;
@@ -146,9 +154,7 @@ struct workspace_list *workspace_list_create(size_t count)
 
 static struct client *get_client_from_client_node(struct node *client_node)
 {
-        struct client *client = (struct client *)client_node->data;
-
-        return client;
+        return (struct client *)client_node->data;
 }
 
 static struct node *get_client_node_from_client(struct list *client_list,
@@ -289,6 +295,9 @@ enum natwm_error workspace_reset_focus(struct natwm_state *state,
                 return NO_ERROR;
         }
 
+        // There are no more clients on this workspace
+        workspace->active_client = NULL;
+
         return NOT_FOUND_ERROR;
 }
 
@@ -297,7 +306,6 @@ enum natwm_error workspace_add_client(struct natwm_state *state,
                                       struct client *client)
 {
         struct workspace_list *list = state->workspace_list;
-        struct client *previous_focused_client = workspace->active_client;
 
         // We will be modifying the state - need to lock until done
         natwm_state_lock(state);
@@ -311,13 +319,14 @@ enum natwm_error workspace_add_client(struct natwm_state *state,
         // Cache which workspace this client is currenty active on
         map_insert(list->client_map, &client->window, &workspace->index);
 
+        // Update active_client
+        if (workspace->active_client) {
+                client_set_unfocused(state, workspace->active_client);
+        }
+
         workspace->active_client = client;
 
         natwm_state_unlock(state);
-
-        if (previous_focused_client) {
-                client_set_unfocused(state, previous_focused_client);
-        }
 
         client_set_focused(state, client);
 
@@ -440,10 +449,10 @@ void workspace_destroy(const struct natwm_state *state,
                        struct workspace *workspace)
 {
         if (workspace->clients != NULL) {
-                LIST_FOR_EACH(workspace->clients, client_item)
+                LIST_FOR_EACH(workspace->clients, node)
                 {
                         struct client *client
-                                = (struct client *)client_item->data;
+                                = get_client_from_client_node(node);
 
                         xcb_destroy_window(state->xcb, client->frame);
 
