@@ -79,7 +79,6 @@ else
 fi
 
 export DISPLAY=:14
-feh --bg-center ~/Documents/wallpapers/pixel.jpg &
 urxvt &
 $($BIN)
 
