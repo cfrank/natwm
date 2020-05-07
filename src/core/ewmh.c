@@ -150,9 +150,13 @@ bool ewmh_should_register_window(const struct natwm_state *state,
 
                 // For now we only support normal windows for registering
                 if (type != state->ewmh->_NET_WM_WINDOW_TYPE_NORMAL) {
+                        xcb_ewmh_get_atoms_reply_wipe(&result);
+
                         return false;
                 }
         }
+
+        xcb_ewmh_get_atoms_reply_wipe(&result);
 
         return true;
 }
