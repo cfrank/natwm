@@ -131,6 +131,32 @@ void ewmh_init(const struct natwm_state *state)
                                         (uint32_t)NATWM_WORKSPACE_COUNT);
 }
 
+bool ewmh_should_register_window(const struct natwm_state *state,
+                                 xcb_window_t window)
+{
+        xcb_get_property_cookie_t cookie
+                = xcb_ewmh_get_wm_window_type(state->ewmh, window);
+        xcb_ewmh_get_atoms_reply_t result;
+        uint8_t reply = xcb_ewmh_get_wm_window_type_reply(
+                state->ewmh, cookie, &result, NULL);
+
+        if (reply != 1) {
+                // Treat as a normal window
+                return true;
+        }
+
+        for (size_t i = 0; i < result.atoms_len; ++i) {
+                xcb_atom_t type = result.atoms[i];
+
+                // For now we only support normal windows for registering
+                if (type != state->ewmh->_NET_WM_WINDOW_TYPE_NORMAL) {
+                        return false;
+                }
+        }
+
+        return true;
+}
+
 void ewmh_update_active_window(const struct natwm_state *state,
                                xcb_window_t window)
 {
