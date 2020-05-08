@@ -6,6 +6,7 @@
 
 #include <stdbool.h>
 #include <xcb/xcb.h>
+#include <xcb/xcb_icccm.h>
 
 #include <common/error.h>
 #include <common/map.h>
