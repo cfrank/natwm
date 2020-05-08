@@ -4,6 +4,7 @@
 
 #include <assert.h>
 #include <stdlib.h>
+#include <xcb/xcb_icccm.h>
 
 #include <common/constants.h>
 #include <common/logger.h>
