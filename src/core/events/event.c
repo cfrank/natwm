@@ -8,6 +8,7 @@
 #include <common/logger.h>
 
 #include <core/client.h>
+#include <core/ewmh.h>
 #include <core/monitor.h>
 
 #include "event.h"
@@ -33,6 +34,12 @@ static enum natwm_error event_handle_map_request(struct natwm_state *state,
                                                  xcb_map_request_event_t *event)
 {
         xcb_window_t window = event->window;
+
+        if (!ewmh_is_normal_window(state, window)) {
+                xcb_map_window(state->xcb, window);
+
+                return NO_ERROR;
+        }
 
         client_register_window(state, window);
 

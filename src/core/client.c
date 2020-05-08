@@ -58,6 +58,17 @@ static enum natwm_error get_size_hints(xcb_connection_t *connection,
         return NO_ERROR;
 }
 
+static xcb_get_window_attributes_reply_t *
+get_window_attributes(xcb_connection_t *connection, xcb_window_t window)
+{
+        xcb_get_window_attributes_cookie_t cookie
+                = xcb_get_window_attributes(connection, window);
+        xcb_get_window_attributes_reply_t *reply
+                = xcb_get_window_attributes_reply(connection, cookie, NULL);
+
+        return reply;
+}
+
 static xcb_rectangle_t clamp_rect_to_monitor(xcb_rectangle_t rect,
                                              xcb_rectangle_t monitor_rect)
 {
@@ -141,7 +152,7 @@ static enum natwm_error reparent_window(xcb_connection_t *connection,
                 = xcb_reparent_window_checked(connection, child, parent, 0, 0);
         xcb_generic_error_t *err = xcb_request_check(connection, cookie);
 
-        if (err != XCB_NONE) {
+        if (err) {
                 free(err);
 
                 return RESOLUTION_FAILURE;
@@ -288,6 +299,20 @@ enum natwm_error client_destroy_window(struct natwm_state *state,
 struct client *client_register_window(struct natwm_state *state,
                                       xcb_window_t window)
 {
+        // Get window attributes
+        xcb_get_window_attributes_reply_t *attributes
+                = get_window_attributes(state->xcb, window);
+
+        if (attributes == NULL) {
+                goto handle_no_register;
+        }
+
+        if (attributes->override_redirect) {
+                goto handle_no_register;
+        }
+
+        free(attributes);
+
         struct workspace *focused_workspace
                 = workspace_list_get_focused(state->workspace_list);
         struct monitor *workspace_monitor = monitor_list_get_workspace_monitor(
@@ -372,6 +397,14 @@ struct client *client_register_window(struct natwm_state *state,
         xcb_flush(state->xcb);
 
         return client;
+
+handle_no_register:
+        free(attributes);
+
+        // Handle a case where we should just directly map the window
+        xcb_map_window(state->xcb, window);
+
+        return NULL;
 
 handle_error:
         xcb_destroy_window(state->xcb, client->frame);
