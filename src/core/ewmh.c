@@ -131,8 +131,7 @@ void ewmh_init(const struct natwm_state *state)
                                         (uint32_t)NATWM_WORKSPACE_COUNT);
 }
 
-bool ewmh_should_register_window(const struct natwm_state *state,
-                                 xcb_window_t window)
+bool ewmh_is_normal_window(const struct natwm_state *state, xcb_window_t window)
 {
         xcb_get_property_cookie_t cookie
                 = xcb_ewmh_get_wm_window_type(state->ewmh, window);

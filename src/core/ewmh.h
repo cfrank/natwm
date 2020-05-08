@@ -10,8 +10,8 @@
 
 xcb_ewmh_connection_t *ewmh_create(xcb_connection_t *xcb_connection);
 void ewmh_init(const struct natwm_state *state);
-bool ewmh_should_register_window(const struct natwm_state *state,
-                                 xcb_window_t window);
+bool ewmh_is_normal_window(const struct natwm_state *state,
+                           xcb_window_t window);
 void ewmh_update_active_window(const struct natwm_state *state,
                                xcb_window_t window);
 void ewmh_update_desktop_viewport(const struct natwm_state *state,
