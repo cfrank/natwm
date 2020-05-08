@@ -90,7 +90,7 @@ static xcb_rectangle_t clamp_rect_to_monitor(xcb_rectangle_t rect,
         }
 
         if (end_y_pos > monitor_rect.height) {
-                int32_t overflow = end_y_pos - monitor_rect.width;
+                int32_t overflow = end_y_pos - monitor_rect.height;
                 int32_t new_y = y - overflow;
 
                 y = MAX(monitor_rect.y, new_y);
