@@ -230,7 +230,7 @@ enum natwm_error workspace_list_init(const struct natwm_state *state,
                         = workspace_init(workspace_names, i);
 
                 if (workspace == NULL) {
-                        workspace_list_destroy(state, workspace_list);
+                        workspace_list_destroy(workspace_list);
 
                         return MEMORY_ALLOCATION_ERROR;
                 }
@@ -426,8 +426,7 @@ workspace_list_find_window_client(const struct workspace_list *list,
         return NULL;
 }
 
-void workspace_list_destroy(const struct natwm_state *state,
-                            struct workspace_list *workspace_list)
+void workspace_list_destroy(struct workspace_list *workspace_list)
 {
         if (workspace_list->theme != NULL) {
                 client_theme_destroy(workspace_list->theme);
@@ -437,7 +436,7 @@ void workspace_list_destroy(const struct natwm_state *state,
 
         for (size_t i = 0; i < workspace_list->count; ++i) {
                 if (workspace_list->workspaces[i] != NULL) {
-                        workspace_destroy(state, workspace_list->workspaces[i]);
+                        workspace_destroy(workspace_list->workspaces[i]);
                 }
         }
 
@@ -445,16 +444,13 @@ void workspace_list_destroy(const struct natwm_state *state,
         free(workspace_list);
 }
 
-void workspace_destroy(const struct natwm_state *state,
-                       struct workspace *workspace)
+void workspace_destroy(struct workspace *workspace)
 {
         if (workspace->clients != NULL) {
                 LIST_FOR_EACH(workspace->clients, node)
                 {
                         struct client *client
                                 = get_client_from_client_node(node);
-
-                        xcb_destroy_window(state->xcb, client->frame);
 
                         client_destroy(client);
                 }

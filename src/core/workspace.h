@@ -55,7 +55,5 @@ workspace_list_find_window_workspace(const struct workspace_list *list,
 struct client *
 workspace_list_find_window_client(const struct workspace_list *list,
                                   xcb_window_t window);
-void workspace_list_destroy(const struct natwm_state *state,
-                            struct workspace_list *workspace_list);
-void workspace_destroy(const struct natwm_state *state,
-                       struct workspace *workspace);
+void workspace_list_destroy(struct workspace_list *workspace_list);
+void workspace_destroy(struct workspace *workspace);

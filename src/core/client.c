@@ -90,7 +90,7 @@ static xcb_rectangle_t clamp_rect_to_monitor(xcb_rectangle_t rect,
         }
 
         if (end_y_pos > monitor_rect.height) {
-                int32_t overflow = end_y_pos - monitor_rect.width;
+                int32_t overflow = end_y_pos - monitor_rect.height;
                 int32_t new_y = y - overflow;
 
                 y = MAX(monitor_rect.y, new_y);
@@ -109,58 +109,6 @@ static xcb_rectangle_t clamp_rect_to_monitor(xcb_rectangle_t rect,
         return new_rect;
 }
 
-static xcb_window_t create_frame_window(const struct natwm_state *state,
-                                        xcb_rectangle_t rect,
-                                        const struct client_theme *theme)
-{
-        // Create the parent which will contain the window decorations
-        xcb_window_t frame = xcb_generate_id(state->xcb);
-        uint32_t mask
-                = XCB_CW_BORDER_PIXEL | XCB_CW_EVENT_MASK | XCB_CW_COLORMAP;
-        uint32_t values[] = {
-                theme->color->unfocused->color_value,
-                XCB_EVENT_MASK_STRUCTURE_NOTIFY
-                        | XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY
-                        | XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT,
-                state->screen->default_colormap,
-        };
-
-        xcb_create_window(state->xcb,
-                          state->screen->root_depth,
-                          frame,
-                          state->screen->root,
-                          rect.x,
-                          rect.y,
-                          rect.width,
-                          rect.height,
-                          theme->border_width->unfocused,
-                          XCB_WINDOW_CLASS_INPUT_OUTPUT,
-                          state->screen->root_visual,
-                          mask,
-                          values);
-
-        xcb_icccm_set_wm_class(
-                state->xcb, frame, sizeof(FRAME_CLASS_NAME), FRAME_CLASS_NAME);
-
-        return frame;
-}
-
-static enum natwm_error reparent_window(xcb_connection_t *connection,
-                                        xcb_window_t parent, xcb_window_t child)
-{
-        xcb_void_cookie_t cookie
-                = xcb_reparent_window_checked(connection, child, parent, 0, 0);
-        xcb_generic_error_t *err = xcb_request_check(connection, cookie);
-
-        if (err) {
-                free(err);
-
-                return RESOLUTION_FAILURE;
-        }
-
-        return NO_ERROR;
-}
-
 static void update_theme(const struct natwm_state *state, struct client *client,
                          uint16_t previous_border_width)
 {
@@ -171,7 +119,7 @@ static void update_theme(const struct natwm_state *state, struct client *client,
 
         if (previous_border_width == current_border_width) {
                 xcb_change_window_attributes(state->xcb,
-                                             client->frame,
+                                             client->window,
                                              XCB_CW_BORDER_PIXEL,
                                              &border_color->color_value);
 
@@ -187,30 +135,19 @@ static void update_theme(const struct natwm_state *state, struct client *client,
         client->rect.height = (uint16_t)MAX(0, new_height);
 
         // Update the client
-        uint16_t client_mask
-                = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
+        uint16_t client_mask = XCB_CONFIG_WINDOW_WIDTH
+                | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH;
         uint32_t client_values[] = {
-                client->rect.width,
-                client->rect.height,
-        };
-
-        xcb_configure_window(
-                state->xcb, client->window, client_mask, client_values);
-
-        // Update the frame
-        uint16_t frame_mask = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT
-                | XCB_CONFIG_WINDOW_BORDER_WIDTH;
-        uint32_t frame_values[] = {
                 client->rect.width,
                 client->rect.height,
                 current_border_width,
         };
 
         xcb_configure_window(
-                state->xcb, client->frame, frame_mask, frame_values);
+                state->xcb, client->window, client_mask, client_values);
 
         xcb_change_window_attributes(state->xcb,
-                                     client->frame,
+                                     client->window,
                                      XCB_CW_BORDER_PIXEL,
                                      &border_color->color_value);
 
@@ -226,7 +163,7 @@ static void update_stack_mode(const struct natwm_state *state,
         };
 
         xcb_configure_window(state->xcb,
-                             client->frame,
+                             client->window,
                              XCB_CONFIG_WINDOW_STACK_MODE,
                              values);
 
@@ -242,7 +179,6 @@ struct client *client_create(xcb_window_t window, xcb_rectangle_t rect,
                 return NULL;
         }
 
-        client->frame = XCB_NONE;
         client->window = window;
         client->rect = rect;
         client->size_hints = hints;
@@ -288,7 +224,6 @@ enum natwm_error client_destroy_window(struct natwm_state *state,
 
         xcb_change_save_set(state->xcb, XCB_SET_MODE_DELETE, client->window);
 
-        xcb_destroy_window(state->xcb, client->frame);
         xcb_destroy_window(state->xcb, client->window);
 
         client_destroy(client);
@@ -363,21 +298,10 @@ struct client *client_register_window(struct natwm_state *state,
                 (uint16_t)client->rect.y,
                 client->rect.width,
                 client->rect.height,
-                0,
+                theme->border_width->unfocused,
         };
 
         xcb_configure_window(state->xcb, client->window, mask, values);
-
-        client->frame = create_frame_window(state, client->rect, theme);
-
-        err = reparent_window(state->xcb, client->frame, client->window);
-
-        if (err != NO_ERROR) {
-                // Failed to set the frame as the windows parent
-                LOG_WARNING(natwm_logger, "Failed to reparent window");
-
-                goto handle_error;
-        }
 
         xcb_change_save_set(state->xcb, XCB_SET_MODE_INSERT, client->window);
 
@@ -391,7 +315,6 @@ struct client *client_register_window(struct natwm_state *state,
 
         client_update_hints(state, client, CLIENT_HINTS_ALL);
 
-        xcb_map_window(state->xcb, client->frame);
         xcb_map_window(state->xcb, client->window);
 
         xcb_flush(state->xcb);
@@ -407,8 +330,6 @@ handle_no_register:
         return NULL;
 
 handle_error:
-        xcb_destroy_window(state->xcb, client->frame);
-
         client_destroy(client);
 
         return NULL;
@@ -442,8 +363,6 @@ enum natwm_error client_unmap_window(struct natwm_state *state,
         client->state = CLIENT_HIDDEN;
 
         workspace_reset_focus(state, workspace);
-
-        xcb_unmap_window(state->xcb, client->frame);
 
         return NO_ERROR;
 }

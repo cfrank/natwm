@@ -37,5 +37,3 @@
 
 #define WINDOW_BORDER_COLOR_CONFIG_STRING "window.border_color"
 #define WINDOW_BORDER_WIDTH_CONFIG_STRING "window.border_width"
-
-#define FRAME_CLASS_NAME "natwm_frame\0NATWM_FRAME"
