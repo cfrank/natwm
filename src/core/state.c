@@ -60,7 +60,7 @@ void natwm_state_destroy(struct natwm_state *state)
         }
 
         if (state->workspace_list != NULL) {
-                workspace_list_destroy(state, state->workspace_list);
+                workspace_list_destroy(state->workspace_list);
         }
 
         if (state->monitor_list != NULL) {

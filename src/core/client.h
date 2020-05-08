@@ -40,8 +40,6 @@ struct client_theme {
 };
 
 struct client {
-        // The parent which contains the window decorations
-        xcb_window_t frame;
         xcb_window_t window;
         xcb_rectangle_t rect;
         xcb_size_hints_t size_hints;
