@@ -177,6 +177,10 @@ static void focus_client(struct natwm_state *state, struct workspace *workspace,
 {
         natwm_state_lock(state);
 
+        if (workspace->active_client) {
+                client_set_unfocused(state, workspace->active_client);
+        }
+
         workspace->active_client = client;
 
         list_move_node_to_head(workspace->clients, node);
@@ -264,6 +268,36 @@ enum natwm_error workspace_focus_existing_client(struct natwm_state *state,
         }
 
         focus_client(state, workspace, client_node, client);
+
+        return NO_ERROR;
+}
+
+enum natwm_error workspace_unfocus_existing_client(struct natwm_state *state,
+                                                   struct workspace *workspace,
+                                                   struct client *client)
+{
+        struct node *client_node
+                = get_client_node_from_client(workspace->clients, client);
+
+        if (client_node == NULL) {
+                return NOT_FOUND_ERROR;
+        } else if (client_node->next == NULL) {
+                return INVALID_INPUT_ERROR;
+        }
+
+        natwm_state_lock(state);
+
+        if (client->is_focused) {
+                struct node *next_node = client_node->next;
+                struct client *next_client
+                        = get_client_from_client_node(next_node);
+
+                workspace_focus_existing_client(state, workspace, next_client);
+        }
+
+        list_move_node_to_tail(workspace->clients, client_node);
+
+        natwm_state_unlock(state);
 
         return NO_ERROR;
 }
