@@ -68,7 +68,8 @@ static void configure_window(xcb_connection_t *connection,
                 return;
         }
 
-        xcb_configure_window(connection, event->window, mask, &values);
+        xcb_configure_window(
+                connection, event->window, mask, (uint32_t *)&values);
 }
 
 static enum natwm_error get_window_rect(xcb_connection_t *connection,
