@@ -13,6 +13,65 @@
 #include "monitor.h"
 #include "workspace.h"
 
+static void configure_window(xcb_connection_t *connection,
+                             xcb_configure_request_event_t *event)
+{
+        uint16_t mask = 0;
+        uint32_t values[6];
+        size_t value_index = 0;
+
+        // Configure the new window dimentions
+        if (event->value_mask & XCB_CONFIG_WINDOW_X) {
+                mask |= XCB_CONFIG_WINDOW_X;
+                values[value_index] = (uint16_t)event->x;
+
+                value_index++;
+        }
+
+        if (event->value_mask & XCB_CONFIG_WINDOW_Y) {
+                mask |= XCB_CONFIG_WINDOW_Y;
+                values[value_index] = (uint16_t)event->y;
+
+                value_index++;
+        }
+
+        if (event->value_mask & XCB_CONFIG_WINDOW_WIDTH) {
+                mask |= XCB_CONFIG_WINDOW_WIDTH;
+                values[value_index] = event->width;
+
+                value_index++;
+        }
+
+        if (event->value_mask & XCB_CONFIG_WINDOW_HEIGHT) {
+                mask |= XCB_CONFIG_WINDOW_HEIGHT;
+                values[value_index] = event->height;
+
+                value_index++;
+        }
+
+        if (event->value_mask & XCB_CONFIG_WINDOW_SIBLING) {
+                mask |= XCB_CONFIG_WINDOW_SIBLING;
+                values[value_index] = event->sibling;
+
+                value_index++;
+        }
+
+        if (event->value_mask & XCB_CONFIG_WINDOW_STACK_MODE) {
+                mask |= XCB_CONFIG_WINDOW_STACK_MODE;
+                values[value_index] = event->stack_mode;
+
+                value_index++;
+        }
+
+        if (mask == 0) {
+                // Nothing to do (we ignore XCB_CONFIG_WINDOW_BORDER_WIDTH)
+                return;
+        }
+
+        xcb_configure_window(
+                connection, event->window, mask, (uint32_t *)&values);
+}
+
 static enum natwm_error get_window_rect(xcb_connection_t *connection,
                                         xcb_window_t window,
                                         xcb_rectangle_t *result)
@@ -41,13 +100,18 @@ static enum natwm_error get_window_rect(xcb_connection_t *connection,
 
 static enum natwm_error get_size_hints(xcb_connection_t *connection,
                                        xcb_window_t window,
-                                       xcb_size_hints_t *result)
+                                       xcb_size_hints_t **result)
 {
-        xcb_size_hints_t hints = {0};
+        xcb_size_hints_t *hints = malloc(sizeof(xcb_size_hints_t));
+
+        if (hints == NULL) {
+                return MEMORY_ALLOCATION_ERROR;
+        }
+
         xcb_get_property_cookie_t cookie
                 = xcb_icccm_get_wm_normal_hints_unchecked(connection, window);
         uint8_t reply = xcb_icccm_get_wm_normal_hints_reply(
-                connection, cookie, &hints, NULL);
+                connection, cookie, hints, NULL);
 
         if (reply != 1) {
                 return RESOLUTION_FAILURE;
@@ -171,7 +235,7 @@ static void update_stack_mode(const struct natwm_state *state,
 }
 
 struct client *client_create(xcb_window_t window, xcb_rectangle_t rect,
-                             xcb_size_hints_t hints)
+                             xcb_size_hints_t *hints)
 {
         struct client *client = malloc(sizeof(struct client));
 
@@ -182,10 +246,116 @@ struct client *client_create(xcb_window_t window, xcb_rectangle_t rect,
         client->window = window;
         client->rect = rect;
         client->size_hints = hints;
+
+        // Initialize size_hints
+        if (!(client->size_hints->flags & XCB_ICCCM_SIZE_HINT_P_MAX_SIZE)) {
+                client->size_hints->max_width = UINT16_MAX;
+                client->size_hints->max_height = UINT16_MAX;
+        }
+
+        if (!(client->size_hints->flags & XCB_ICCCM_SIZE_HINT_P_MIN_SIZE)) {
+                client->size_hints->min_width = 0;
+                client->size_hints->min_height = 0;
+        }
+
         client->is_focused = false;
         client->state = CLIENT_NORMAL;
 
         return client;
+}
+
+enum natwm_error client_configure_window(struct natwm_state *state,
+                                         xcb_configure_request_event_t *event)
+{
+        struct workspace *workspace = workspace_list_find_window_workspace(
+                state->workspace_list, event->window);
+
+        if (workspace == NULL) {
+                // window is not registered with us - just pass it along
+                goto handle_not_registered;
+        }
+
+        struct client *client
+                = workspace_find_window_client(workspace, event->window);
+        struct monitor *monitor = monitor_list_get_workspace_monitor(
+                state->monitor_list, workspace);
+
+        if (client == NULL || monitor == NULL) {
+                return RESOLUTION_FAILURE;
+        }
+
+        xcb_rectangle_t new_rect = client->rect;
+        xcb_configure_request_event_t new_event = *event;
+
+        if (event->value_mask & XCB_CONFIG_WINDOW_X) {
+                new_rect.x = event->x;
+        }
+
+        if (event->value_mask & XCB_CONFIG_WINDOW_Y) {
+                new_rect.y = event->y;
+        }
+
+        if (event->value_mask & XCB_CONFIG_WINDOW_WIDTH) {
+                if (event->width < client->size_hints->min_width) {
+                        new_rect.width
+                                = (uint16_t)client->size_hints->min_width;
+                } else if (event->width > client->size_hints->max_width) {
+                        new_rect.width
+                                = (uint16_t)client->size_hints->max_width;
+                } else {
+                        new_rect.width = event->width;
+                }
+        }
+
+        if (event->value_mask & XCB_CONFIG_WINDOW_HEIGHT) {
+                if (event->height < client->size_hints->min_height) {
+                        new_rect.height
+                                = (uint16_t)client->size_hints->min_height;
+                } else if (event->height > client->size_hints->max_height) {
+                        new_rect.height
+                                = (uint16_t)client->size_hints->max_height;
+                } else {
+                        new_rect.height = event->height;
+                }
+        }
+
+        client->rect = clamp_rect_to_monitor(new_rect, monitor->rect);
+
+        new_event.x = client->rect.x;
+        new_event.y = client->rect.y;
+        new_event.width = client->rect.width;
+        new_event.height = client->rect.height;
+
+        if (event->value_mask & XCB_CONFIG_WINDOW_STACK_MODE) {
+                if (event->sibling != XCB_NONE) {
+                        LOG_WARNING(natwm_logger,
+                                    "Specifying stacking order with sibling is "
+                                    "not supported yet - Unfortunate behavior "
+                                    "may occur.");
+                }
+
+                if (event->stack_mode == XCB_STACK_MODE_ABOVE) {
+                        workspace_focus_existing_client(
+                                state, workspace, client);
+
+                } else if (event->stack_mode == XCB_STACK_MODE_BELOW) {
+                        workspace_unfocus_existing_client(
+                                state, workspace, client);
+                } else {
+                        // TODO: Support XCB_STACK_MODE_{OPPOSITE, TOP_IF,
+                        // BOTTOM_IF}
+                        LOG_WARNING(natwm_logger,
+                                    "Encountered unsupported stacking order - "
+                                    "Ignoring");
+                }
+        }
+
+        configure_window(state->xcb, &new_event);
+
+handle_not_registered:
+        configure_window(state->xcb, event);
+
+        return NO_ERROR;
 }
 
 enum natwm_error client_destroy_window(struct natwm_state *state,
@@ -265,7 +435,7 @@ struct client *client_register_window(struct natwm_state *state,
 
         // First get the rect for the window
         xcb_rectangle_t rect = {0};
-        xcb_size_hints_t hints = {0};
+        xcb_size_hints_t *hints = NULL;
 
         if (get_window_rect(state->xcb, window, &rect) != NO_ERROR) {
                 return NULL;
@@ -367,26 +537,26 @@ enum natwm_error client_unmap_window(struct natwm_state *state,
         return NO_ERROR;
 }
 
-xcb_rectangle_t client_initialize_rect(struct client *client,
+xcb_rectangle_t client_initialize_rect(const struct client *client,
                                        uint16_t border_width,
                                        xcb_rectangle_t monitor_rect)
 {
         xcb_rectangle_t new_rect = client->rect;
 
-        if (client->size_hints.flags & XCB_ICCCM_SIZE_HINT_US_SIZE) {
-                assert(client->size_hints.x <= INT16_MAX);
-                assert(client->size_hints.y <= INT16_MAX);
+        if (client->size_hints->flags & XCB_ICCCM_SIZE_HINT_US_SIZE) {
+                assert(client->size_hints->x <= INT16_MAX);
+                assert(client->size_hints->y <= INT16_MAX);
 
-                new_rect.x = (int16_t)client->size_hints.x;
-                new_rect.y = (int16_t)client->size_hints.y;
+                new_rect.x = (int16_t)client->size_hints->x;
+                new_rect.y = (int16_t)client->size_hints->y;
         }
 
-        if (client->size_hints.flags & XCB_ICCCM_SIZE_HINT_P_SIZE) {
-                assert(client->size_hints.width <= UINT16_MAX);
-                assert(client->size_hints.height <= UINT16_MAX);
+        if (client->size_hints->flags & XCB_ICCCM_SIZE_HINT_P_SIZE) {
+                assert(client->size_hints->width <= UINT16_MAX);
+                assert(client->size_hints->height <= UINT16_MAX);
 
-                new_rect.width = (uint16_t)client->size_hints.width;
-                new_rect.height = (uint16_t)client->size_hints.height;
+                new_rect.width = (uint16_t)client->size_hints->width;
+                new_rect.height = (uint16_t)client->size_hints->height;
         }
 
         new_rect = clamp_rect_to_monitor(new_rect, monitor_rect);
@@ -567,5 +737,7 @@ void client_theme_destroy(struct client_theme *theme)
 
 void client_destroy(struct client *client)
 {
+        free(client->size_hints);
+
         free(client);
 }

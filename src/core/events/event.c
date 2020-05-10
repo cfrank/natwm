@@ -15,6 +15,13 @@
 #include "randr-event.h"
 
 static enum natwm_error
+event_handle_configure_request(struct natwm_state *state,
+                               xcb_configure_request_event_t *event)
+{
+        return client_configure_window(state, event);
+}
+
+static enum natwm_error
 event_handle_destroy_notify(struct natwm_state *state,
                             xcb_destroy_notify_event_t *event)
 {
@@ -64,6 +71,10 @@ enum natwm_error event_handle(struct natwm_state *state,
         uint8_t type = (uint8_t)(event->response_type & ~0x80);
 
         switch (type) {
+        case XCB_CONFIGURE_REQUEST:
+                err = event_handle_configure_request(
+                        state, (xcb_configure_request_event_t *)event);
+                break;
         case XCB_DESTROY_NOTIFY:
                 err = event_handle_destroy_notify(
                         state, (xcb_destroy_notify_event_t *)event);
