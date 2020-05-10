@@ -246,6 +246,18 @@ struct client *client_create(xcb_window_t window, xcb_rectangle_t rect,
         client->window = window;
         client->rect = rect;
         client->size_hints = hints;
+
+        // Initialize size_hints
+        if (!(client->size_hints->flags & XCB_ICCCM_SIZE_HINT_P_MAX_SIZE)) {
+                client->size_hints->max_width = UINT16_MAX;
+                client->size_hints->max_height = UINT16_MAX;
+        }
+
+        if (!(client->size_hints->flags & XCB_ICCCM_SIZE_HINT_P_MIN_SIZE)) {
+                client->size_hints->min_width = 0;
+                client->size_hints->min_height = 0;
+        }
+
         client->is_focused = false;
         client->state = CLIENT_NORMAL;
 
@@ -259,7 +271,7 @@ enum natwm_error client_configure_window(struct natwm_state *state,
                 state->workspace_list, event->window);
 
         if (workspace == NULL) {
-                // Event is not registered with us - just pass it along
+                // window is not registered with us - just pass it along
                 goto handle_not_registered;
         }
 
@@ -525,7 +537,7 @@ enum natwm_error client_unmap_window(struct natwm_state *state,
         return NO_ERROR;
 }
 
-xcb_rectangle_t client_initialize_rect(struct client *client,
+xcb_rectangle_t client_initialize_rect(const struct client *client,
                                        uint16_t border_width,
                                        xcb_rectangle_t monitor_rect)
 {
