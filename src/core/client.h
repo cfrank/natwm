@@ -42,13 +42,13 @@ struct client_theme {
 struct client {
         xcb_window_t window;
         xcb_rectangle_t rect;
-        xcb_size_hints_t size_hints;
+        xcb_size_hints_t *size_hints;
         bool is_focused;
         enum client_state state;
 };
 
 struct client *client_create(xcb_window_t window, xcb_rectangle_t rect,
-                             xcb_size_hints_t hints);
+                             xcb_size_hints_t *hints);
 enum natwm_error client_configure_window(struct natwm_state *state,
                                          xcb_configure_request_event_t *event);
 enum natwm_error client_destroy_window(struct natwm_state *state,

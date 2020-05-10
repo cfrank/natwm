@@ -100,13 +100,18 @@ static enum natwm_error get_window_rect(xcb_connection_t *connection,
 
 static enum natwm_error get_size_hints(xcb_connection_t *connection,
                                        xcb_window_t window,
-                                       xcb_size_hints_t *result)
+                                       xcb_size_hints_t **result)
 {
-        xcb_size_hints_t hints = {0};
+        xcb_size_hints_t *hints = malloc(sizeof(xcb_size_hints_t));
+
+        if (hints == NULL) {
+                return MEMORY_ALLOCATION_ERROR;
+        }
+
         xcb_get_property_cookie_t cookie
                 = xcb_icccm_get_wm_normal_hints_unchecked(connection, window);
         uint8_t reply = xcb_icccm_get_wm_normal_hints_reply(
-                connection, cookie, &hints, NULL);
+                connection, cookie, hints, NULL);
 
         if (reply != 1) {
                 return RESOLUTION_FAILURE;
@@ -230,7 +235,7 @@ static void update_stack_mode(const struct natwm_state *state,
 }
 
 struct client *client_create(xcb_window_t window, xcb_rectangle_t rect,
-                             xcb_size_hints_t hints)
+                             xcb_size_hints_t *hints)
 {
         struct client *client = malloc(sizeof(struct client));
 
@@ -279,22 +284,24 @@ enum natwm_error client_configure_window(struct natwm_state *state,
         }
 
         if (event->value_mask & XCB_CONFIG_WINDOW_WIDTH) {
-                if (event->width < client->size_hints.min_width) {
-                        new_rect.width = (uint16_t)client->size_hints.min_width;
-                } else if (event->width > client->size_hints.max_width) {
-                        new_rect.width = (uint16_t)client->size_hints.max_width;
+                if (event->width < client->size_hints->min_width) {
+                        new_rect.width
+                                = (uint16_t)client->size_hints->min_width;
+                } else if (event->width > client->size_hints->max_width) {
+                        new_rect.width
+                                = (uint16_t)client->size_hints->max_width;
                 } else {
                         new_rect.width = event->width;
                 }
         }
 
         if (event->value_mask & XCB_CONFIG_WINDOW_HEIGHT) {
-                if (event->height < client->size_hints.min_height) {
+                if (event->height < client->size_hints->min_height) {
                         new_rect.height
-                                = (uint16_t)client->size_hints.min_height;
-                } else if (event->height > client->size_hints.max_height) {
+                                = (uint16_t)client->size_hints->min_height;
+                } else if (event->height > client->size_hints->max_height) {
                         new_rect.height
-                                = (uint16_t)client->size_hints.max_height;
+                                = (uint16_t)client->size_hints->max_height;
                 } else {
                         new_rect.height = event->height;
                 }
@@ -416,7 +423,7 @@ struct client *client_register_window(struct natwm_state *state,
 
         // First get the rect for the window
         xcb_rectangle_t rect = {0};
-        xcb_size_hints_t hints = {0};
+        xcb_size_hints_t *hints = NULL;
 
         if (get_window_rect(state->xcb, window, &rect) != NO_ERROR) {
                 return NULL;
@@ -524,20 +531,20 @@ xcb_rectangle_t client_initialize_rect(struct client *client,
 {
         xcb_rectangle_t new_rect = client->rect;
 
-        if (client->size_hints.flags & XCB_ICCCM_SIZE_HINT_US_SIZE) {
-                assert(client->size_hints.x <= INT16_MAX);
-                assert(client->size_hints.y <= INT16_MAX);
+        if (client->size_hints->flags & XCB_ICCCM_SIZE_HINT_US_SIZE) {
+                assert(client->size_hints->x <= INT16_MAX);
+                assert(client->size_hints->y <= INT16_MAX);
 
-                new_rect.x = (int16_t)client->size_hints.x;
-                new_rect.y = (int16_t)client->size_hints.y;
+                new_rect.x = (int16_t)client->size_hints->x;
+                new_rect.y = (int16_t)client->size_hints->y;
         }
 
-        if (client->size_hints.flags & XCB_ICCCM_SIZE_HINT_P_SIZE) {
-                assert(client->size_hints.width <= UINT16_MAX);
-                assert(client->size_hints.height <= UINT16_MAX);
+        if (client->size_hints->flags & XCB_ICCCM_SIZE_HINT_P_SIZE) {
+                assert(client->size_hints->width <= UINT16_MAX);
+                assert(client->size_hints->height <= UINT16_MAX);
 
-                new_rect.width = (uint16_t)client->size_hints.width;
-                new_rect.height = (uint16_t)client->size_hints.height;
+                new_rect.width = (uint16_t)client->size_hints->width;
+                new_rect.height = (uint16_t)client->size_hints->height;
         }
 
         new_rect = clamp_rect_to_monitor(new_rect, monitor_rect);
@@ -718,5 +725,7 @@ void client_theme_destroy(struct client_theme *theme)
 
 void client_destroy(struct client *client)
 {
+        free(client->size_hints);
+
         free(client);
 }
