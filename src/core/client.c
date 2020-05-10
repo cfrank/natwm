@@ -188,6 +188,138 @@ struct client *client_create(xcb_window_t window, xcb_rectangle_t rect,
         return client;
 }
 
+enum natwm_error client_configure_window(struct natwm_state *state,
+                                         xcb_configure_request_event_t *event)
+{
+        uint32_t values[6];
+        xcb_window_t window = event->window;
+        struct workspace *workspace = workspace_list_find_window_workspace(
+                state->workspace_list, window);
+
+        if (workspace == NULL) {
+                // Event is not registered with us - just pass it along
+                goto handle_not_registered;
+        }
+
+        struct client *client = workspace_find_window_client(workspace, window);
+        struct monitor *monitor = monitor_list_get_workspace_monitor(
+                state->monitor_list, workspace);
+
+        if (client == NULL || monitor == NULL) {
+                return RESOLUTION_FAILURE;
+        }
+
+        xcb_rectangle_t new_rect = client->rect;
+
+        // Configure the new window dimentions
+        if (event->value_mask & XCB_CONFIG_WINDOW_X) {
+                new_rect.x = event->x;
+        }
+
+        if (event->value_mask & XCB_CONFIG_WINDOW_Y) {
+                new_rect.y = event->y;
+        }
+
+        if (event->value_mask & XCB_CONFIG_WINDOW_WIDTH) {
+                new_rect.width = event->width;
+        }
+
+        if (event->value_mask & XCB_CONFIG_WINDOW_HEIGHT) {
+                new_rect.height = event->height;
+        }
+
+        if (event->value_mask & XCB_CONFIG_WINDOW_STACK_MODE) {
+                enum natwm_error err = GENERIC_ERROR;
+
+                if (event->sibling != XCB_NONE) {
+                        LOG_WARNING(natwm_logger,
+                                    "Specifying stacking order with sibling is "
+                                    "not supported yet - Unfortunate behavior "
+                                    "may occur.");
+                }
+
+                if (event->stack_mode == XCB_STACK_MODE_ABOVE) {
+                        err = workspace_focus_existing_client(
+                                state, workspace, client);
+
+                        if (err == NO_ERROR) {
+                                xcb_configure_window(
+                                        state->xcb,
+                                        event->window,
+                                        XCB_CONFIG_WINDOW_STACK_MODE,
+                                        &event->stack_mode);
+                        }
+
+                } else if (event->stack_mode == XCB_STACK_MODE_BELOW) {
+                        err = workspace_unfocus_existing_client(
+                                state, workspace, client);
+
+                        if (err == NO_ERROR) {
+                                xcb_configure_window(
+                                        state->xcb,
+                                        event->window,
+                                        XCB_CONFIG_WINDOW_STACK_MODE,
+                                        &event->stack_mode);
+                        }
+                }
+
+                // TODO: Support XCB_STACK_MODE_{OPPOSITE, TOP_IF, BOTTOM_IF}
+                LOG_WARNING(
+                        natwm_logger,
+                        "Encountered unsupported stacking order - Ignoring");
+        }
+
+        size_t value_index = 0;
+        xcb_rectangle_t new_clamped_rect
+                = clamp_rect_to_monitor(new_rect, monitor->rect);
+
+        values[value_index] = (uint16_t)new_clamped_rect.x;
+
+        value_index++;
+
+        values[value_index] = (uint16_t)new_clamped_rect.y;
+
+        value_index++;
+
+        if (new_clamped_rect.width > client->size_hints.min_width
+            || new_clamped_rect.width < client->size_hints.max_width) {
+                values[value_index] = new_clamped_rect.width;
+
+                value_index++;
+        } else {
+                event->value_mask = (uint8_t)(event->value_mask
+                                              & ~XCB_CONFIG_WINDOW_WIDTH);
+        }
+
+        if (new_clamped_rect.height > client->size_hints.min_height
+            || new_clamped_rect.height < client->size_hints.max_height) {
+                values[value_index] = new_clamped_rect.height;
+
+                value_index++;
+        } else {
+                event->value_mask = (uint8_t)(event->value_mask
+                                              & ~XCB_CONFIG_WINDOW_HEIGHT);
+        }
+
+        xcb_configure_window(
+                state->xcb, event->window, event->value_mask, &values);
+
+        return NO_ERROR;
+
+handle_not_registered:
+        values[0] = (uint16_t)event->x;
+        values[1] = (uint16_t)event->y;
+        values[2] = event->width;
+        values[3] = event->height;
+        values[4] = event->sibling;
+        values[5] = event->stack_mode;
+
+        xcb_configure_window(
+                state->xcb, event->window, event->value_mask, &values);
+
+        return NO_ERROR;
+}
+
 enum natwm_error client_destroy_window(struct natwm_state *state,
                                        xcb_window_t window)
 {
