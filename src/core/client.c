@@ -13,6 +13,64 @@
 #include "monitor.h"
 #include "workspace.h"
 
+static void configure_window(xcb_connection_t *connection,
+                             xcb_configure_request_event_t *event)
+{
+        uint16_t mask = 0;
+        uint32_t values[6];
+        size_t value_index = 0;
+
+        // Configure the new window dimentions
+        if (event->value_mask & XCB_CONFIG_WINDOW_X) {
+                mask |= XCB_CONFIG_WINDOW_X;
+                values[value_index] = (uint16_t)event->x;
+
+                value_index++;
+        }
+
+        if (event->value_mask & XCB_CONFIG_WINDOW_Y) {
+                mask |= XCB_CONFIG_WINDOW_Y;
+                values[value_index] = (uint16_t)event->y;
+
+                value_index++;
+        }
+
+        if (event->value_mask & XCB_CONFIG_WINDOW_WIDTH) {
+                mask |= XCB_CONFIG_WINDOW_WIDTH;
+                values[value_index] = event->width;
+
+                value_index++;
+        }
+
+        if (event->value_mask & XCB_CONFIG_WINDOW_HEIGHT) {
+                mask |= XCB_CONFIG_WINDOW_HEIGHT;
+                values[value_index] = event->height;
+
+                value_index++;
+        }
+
+        if (event->value_mask & XCB_CONFIG_WINDOW_SIBLING) {
+                mask |= XCB_CONFIG_WINDOW_SIBLING;
+                values[value_index] = event->sibling;
+
+                value_index++;
+        }
+
+        if (event->value_mask & XCB_CONFIG_WINDOW_STACK_MODE) {
+                mask |= XCB_CONFIG_WINDOW_STACK_MODE;
+                values[value_index] = event->stack_mode;
+
+                value_index++;
+        }
+
+        if (mask == 0) {
+                // Nothing to do (we ignore XCB_CONFIG_WINDOW_BORDER_WIDTH)
+                return;
+        }
+
+        xcb_configure_window(connection, event->window, mask, &values);
+}
+
 static enum natwm_error get_window_rect(xcb_connection_t *connection,
                                         xcb_window_t window,
                                         xcb_rectangle_t *result)
@@ -191,17 +249,16 @@ struct client *client_create(xcb_window_t window, xcb_rectangle_t rect,
 enum natwm_error client_configure_window(struct natwm_state *state,
                                          xcb_configure_request_event_t *event)
 {
-        uint32_t values[6];
-        xcb_window_t window = event->window;
         struct workspace *workspace = workspace_list_find_window_workspace(
-                state->workspace_list, window);
+                state->workspace_list, event->window);
 
         if (workspace == NULL) {
                 // Event is not registered with us - just pass it along
                 goto handle_not_registered;
         }
 
-        struct client *client = workspace_find_window_client(workspace, window);
+        struct client *client
+                = workspace_find_window_client(workspace, event->window);
         struct monitor *monitor = monitor_list_get_workspace_monitor(
                 state->monitor_list, workspace);
 
@@ -210,8 +267,8 @@ enum natwm_error client_configure_window(struct natwm_state *state,
         }
 
         xcb_rectangle_t new_rect = client->rect;
+        xcb_configure_request_event_t new_event = *event;
 
-        // Configure the new window dimentions
         if (event->value_mask & XCB_CONFIG_WINDOW_X) {
                 new_rect.x = event->x;
         }
@@ -221,16 +278,35 @@ enum natwm_error client_configure_window(struct natwm_state *state,
         }
 
         if (event->value_mask & XCB_CONFIG_WINDOW_WIDTH) {
-                new_rect.width = event->width;
+                if (event->width < client->size_hints.min_width) {
+                        new_rect.width = (uint16_t)client->size_hints.min_width;
+                } else if (event->width > client->size_hints.max_width) {
+                        new_rect.width = (uint16_t)client->size_hints.max_width;
+                } else {
+                        new_rect.width = event->width;
+                }
         }
 
         if (event->value_mask & XCB_CONFIG_WINDOW_HEIGHT) {
-                new_rect.height = event->height;
+                if (event->height < client->size_hints.min_height) {
+                        new_rect.height
+                                = (uint16_t)client->size_hints.min_height;
+                } else if (event->height > client->size_hints.max_height) {
+                        new_rect.height
+                                = (uint16_t)client->size_hints.max_height;
+                } else {
+                        new_rect.height = event->height;
+                }
         }
 
-        if (event->value_mask & XCB_CONFIG_WINDOW_STACK_MODE) {
-                enum natwm_error err = GENERIC_ERROR;
+        client->rect = clamp_rect_to_monitor(new_rect, monitor->rect);
 
+        new_event.x = client->rect.x;
+        new_event.y = client->rect.y;
+        new_event.width = client->rect.width;
+        new_event.height = client->rect.height;
+
+        if (event->value_mask & XCB_CONFIG_WINDOW_STACK_MODE) {
                 if (event->sibling != XCB_NONE) {
                         LOG_WARNING(natwm_logger,
                                     "Specifying stacking order with sibling is "
@@ -239,83 +315,25 @@ enum natwm_error client_configure_window(struct natwm_state *state,
                 }
 
                 if (event->stack_mode == XCB_STACK_MODE_ABOVE) {
-                        err = workspace_focus_existing_client(
+                        workspace_focus_existing_client(
                                 state, workspace, client);
-
-                        if (err == NO_ERROR) {
-                                xcb_configure_window(
-                                        state->xcb,
-                                        event->window,
-                                        XCB_CONFIG_WINDOW_STACK_MODE,
-                                        &event->stack_mode);
-                        }
 
                 } else if (event->stack_mode == XCB_STACK_MODE_BELOW) {
-                        err = workspace_unfocus_existing_client(
+                        workspace_unfocus_existing_client(
                                 state, workspace, client);
-
-                        if (err == NO_ERROR) {
-                                xcb_configure_window(
-                                        state->xcb,
-                                        event->window,
-                                        XCB_CONFIG_WINDOW_STACK_MODE,
-                                        &event->stack_mode);
-                        }
+                } else {
+                        // TODO: Support XCB_STACK_MODE_{OPPOSITE, TOP_IF,
+                        // BOTTOM_IF}
+                        LOG_WARNING(natwm_logger,
+                                    "Encountered unsupported stacking order - "
+                                    "Ignoring");
                 }
-
-                // TODO: Support XCB_STACK_MODE_{OPPOSITE, TOP_IF, BOTTOM_IF}
-                LOG_WARNING(
-                        natwm_logger,
-                        "Encountered unsupported stacking order - Ignoring");
         }
 
-        size_t value_index = 0;
-        xcb_rectangle_t new_clamped_rect
-                = clamp_rect_to_monitor(new_rect, monitor->rect);
-
-        values[value_index] = (uint16_t)new_clamped_rect.x;
-
-        value_index++;
-
-        values[value_index] = (uint16_t)new_clamped_rect.y;
-
-        value_index++;
-
-        if (new_clamped_rect.width > client->size_hints.min_width
-            || new_clamped_rect.width < client->size_hints.max_width) {
-                values[value_index] = new_clamped_rect.width;
-
-                value_index++;
-        } else {
-                event->value_mask = (uint8_t)(event->value_mask
-                                              & ~XCB_CONFIG_WINDOW_WIDTH);
-        }
-
-        if (new_clamped_rect.height > client->size_hints.min_height
-            || new_clamped_rect.height < client->size_hints.max_height) {
-                values[value_index] = new_clamped_rect.height;
-
-                value_index++;
-        } else {
-                event->value_mask = (uint8_t)(event->value_mask
-                                              & ~XCB_CONFIG_WINDOW_HEIGHT);
-        }
-
-        xcb_configure_window(
-                state->xcb, event->window, event->value_mask, &values);
-
-        return NO_ERROR;
+        configure_window(state->xcb, &new_event);
 
 handle_not_registered:
-        values[0] = (uint16_t)event->x;
-        values[1] = (uint16_t)event->y;
-        values[2] = event->width;
-        values[3] = event->height;
-        values[4] = event->sibling;
-        values[5] = event->stack_mode;
-
-        xcb_configure_window(
-                state->xcb, event->window, event->value_mask, &values);
+        configure_window(state->xcb, event);
 
         return NO_ERROR;
 }
