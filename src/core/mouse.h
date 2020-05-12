@@ -12,6 +12,9 @@
 
 #define MOUSE_EVENTS_NUM 1
 
+#define DEFAULT_BUTTON_MASK                                                    \
+        XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE
+
 struct mouse_binding {
         uint8_t pass_event;
         uint16_t mask;
@@ -21,9 +24,6 @@ struct mouse_binding {
         uint8_t button;
         uint16_t modifiers;
 };
-
-static const uint16_t DEFAULT_BUTTON_MASK
-        = XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE;
 
 static const struct mouse_binding client_focus_event = {
         .pass_event = 1,
