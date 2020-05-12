@@ -487,7 +487,7 @@ struct client *client_register_window(struct natwm_state *state,
         client_update_hints(state, client, CLIENT_HINTS_ALL);
 
         // Listen for button events
-        mouse_client_listener(state, client);
+        mouse_initialize_client_listeners(state, client);
 
         xcb_map_window(state->xcb, client->window);
 
@@ -631,6 +631,13 @@ void client_set_focused(const struct natwm_state *state, struct client *client)
                 return;
         }
 
+        // Now that we have focused the client, there is no need for "click to
+        // focus" so we can remove the button grab
+        xcb_ungrab_button(state->xcb,
+                          client_focus_event.button,
+                          client->window,
+                          client_focus_event.modifiers);
+
         update_theme(state, client, theme->border_width->unfocused);
 }
 
@@ -648,6 +655,11 @@ void client_set_unfocused(const struct natwm_state *state,
         if (client->state != CLIENT_NORMAL) {
                 return;
         }
+
+        // When a client is unfocused we need to grab the mouse button required
+        // for "click to focus"
+        mouse_event_grab_button(
+                state->xcb, client->window, &client_focus_event);
 
         update_theme(state, client, theme->border_width->focused);
 }
