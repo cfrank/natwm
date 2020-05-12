@@ -50,7 +50,8 @@ static bool default_key_compare_function(const void *one, const void *two,
 // Given a map_entry determine if it holds valid data and is present
 static bool is_entry_present(const struct map_entry *entry)
 {
-        if (entry != NULL && entry->key != NULL) {
+        if (entry != NULL && entry->key != NULL
+            && entry->value != &EMPTY_ENTRY) {
                 return true;
         }
 

@@ -15,6 +15,8 @@ add_library(core STATIC
     ewmh.h
     monitor.c
     monitor.h
+    mouse.c
+    mouse.h
     randr.c
     randr.h
     state.c

@@ -71,6 +71,9 @@ enum natwm_error event_handle(struct natwm_state *state,
         uint8_t type = (uint8_t)(event->response_type & ~0x80);
 
         switch (type) {
+        case XCB_BUTTON_PRESS:
+                LOG_INFO(natwm_logger, "Button press event");
+                break;
         case XCB_CONFIGURE_REQUEST:
                 err = event_handle_configure_request(
                         state, (xcb_configure_request_event_t *)event);

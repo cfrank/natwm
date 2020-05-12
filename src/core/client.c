@@ -11,6 +11,7 @@
 #include "client.h"
 #include "ewmh.h"
 #include "monitor.h"
+#include "mouse.h"
 #include "workspace.h"
 
 static void configure_window(xcb_connection_t *connection,
@@ -485,6 +486,9 @@ struct client *client_register_window(struct natwm_state *state,
 
         client_update_hints(state, client, CLIENT_HINTS_ALL);
 
+        // Listen for button events
+        mouse_client_listener(state, client);
+
         xcb_map_window(state->xcb, client->window);
 
         xcb_flush(state->xcb);
@@ -740,4 +744,6 @@ void client_destroy(struct client *client)
         free(client->size_hints);
 
         free(client);
+
+        client = NULL;
 }
