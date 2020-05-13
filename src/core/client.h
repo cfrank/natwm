@@ -49,14 +49,16 @@ struct client {
 
 struct client *client_create(xcb_window_t window, xcb_rectangle_t rect,
                              xcb_size_hints_t *hints);
-enum natwm_error client_configure_window(struct natwm_state *state,
-                                         xcb_configure_request_event_t *event);
-enum natwm_error client_destroy_window(struct natwm_state *state,
-                                       xcb_window_t window);
 struct client *client_register_window(struct natwm_state *state,
                                       xcb_window_t window);
+enum natwm_error client_handle_button_press(struct natwm_state *state,
+                                            xcb_button_press_event_t *event);
+enum natwm_error client_configure_window(struct natwm_state *state,
+                                         xcb_configure_request_event_t *event);
 enum natwm_error client_unmap_window(struct natwm_state *state,
                                      xcb_window_t window);
+enum natwm_error client_destroy_window(struct natwm_state *state,
+                                       xcb_window_t window);
 xcb_rectangle_t client_initialize_rect(const struct client *client,
                                        uint16_t border_width,
                                        xcb_rectangle_t monitor_rect);

@@ -10,9 +10,17 @@
 #include <core/client.h>
 #include <core/ewmh.h>
 #include <core/monitor.h>
+#include <core/mouse.h>
 
 #include "event.h"
 #include "randr-event.h"
+
+static enum natwm_error
+event_handle_button_press(struct natwm_state *state,
+                          xcb_button_press_event_t *event)
+{
+        return client_handle_button_press(state, event);
+}
 
 static enum natwm_error
 event_handle_configure_request(struct natwm_state *state,
@@ -72,7 +80,8 @@ enum natwm_error event_handle(struct natwm_state *state,
 
         switch (type) {
         case XCB_BUTTON_PRESS:
-                LOG_INFO(natwm_logger, "Button press event");
+                err = event_handle_button_press(
+                        state, (xcb_button_press_event_t *)event);
                 break;
         case XCB_CONFIGURE_REQUEST:
                 err = event_handle_configure_request(

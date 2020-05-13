@@ -265,143 +265,6 @@ struct client *client_create(xcb_window_t window, xcb_rectangle_t rect,
         return client;
 }
 
-enum natwm_error client_configure_window(struct natwm_state *state,
-                                         xcb_configure_request_event_t *event)
-{
-        struct workspace *workspace = workspace_list_find_window_workspace(
-                state->workspace_list, event->window);
-
-        if (workspace == NULL) {
-                // window is not registered with us - just pass it along
-                goto handle_not_registered;
-        }
-
-        struct client *client
-                = workspace_find_window_client(workspace, event->window);
-        struct monitor *monitor = monitor_list_get_workspace_monitor(
-                state->monitor_list, workspace);
-
-        if (client == NULL || monitor == NULL) {
-                return RESOLUTION_FAILURE;
-        }
-
-        xcb_rectangle_t new_rect = client->rect;
-        xcb_configure_request_event_t new_event = *event;
-
-        if (event->value_mask & XCB_CONFIG_WINDOW_X) {
-                new_rect.x = event->x;
-        }
-
-        if (event->value_mask & XCB_CONFIG_WINDOW_Y) {
-                new_rect.y = event->y;
-        }
-
-        if (event->value_mask & XCB_CONFIG_WINDOW_WIDTH) {
-                if (event->width < client->size_hints->min_width) {
-                        new_rect.width
-                                = (uint16_t)client->size_hints->min_width;
-                } else if (event->width > client->size_hints->max_width) {
-                        new_rect.width
-                                = (uint16_t)client->size_hints->max_width;
-                } else {
-                        new_rect.width = event->width;
-                }
-        }
-
-        if (event->value_mask & XCB_CONFIG_WINDOW_HEIGHT) {
-                if (event->height < client->size_hints->min_height) {
-                        new_rect.height
-                                = (uint16_t)client->size_hints->min_height;
-                } else if (event->height > client->size_hints->max_height) {
-                        new_rect.height
-                                = (uint16_t)client->size_hints->max_height;
-                } else {
-                        new_rect.height = event->height;
-                }
-        }
-
-        client->rect = clamp_rect_to_monitor(new_rect, monitor->rect);
-
-        new_event.x = client->rect.x;
-        new_event.y = client->rect.y;
-        new_event.width = client->rect.width;
-        new_event.height = client->rect.height;
-
-        if (event->value_mask & XCB_CONFIG_WINDOW_STACK_MODE) {
-                if (event->sibling != XCB_NONE) {
-                        LOG_WARNING(natwm_logger,
-                                    "Specifying stacking order with sibling is "
-                                    "not supported yet - Unfortunate behavior "
-                                    "may occur.");
-                }
-
-                if (event->stack_mode == XCB_STACK_MODE_ABOVE) {
-                        workspace_focus_existing_client(
-                                state, workspace, client);
-
-                } else if (event->stack_mode == XCB_STACK_MODE_BELOW) {
-                        workspace_unfocus_existing_client(
-                                state, workspace, client);
-                } else {
-                        // TODO: Support XCB_STACK_MODE_{OPPOSITE, TOP_IF,
-                        // BOTTOM_IF}
-                        LOG_WARNING(natwm_logger,
-                                    "Encountered unsupported stacking order - "
-                                    "Ignoring");
-                }
-        }
-
-        configure_window(state->xcb, &new_event);
-
-handle_not_registered:
-        configure_window(state->xcb, event);
-
-        return NO_ERROR;
-}
-
-enum natwm_error client_destroy_window(struct natwm_state *state,
-                                       xcb_window_t window)
-{
-        struct workspace *workspace = workspace_list_find_window_workspace(
-                state->workspace_list, window);
-
-        if (workspace == NULL) {
-                // This window is not registered with us
-                xcb_destroy_window(state->xcb, window);
-
-                return NO_ERROR;
-        }
-
-        struct client *client = workspace_find_window_client(workspace, window);
-
-        if (client == NULL) {
-                LOG_WARNING(natwm_logger,
-                            "Failed to find client during destroy");
-
-                xcb_destroy_window(state->xcb, window);
-
-                return NOT_FOUND_ERROR;
-        }
-
-        enum natwm_error err
-                = workspace_remove_client(state, workspace, client);
-
-        if (err != NO_ERROR) {
-                LOG_WARNING(natwm_logger,
-                            "Failed to remove client from workspace");
-
-                return err;
-        }
-
-        xcb_change_save_set(state->xcb, XCB_SET_MODE_DELETE, client->window);
-
-        xcb_destroy_window(state->xcb, client->window);
-
-        client_destroy(client);
-
-        return NO_ERROR;
-}
-
 struct client *client_register_window(struct natwm_state *state,
                                       xcb_window_t window)
 {
@@ -509,6 +372,128 @@ handle_error:
         return NULL;
 }
 
+enum natwm_error client_handle_button_press(struct natwm_state *state,
+                                            xcb_button_press_event_t *event)
+{
+        struct workspace *workspace = workspace_list_find_window_workspace(
+                state->workspace_list, event->event);
+
+        if (workspace == NULL) {
+                // Not registered with us - just pass it along
+                return NO_ERROR;
+        }
+
+        struct client *client
+                = workspace_find_window_client(workspace, event->event);
+
+        if (client == NULL) {
+                return RESOLUTION_FAILURE;
+        }
+
+        if (event->state == XCB_NONE) {
+                return workspace_focus_existing_client(
+                        state, workspace, client);
+        }
+
+        LOG_INFO(natwm_logger, "Another button event");
+
+        return NO_ERROR;
+}
+
+enum natwm_error client_configure_window(struct natwm_state *state,
+                                         xcb_configure_request_event_t *event)
+{
+        struct workspace *workspace = workspace_list_find_window_workspace(
+                state->workspace_list, event->window);
+
+        if (workspace == NULL) {
+                // window is not registered with us - just pass it along
+                goto handle_not_registered;
+        }
+
+        struct client *client
+                = workspace_find_window_client(workspace, event->window);
+        struct monitor *monitor = monitor_list_get_workspace_monitor(
+                state->monitor_list, workspace);
+
+        if (client == NULL || monitor == NULL) {
+                return RESOLUTION_FAILURE;
+        }
+
+        xcb_rectangle_t new_rect = client->rect;
+        xcb_configure_request_event_t new_event = *event;
+
+        if (event->value_mask & XCB_CONFIG_WINDOW_X) {
+                new_rect.x = event->x;
+        }
+
+        if (event->value_mask & XCB_CONFIG_WINDOW_Y) {
+                new_rect.y = event->y;
+        }
+
+        if (event->value_mask & XCB_CONFIG_WINDOW_WIDTH) {
+                if (event->width < client->size_hints->min_width) {
+                        new_rect.width
+                                = (uint16_t)client->size_hints->min_width;
+                } else if (event->width > client->size_hints->max_width) {
+                        new_rect.width
+                                = (uint16_t)client->size_hints->max_width;
+                } else {
+                        new_rect.width = event->width;
+                }
+        }
+
+        if (event->value_mask & XCB_CONFIG_WINDOW_HEIGHT) {
+                if (event->height < client->size_hints->min_height) {
+                        new_rect.height
+                                = (uint16_t)client->size_hints->min_height;
+                } else if (event->height > client->size_hints->max_height) {
+                        new_rect.height
+                                = (uint16_t)client->size_hints->max_height;
+                } else {
+                        new_rect.height = event->height;
+                }
+        }
+
+        client->rect = clamp_rect_to_monitor(new_rect, monitor->rect);
+
+        new_event.x = client->rect.x;
+        new_event.y = client->rect.y;
+        new_event.width = client->rect.width;
+        new_event.height = client->rect.height;
+
+        if (event->value_mask & XCB_CONFIG_WINDOW_STACK_MODE) {
+                if (event->sibling != XCB_NONE) {
+                        LOG_WARNING(natwm_logger,
+                                    "Specifying stacking order with sibling is "
+                                    "not supported yet - Unfortunate behavior "
+                                    "may occur.");
+                }
+
+                if (event->stack_mode == XCB_STACK_MODE_ABOVE) {
+                        workspace_focus_existing_client(
+                                state, workspace, client);
+
+                } else if (event->stack_mode == XCB_STACK_MODE_BELOW) {
+                        workspace_unfocus_existing_client(
+                                state, workspace, client);
+                } else {
+                        // TODO: Support XCB_STACK_MODE_{OPPOSITE, TOP_IF,
+                        // BOTTOM_IF}
+                        LOG_WARNING(natwm_logger,
+                                    "Encountered unsupported stacking order - "
+                                    "Ignoring");
+                }
+        }
+
+        configure_window(state->xcb, &new_event);
+
+handle_not_registered:
+        configure_window(state->xcb, event);
+
+        return NO_ERROR;
+}
+
 enum natwm_error client_unmap_window(struct natwm_state *state,
                                      xcb_window_t window)
 {
@@ -537,6 +522,49 @@ enum natwm_error client_unmap_window(struct natwm_state *state,
         client->state = CLIENT_HIDDEN;
 
         workspace_reset_focus(state, workspace);
+
+        return NO_ERROR;
+}
+
+enum natwm_error client_destroy_window(struct natwm_state *state,
+                                       xcb_window_t window)
+{
+        struct workspace *workspace = workspace_list_find_window_workspace(
+                state->workspace_list, window);
+
+        if (workspace == NULL) {
+                // This window is not registered with us
+                xcb_destroy_window(state->xcb, window);
+
+                return NO_ERROR;
+        }
+
+        struct client *client = workspace_find_window_client(workspace, window);
+
+        if (client == NULL) {
+                LOG_WARNING(natwm_logger,
+                            "Failed to find client during destroy");
+
+                xcb_destroy_window(state->xcb, window);
+
+                return NOT_FOUND_ERROR;
+        }
+
+        enum natwm_error err
+                = workspace_remove_client(state, workspace, client);
+
+        if (err != NO_ERROR) {
+                LOG_WARNING(natwm_logger,
+                            "Failed to remove client from workspace");
+
+                return err;
+        }
+
+        xcb_change_save_set(state->xcb, XCB_SET_MODE_DELETE, client->window);
+
+        xcb_destroy_window(state->xcb, client->window);
+
+        client_destroy(client);
 
         return NO_ERROR;
 }
