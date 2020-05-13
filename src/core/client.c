@@ -395,8 +395,6 @@ enum natwm_error client_handle_button_press(struct natwm_state *state,
                         state, workspace, client);
         }
 
-        LOG_INFO(natwm_logger, "Another button event");
-
         return NO_ERROR;
 }
 
