@@ -11,6 +11,7 @@
 #include "client.h"
 #include "ewmh.h"
 #include "monitor.h"
+#include "mouse.h"
 #include "workspace.h"
 
 static void configure_window(xcb_connection_t *connection,
@@ -264,6 +265,139 @@ struct client *client_create(xcb_window_t window, xcb_rectangle_t rect,
         return client;
 }
 
+struct client *client_register_window(struct natwm_state *state,
+                                      xcb_window_t window)
+{
+        // Get window attributes
+        xcb_get_window_attributes_reply_t *attributes
+                = get_window_attributes(state->xcb, window);
+
+        if (attributes == NULL) {
+                goto handle_no_register;
+        }
+
+        if (attributes->override_redirect) {
+                goto handle_no_register;
+        }
+
+        free(attributes);
+
+        struct workspace *focused_workspace
+                = workspace_list_get_focused(state->workspace_list);
+        struct monitor *workspace_monitor = monitor_list_get_workspace_monitor(
+                state->monitor_list, focused_workspace);
+        enum natwm_error err = GENERIC_ERROR;
+
+        if (focused_workspace == NULL || workspace_monitor == NULL) {
+                // Should not happen
+                LOG_WARNING(natwm_logger,
+                            "Failed to register window - Invalid focused "
+                            "workspace or monitor");
+
+                return NULL;
+        }
+
+        // First get the rect for the window
+        xcb_rectangle_t rect = {0};
+        xcb_size_hints_t *hints = NULL;
+
+        if (get_window_rect(state->xcb, window, &rect) != NO_ERROR) {
+                return NULL;
+        }
+
+        if (get_size_hints(state->xcb, window, &hints) != NO_ERROR) {
+                return NULL;
+        }
+
+        struct client *client = client_create(window, rect, hints);
+
+        if (client == NULL) {
+                return NULL;
+        }
+
+        // Load the client theme from the workspace list
+        struct client_theme *theme = state->workspace_list->theme;
+
+        // Adjust window rect to fit workspace monitor
+        client->rect = client_initialize_rect(client,
+                                              theme->border_width->unfocused,
+                                              workspace_monitor->rect);
+
+        // Set the adjusted rect to the client window
+        uint16_t mask = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y
+                | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT
+                | XCB_CONFIG_WINDOW_BORDER_WIDTH;
+        uint32_t values[] = {
+                (uint16_t)client->rect.x,
+                (uint16_t)client->rect.y,
+                client->rect.width,
+                client->rect.height,
+                theme->border_width->unfocused,
+        };
+
+        xcb_configure_window(state->xcb, client->window, mask, values);
+
+        xcb_change_save_set(state->xcb, XCB_SET_MODE_INSERT, client->window);
+
+        err = workspace_add_client(state, focused_workspace, client);
+
+        if (err != NO_ERROR) {
+                LOG_WARNING(natwm_logger, "Failed to add client to workspace");
+
+                goto handle_error;
+        }
+
+        client_update_hints(state, client, CLIENT_HINTS_ALL);
+
+        // Listen for button events
+        mouse_initialize_client_listeners(state, client);
+
+        xcb_map_window(state->xcb, client->window);
+
+        xcb_flush(state->xcb);
+
+        return client;
+
+handle_no_register:
+        free(attributes);
+
+        // Handle a case where we should just directly map the window
+        xcb_map_window(state->xcb, window);
+
+        return NULL;
+
+handle_error:
+        client_destroy(client);
+
+        return NULL;
+}
+
+enum natwm_error client_handle_button_press(struct natwm_state *state,
+                                            xcb_button_press_event_t *event)
+{
+        struct workspace *workspace = workspace_list_find_window_workspace(
+                state->workspace_list, event->event);
+
+        if (workspace == NULL) {
+                // Not registered with us - just pass it along
+                return NO_ERROR;
+        }
+
+        struct client *client
+                = workspace_find_window_client(workspace, event->event);
+
+        if (client == NULL) {
+                return RESOLUTION_FAILURE;
+        }
+
+        if (event->state == XCB_NONE) {
+                return workspace_focus_existing_client(
+                        state, workspace, client);
+        }
+
+        return NO_ERROR;
+}
+
 enum natwm_error client_configure_window(struct natwm_state *state,
                                          xcb_configure_request_event_t *event)
 {
@@ -358,6 +492,38 @@ handle_not_registered:
         return NO_ERROR;
 }
 
+enum natwm_error client_unmap_window(struct natwm_state *state,
+                                     xcb_window_t window)
+{
+        struct workspace *workspace = workspace_list_find_window_workspace(
+                state->workspace_list, window);
+
+        if (workspace == NULL) {
+                // We do not have this window in our registry
+
+                xcb_unmap_window(state->xcb, window);
+
+                return NO_ERROR;
+        }
+
+        struct client *client = workspace_find_window_client(workspace, window);
+
+        if (client == NULL) {
+                LOG_ERROR(natwm_logger,
+                          "Failed to find registered client during unmap");
+
+                xcb_unmap_window(state->xcb, window);
+
+                return NOT_FOUND_ERROR;
+        }
+
+        client->state = CLIENT_HIDDEN;
+
+        workspace_reset_focus(state, workspace);
+
+        return NO_ERROR;
+}
+
 enum natwm_error client_destroy_window(struct natwm_state *state,
                                        xcb_window_t window)
 {
@@ -397,142 +563,6 @@ enum natwm_error client_destroy_window(struct natwm_state *state,
         xcb_destroy_window(state->xcb, client->window);
 
         client_destroy(client);
-
-        return NO_ERROR;
-}
-
-struct client *client_register_window(struct natwm_state *state,
-                                      xcb_window_t window)
-{
-        // Get window attributes
-        xcb_get_window_attributes_reply_t *attributes
-                = get_window_attributes(state->xcb, window);
-
-        if (attributes == NULL) {
-                goto handle_no_register;
-        }
-
-        if (attributes->override_redirect) {
-                goto handle_no_register;
-        }
-
-        free(attributes);
-
-        struct workspace *focused_workspace
-                = workspace_list_get_focused(state->workspace_list);
-        struct monitor *workspace_monitor = monitor_list_get_workspace_monitor(
-                state->monitor_list, focused_workspace);
-        enum natwm_error err = GENERIC_ERROR;
-
-        if (focused_workspace == NULL || workspace_monitor == NULL) {
-                // Should not happen
-                LOG_WARNING(natwm_logger,
-                            "Failed to register window - Invalid focused "
-                            "workspace or monitor");
-
-                return NULL;
-        }
-
-        // First get the rect for the window
-        xcb_rectangle_t rect = {0};
-        xcb_size_hints_t *hints = NULL;
-
-        if (get_window_rect(state->xcb, window, &rect) != NO_ERROR) {
-                return NULL;
-        }
-
-        if (get_size_hints(state->xcb, window, &hints) != NO_ERROR) {
-                return NULL;
-        }
-
-        struct client *client = client_create(window, rect, hints);
-
-        if (client == NULL) {
-                return NULL;
-        }
-
-        // Load the client theme from the workspace list
-        struct client_theme *theme = state->workspace_list->theme;
-
-        // Adjust window rect to fit workspace monitor
-        client->rect = client_initialize_rect(client,
-                                              theme->border_width->unfocused,
-                                              workspace_monitor->rect);
-
-        // Set the adjusted rect to the client window
-        uint16_t mask = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y
-                | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT
-                | XCB_CONFIG_WINDOW_BORDER_WIDTH;
-        uint32_t values[] = {
-                (uint16_t)client->rect.x,
-                (uint16_t)client->rect.y,
-                client->rect.width,
-                client->rect.height,
-                theme->border_width->unfocused,
-        };
-
-        xcb_configure_window(state->xcb, client->window, mask, values);
-
-        xcb_change_save_set(state->xcb, XCB_SET_MODE_INSERT, client->window);
-
-        err = workspace_add_client(state, focused_workspace, client);
-
-        if (err != NO_ERROR) {
-                LOG_WARNING(natwm_logger, "Failed to add client to workspace");
-
-                goto handle_error;
-        }
-
-        client_update_hints(state, client, CLIENT_HINTS_ALL);
-
-        xcb_map_window(state->xcb, client->window);
-
-        xcb_flush(state->xcb);
-
-        return client;
-
-handle_no_register:
-        free(attributes);
-
-        // Handle a case where we should just directly map the window
-        xcb_map_window(state->xcb, window);
-
-        return NULL;
-
-handle_error:
-        client_destroy(client);
-
-        return NULL;
-}
-
-enum natwm_error client_unmap_window(struct natwm_state *state,
-                                     xcb_window_t window)
-{
-        struct workspace *workspace = workspace_list_find_window_workspace(
-                state->workspace_list, window);
-
-        if (workspace == NULL) {
-                // We do not have this window in our registry
-
-                xcb_unmap_window(state->xcb, window);
-
-                return NO_ERROR;
-        }
-
-        struct client *client = workspace_find_window_client(workspace, window);
-
-        if (client == NULL) {
-                LOG_ERROR(natwm_logger,
-                          "Failed to find registered client during unmap");
-
-                xcb_unmap_window(state->xcb, window);
-
-                return NOT_FOUND_ERROR;
-        }
-
-        client->state = CLIENT_HIDDEN;
-
-        workspace_reset_focus(state, workspace);
 
         return NO_ERROR;
 }
@@ -627,6 +657,13 @@ void client_set_focused(const struct natwm_state *state, struct client *client)
                 return;
         }
 
+        // Now that we have focused the client, there is no need for "click to
+        // focus" so we can remove the button grab
+        xcb_ungrab_button(state->xcb,
+                          client_focus_event.button,
+                          client->window,
+                          client_focus_event.modifiers);
+
         update_theme(state, client, theme->border_width->unfocused);
 }
 
@@ -644,6 +681,11 @@ void client_set_unfocused(const struct natwm_state *state,
         if (client->state != CLIENT_NORMAL) {
                 return;
         }
+
+        // When a client is unfocused we need to grab the mouse button required
+        // for "click to focus"
+        mouse_event_grab_button(
+                state->xcb, client->window, &client_focus_event);
 
         update_theme(state, client, theme->border_width->focused);
 }
@@ -740,4 +782,6 @@ void client_destroy(struct client *client)
         free(client->size_hints);
 
         free(client);
+
+        client = NULL;
 }
