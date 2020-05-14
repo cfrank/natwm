@@ -531,6 +531,13 @@ enum natwm_error client_destroy_window(struct natwm_state *state,
                 state->workspace_list, window);
 
         if (workspace == NULL) {
+                struct workspace_list *workspace_list = state->workspace_list;
+                struct workspace *active_workspace
+                        = workspace_list
+                                  ->workspaces[workspace_list->active_index];
+
+                workspace_reset_input_focus(state, active_workspace);
+
                 // This window is not registered with us
                 xcb_destroy_window(state->xcb, window);
 
@@ -639,6 +646,17 @@ client_get_active_border_color(const struct client_theme *theme,
         return theme->color->unfocused;
 }
 
+void client_set_input_focus(const struct natwm_state *state,
+                            struct client *client)
+{
+        ewmh_update_active_window(state, client->window);
+
+        xcb_set_input_focus(state->xcb,
+                            XCB_INPUT_FOCUS_POINTER_ROOT,
+                            client->window,
+                            XCB_TIME_CURRENT_TIME);
+}
+
 void client_set_focused(const struct natwm_state *state, struct client *client)
 {
         if (client == NULL || client->is_focused) {
@@ -649,12 +667,7 @@ void client_set_focused(const struct natwm_state *state, struct client *client)
 
         client->is_focused = true;
 
-        ewmh_update_active_window(state, client->window);
-
-        xcb_set_input_focus(state->xcb,
-                            XCB_INPUT_FOCUS_POINTER_ROOT,
-                            client->window,
-                            XCB_TIME_CURRENT_TIME);
+        client_set_input_focus(state, client);
 
         update_stack_mode(state, client, XCB_STACK_MODE_ABOVE);
 

@@ -49,6 +49,8 @@ enum natwm_error workspace_focus_existing_client(struct natwm_state *state,
 enum natwm_error workspace_unfocus_existing_client(struct natwm_state *state,
                                                    struct workspace *workspace,
                                                    struct client *client);
+void workspace_reset_input_focus(struct natwm_state *state,
+                                 struct workspace *workspace);
 enum natwm_error workspace_reset_focus(struct natwm_state *state,
                                        struct workspace *workspace);
 struct workspace *workspace_list_get_focused(const struct workspace_list *list);

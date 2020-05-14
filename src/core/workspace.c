@@ -191,7 +191,7 @@ static void focus_client(struct natwm_state *state, struct workspace *workspace,
 }
 
 // Focus on the root window when there is no other windows to focus
-static void reset_focus(const struct natwm_state *state)
+static void reset_input_focus(const struct natwm_state *state)
 {
         ewmh_update_active_window(state, state->screen->root);
 
@@ -258,7 +258,7 @@ enum natwm_error workspace_list_init(const struct natwm_state *state,
         ewmh_update_current_desktop(state, workspace_list->active_index);
         ewmh_update_desktop_names(state, workspace_list);
 
-        reset_focus(state);
+        reset_input_focus(state);
 
         *result = workspace_list;
 
@@ -345,9 +345,35 @@ enum natwm_error workspace_reset_focus(struct natwm_state *state,
         // There are no more clients on this workspace
         workspace->active_client = NULL;
 
-        reset_focus(state);
+        reset_input_focus(state);
 
         return NOT_FOUND_ERROR;
+}
+
+// This is a more simple version of workspace_reset_focus - all it does is
+// reset the input focus of the first client it can find, falling back to the
+// root window.
+void workspace_reset_input_focus(struct natwm_state *state,
+                                 struct workspace *workspace)
+{
+        if (!workspace->is_visible) {
+                return;
+        }
+
+        LIST_FOR_EACH(workspace->clients, node)
+        {
+                struct client *client = get_client_from_client_node(node);
+
+                if (client->state == CLIENT_HIDDEN) {
+                        continue;
+                }
+
+                client_set_input_focus(state, client);
+
+                return;
+        }
+
+        reset_input_focus(state);
 }
 
 enum natwm_error workspace_add_client(struct natwm_state *state,
