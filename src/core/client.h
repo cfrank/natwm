@@ -67,6 +67,8 @@ uint16_t client_get_active_border_width(const struct client_theme *theme,
 struct color_value *
 client_get_active_border_color(const struct client_theme *theme,
                                const struct client *client);
+void client_set_input_focus(const struct natwm_state *state,
+                            struct client *client);
 void client_set_focused(const struct natwm_state *state, struct client *client);
 void client_set_unfocused(const struct natwm_state *state,
                           struct client *client);

@@ -337,24 +337,24 @@ struct client *client_register_window(struct natwm_state *state,
 
         xcb_configure_window(state->xcb, client->window, mask, values);
 
+        // Listen for button events
+        mouse_initialize_client_listeners(state, client);
+
         xcb_change_save_set(state->xcb, XCB_SET_MODE_INSERT, client->window);
+
+        xcb_map_window(state->xcb, client->window);
 
         err = workspace_add_client(state, focused_workspace, client);
 
         if (err != NO_ERROR) {
                 LOG_WARNING(natwm_logger, "Failed to add client to workspace");
 
+                xcb_unmap_window(state->xcb, client->window);
+
                 goto handle_error;
         }
 
         client_update_hints(state, client, CLIENT_HINTS_ALL);
-
-        // Listen for button events
-        mouse_initialize_client_listeners(state, client);
-
-        xcb_map_window(state->xcb, client->window);
-
-        xcb_flush(state->xcb);
 
         return client;
 
@@ -532,6 +532,11 @@ enum natwm_error client_destroy_window(struct natwm_state *state,
 
         if (workspace == NULL) {
                 // This window is not registered with us
+                struct workspace *active_workspace
+                        = workspace_list_get_focused(state->workspace_list);
+
+                workspace_reset_input_focus(state, active_workspace);
+
                 xcb_destroy_window(state->xcb, window);
 
                 return NO_ERROR;
@@ -639,6 +644,17 @@ client_get_active_border_color(const struct client_theme *theme,
         return theme->color->unfocused;
 }
 
+void client_set_input_focus(const struct natwm_state *state,
+                            struct client *client)
+{
+        ewmh_update_active_window(state, client->window);
+
+        xcb_set_input_focus(state->xcb,
+                            XCB_INPUT_FOCUS_POINTER_ROOT,
+                            client->window,
+                            XCB_TIME_CURRENT_TIME);
+}
+
 void client_set_focused(const struct natwm_state *state, struct client *client)
 {
         if (client == NULL || client->is_focused) {
@@ -649,7 +665,7 @@ void client_set_focused(const struct natwm_state *state, struct client *client)
 
         client->is_focused = true;
 
-        ewmh_update_active_window(state, client->window);
+        client_set_input_focus(state, client);
 
         update_stack_mode(state, client, XCB_STACK_MODE_ABOVE);
 
