@@ -531,12 +531,12 @@ enum natwm_error client_destroy_window(struct natwm_state *state,
                 state->workspace_list, window);
 
         if (workspace == NULL) {
+                // This window is not registered with us
                 struct workspace *active_workspace
                         = workspace_list_get_focused(state->workspace_list);
 
                 workspace_reset_input_focus(state, active_workspace);
 
-                // This window is not registered with us
                 xcb_destroy_window(state->xcb, window);
 
                 return NO_ERROR;
