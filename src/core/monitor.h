@@ -7,6 +7,7 @@
 #include <xcb/xcb.h>
 
 #include <common/list.h>
+#include <common/types.h>
 
 #include "state.h"
 #include "workspace.h"
@@ -30,6 +31,7 @@ struct monitor {
         // contexts this is unused.
         uint32_t id;
         xcb_rectangle_t rect;
+        struct box_sizes offsets;
         struct workspace *workspace;
 };
 
@@ -52,5 +54,6 @@ struct monitor *monitor_create(uint32_t id, xcb_rectangle_t rect,
                                struct workspace *workspace);
 enum natwm_error monitor_setup(const struct natwm_state *state,
                                struct monitor_list **result);
+xcb_rectangle_t monitor_get_offset_rect(const struct monitor *monitor);
 void monitor_list_destroy(struct monitor_list *monitor_list);
 void monitor_destroy(struct monitor *monitor);
