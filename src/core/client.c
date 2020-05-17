@@ -317,11 +317,12 @@ struct client *client_register_window(struct natwm_state *state,
 
         // Load the client theme from the workspace list
         struct client_theme *theme = state->workspace_list->theme;
+        xcb_rectangle_t workspace_monitor_rect
+                = monitor_get_offset_rect(workspace_monitor);
 
         // Adjust window rect to fit workspace monitor
-        client->rect = client_initialize_rect(client,
-                                              theme->border_width->unfocused,
-                                              workspace_monitor->rect);
+        client->rect = client_initialize_rect(
+                client, theme->border_width->unfocused, workspace_monitor_rect);
 
         // Set the adjusted rect to the client window
         uint16_t mask = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y
@@ -418,6 +419,7 @@ enum natwm_error client_configure_window(struct natwm_state *state,
                 return RESOLUTION_FAILURE;
         }
 
+        xcb_rectangle_t monitor_rect = monitor_get_offset_rect(monitor);
         xcb_rectangle_t new_rect = client->rect;
         xcb_configure_request_event_t new_event = *event;
 
@@ -453,7 +455,7 @@ enum natwm_error client_configure_window(struct natwm_state *state,
                 }
         }
 
-        client->rect = clamp_rect_to_monitor(new_rect, monitor->rect);
+        client->rect = clamp_rect_to_monitor(new_rect, monitor_rect);
 
         new_event.x = client->rect.x;
         new_event.y = client->rect.y;
@@ -500,7 +502,6 @@ enum natwm_error client_unmap_window(struct natwm_state *state,
 
         if (workspace == NULL) {
                 // We do not have this window in our registry
-
                 xcb_unmap_window(state->xcb, window);
 
                 return NO_ERROR;

@@ -75,14 +75,7 @@ static void monitor_list_set_offsets(const struct natwm_state *state,
                         break;
                 }
 
-                // This has a possibility of overflowing if the user
-                // inputs silly data into their configuration file.
-                monitor->rect.x = (int16_t)(monitor->rect.x + offsets.left);
-                monitor->rect.y = (int16_t)(monitor->rect.y + offsets.top);
-                monitor->rect.width = (uint16_t)(
-                        monitor->rect.width - (offsets.left + offsets.right));
-                monitor->rect.height = (uint16_t)(
-                        monitor->rect.height - (offsets.top + offsets.bottom));
+                monitor->offsets = offsets;
 
                 ++index;
         }
@@ -391,6 +384,31 @@ enum natwm_error monitor_setup(const struct natwm_state *state,
         *result = monitor_list;
 
         return NO_ERROR;
+}
+
+xcb_rectangle_t monitor_get_offset_rect(const struct monitor *monitor)
+{
+        xcb_rectangle_t rect = {
+                .x = 0,
+                .y = 0,
+                .width = 0,
+                .height = 0,
+        };
+
+        if (monitor == NULL) {
+                return rect;
+        }
+
+        struct box_sizes offsets = monitor->offsets;
+
+        rect.x = (int16_t)(monitor->rect.x + offsets.left);
+        rect.y = (int16_t)(monitor->rect.y + offsets.top);
+        rect.width = (uint16_t)(monitor->rect.width
+                                - (offsets.left + offsets.right));
+        rect.height = (uint16_t)(monitor->rect.height
+                                 - (offsets.top + offsets.bottom));
+
+        return rect;
 }
 
 void monitor_list_destroy(struct monitor_list *monitor_list)

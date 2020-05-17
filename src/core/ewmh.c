@@ -176,9 +176,10 @@ void ewmh_update_desktop_viewport(const struct natwm_state *state,
         LIST_FOR_EACH(list->monitors, monitor_item)
         {
                 struct monitor *monitor = (struct monitor *)monitor_item->data;
+                xcb_rectangle_t rect = monitor_get_offset_rect(monitor);
 
-                viewports[index].x = (uint32_t)monitor->rect.x;
-                viewports[index].y = (uint32_t)monitor->rect.y;
+                viewports[index].x = (uint32_t)rect.x;
+                viewports[index].y = (uint32_t)rect.y;
 
                 ++index;
         }

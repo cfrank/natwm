@@ -2,6 +2,7 @@
 // Licensed under BSD-3-Clause
 // Refer to the license.txt file included in the root of the project
 
+#include <assert.h>
 #include <errno.h>
 #include <stdint.h>
 #include <sys/select.h>
@@ -30,6 +31,8 @@ enum natwm_error config_array_to_box_sizes(const struct config_array *array,
                 if (value == NULL || value->type != NUMBER) {
                         return INVALID_INPUT_ERROR;
                 }
+
+                assert(value->data.number <= UINT16_MAX);
         }
 
         sizes.top = (uint16_t)array->values[0]->data.number;
