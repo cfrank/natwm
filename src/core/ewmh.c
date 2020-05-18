@@ -70,8 +70,6 @@ void ewmh_init(const struct natwm_state *state)
         xcb_atom_t net_atoms[] = {
                 // Root window properties
                 state->ewmh->_NET_SUPPORTED,
-                state->ewmh->_NET_CLIENT_LIST,
-                state->ewmh->_NET_CLIENT_LIST_STACKING,
                 state->ewmh->_NET_NUMBER_OF_DESKTOPS,
                 state->ewmh->_NET_DESKTOP_VIEWPORT,
                 state->ewmh->_NET_CURRENT_DESKTOP,
@@ -86,22 +84,12 @@ void ewmh_init(const struct natwm_state *state)
                 state->ewmh->_NET_WM_DESKTOP,
                 state->ewmh->_NET_WM_WINDOW_TYPE,
                 state->ewmh->_NET_WM_STATE,
-                state->ewmh->_NET_WM_ALLOWED_ACTIONS,
-                state->ewmh->_NET_WM_STRUT,
-                state->ewmh->_NET_WM_STRUT_PARTIAL,
                 state->ewmh->_NET_WM_PID,
                 // Window types
                 // TODO: Add more
-                state->ewmh->_NET_WM_WINDOW_TYPE_DOCK,
-                state->ewmh->_NET_WM_WINDOW_TYPE_TOOLBAR,
-                state->ewmh->_NET_WM_WINDOW_TYPE_SPLASH,
                 state->ewmh->_NET_WM_WINDOW_TYPE_NORMAL,
                 // Window States
-                state->ewmh->_NET_WM_STATE_STICKY,
-                state->ewmh->_NET_WM_STATE_MAXIMIZED_VERT,
-                state->ewmh->_NET_WM_STATE_MAXIMIZED_HORZ,
                 state->ewmh->_NET_WM_STATE_FULLSCREEN,
-                state->ewmh->_NET_WM_STATE_DEMANDS_ATTENTION,
         };
 
         size_t len = (sizeof(net_atoms) / sizeof(xcb_atom_t));
@@ -119,6 +107,8 @@ void ewmh_init(const struct natwm_state *state)
 
         xcb_ewmh_set_supporting_wm_check(
                 state->ewmh, state->screen->root, supporting_win);
+        xcb_ewmh_set_supporting_wm_check(
+                state->ewmh, supporting_win, supporting_win);
 
         // Set the WM name on the supporting win
         xcb_ewmh_set_wm_name(state->ewmh,
