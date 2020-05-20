@@ -9,8 +9,6 @@
 #include <common/constants.h>
 
 #include "ewmh.h"
-#include "monitor.h"
-#include "workspace.h"
 
 // Create a simple window for the _NET_SUPPORTING_WM_CHECK property
 //
@@ -148,6 +146,94 @@ bool ewmh_is_normal_window(const struct natwm_state *state, xcb_window_t window)
         xcb_ewmh_get_atoms_reply_wipe(&result);
 
         return true;
+}
+
+enum natwm_error ewmh_add_wm_state_values(const struct natwm_state *state,
+                                          xcb_atom_t *atoms,
+                                          size_t atoms_length,
+                                          xcb_window_t window)
+{
+        xcb_ewmh_get_atoms_reply_t data;
+        xcb_get_property_cookie_t cookie
+                = xcb_ewmh_get_wm_state(state->ewmh, window);
+
+        if (!xcb_ewmh_get_wm_state_reply(state->ewmh, cookie, &data, NULL)) {
+                return RESOLUTION_FAILURE;
+        }
+
+        uint32_t list_length = (uint32_t)(data.atoms_len + atoms_length);
+        xcb_atom_t *list = malloc(sizeof(xcb_atom_t) * list_length);
+
+        if (list == NULL) {
+                xcb_ewmh_get_atoms_reply_wipe(&data);
+
+                return MEMORY_ALLOCATION_ERROR;
+        }
+
+        memcpy(list, data.atoms, sizeof(xcb_atom_t));
+
+        for (size_t i = (data.atoms_len - 1); i < atoms_length; ++i) {
+                list[i] = atoms[(i - data.atoms_len) - 1];
+        }
+
+        xcb_ewmh_set_wm_state(state->ewmh, window, list_length, list);
+
+        free(list);
+
+        xcb_ewmh_get_atoms_reply_wipe(&data);
+
+        return NO_ERROR;
+}
+
+enum natwm_error ewmh_remove_wm_state_values(const struct natwm_state *state,
+                                             xcb_atom_t *atoms,
+                                             size_t atoms_length,
+                                             xcb_window_t window)
+{
+        xcb_ewmh_get_atoms_reply_t data;
+        xcb_get_property_cookie_t cookie
+                = xcb_ewmh_get_wm_state_unchecked(state->ewmh, window);
+
+        if (!xcb_ewmh_get_wm_state_reply(state->ewmh, cookie, &data, NULL)) {
+                return RESOLUTION_FAILURE;
+        }
+
+        xcb_atom_t *list = malloc(sizeof(xcb_atom_t) * data.atoms_len);
+
+        if (list == NULL) {
+                xcb_ewmh_get_atoms_reply_wipe(&data);
+
+                return MEMORY_ALLOCATION_ERROR;
+        }
+
+        uint32_t list_length = 0;
+
+        for (size_t i = 0; i < data.atoms_len; ++i) {
+                for (size_t j = 0; j < atoms_length; ++j) {
+                        if (data.atoms[i] == atoms[j]) {
+                                goto cont;
+                        }
+                }
+
+                list[list_length] = data.atoms[i];
+                list_length++;
+
+        cont:
+                continue;
+        }
+
+        if (list_length == data.atoms_len) {
+                // We didn't do anything
+                return NO_ERROR;
+        }
+
+        xcb_ewmh_set_wm_state(state->ewmh, window, list_length, list);
+
+        free(list);
+
+        xcb_ewmh_get_atoms_reply_wipe(&data);
+
+        return NO_ERROR;
 }
 
 void ewmh_update_active_window(const struct natwm_state *state,
