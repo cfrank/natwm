@@ -3,6 +3,7 @@
 // Refer to the license.txt file included in the root of the project
 
 #include <xcb/randr.h>
+#include <xcb/xcb.h>
 
 #include <common/constants.h>
 #include <common/logger.h>
@@ -20,6 +21,24 @@ event_handle_button_press(struct natwm_state *state,
                           xcb_button_press_event_t *event)
 {
         return client_handle_button_press(state, event);
+}
+
+static enum natwm_error
+event_handle_client_message(struct natwm_state *state,
+                            xcb_client_message_event_t *event)
+{
+        xcb_atom_t state_atom = (event->data.data32[1] != NO_ERROR)
+                ? event->data.data32[1]
+                : event->data.data32[2];
+
+        if (state_atom == state->ewmh->_NET_WM_STATE_FULLSCREEN) {
+                xcb_ewmh_wm_state_action_t action = event->data.data32[0];
+
+                return client_handle_fullscreen_window(
+                        state, action, event->window);
+        }
+
+        return NO_ERROR;
 }
 
 static enum natwm_error
@@ -82,6 +101,10 @@ enum natwm_error event_handle(struct natwm_state *state,
         case XCB_BUTTON_PRESS:
                 err = event_handle_button_press(
                         state, (xcb_button_press_event_t *)event);
+                break;
+        case XCB_CLIENT_MESSAGE:
+                err = event_handle_client_message(
+                        state, (xcb_client_message_event_t *)event);
                 break;
         case XCB_CONFIGURE_REQUEST:
                 err = event_handle_configure_request(
