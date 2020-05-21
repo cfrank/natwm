@@ -69,7 +69,7 @@ uint16_t client_get_active_border_width(const struct client_theme *theme,
 struct color_value *
 client_get_active_border_color(const struct client_theme *theme,
                                const struct client *client);
-enum natwm_error client_unset_fullscreen(struct natwm_state *state,
+enum natwm_error client_unset_fullscreen(const struct natwm_state *state,
                                          struct client *client);
 enum natwm_error client_set_fullscreen(const struct natwm_state *state,
                                        struct client *client);
@@ -77,11 +77,13 @@ enum natwm_error
 client_handle_fullscreen_window(struct natwm_state *state,
                                 xcb_ewmh_wm_state_action_t action,
                                 xcb_window_t window);
-void client_set_input_focus(const struct natwm_state *state,
-                            struct client *client);
+void client_set_window_input_focus(const struct natwm_state *state,
+                                   xcb_window_t window);
 void client_set_focused(const struct natwm_state *state, struct client *client);
 void client_set_unfocused(const struct natwm_state *state,
                           struct client *client);
+enum natwm_error client_focus_window(const struct natwm_state *state,
+                                     xcb_window_t window);
 enum natwm_error client_update_hints(const struct natwm_state *state,
                                      const struct client *client,
                                      enum client_hints hints);

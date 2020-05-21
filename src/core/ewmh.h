@@ -16,14 +16,10 @@ xcb_ewmh_connection_t *ewmh_create(xcb_connection_t *xcb_connection);
 void ewmh_init(const struct natwm_state *state);
 bool ewmh_is_normal_window(const struct natwm_state *state,
                            xcb_window_t window);
-enum natwm_error ewmh_add_wm_state_values(const struct natwm_state *state,
-                                          xcb_atom_t *atoms,
-                                          size_t atoms_length,
-                                          xcb_window_t window);
-enum natwm_error ewmh_remove_wm_state_values(const struct natwm_state *state,
-                                             xcb_atom_t *atoms,
-                                             size_t atoms_length,
-                                             xcb_window_t window);
+void ewmh_add_window_state(const struct natwm_state *state, xcb_window_t window,
+                           xcb_atom_t atom);
+void ewmh_remove_window_state(const struct natwm_state *state,
+                              xcb_window_t window);
 void ewmh_update_active_window(const struct natwm_state *state,
                                xcb_window_t window);
 void ewmh_update_desktop_viewport(const struct natwm_state *state,
