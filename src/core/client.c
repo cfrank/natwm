@@ -177,6 +177,11 @@ static xcb_rectangle_t clamp_rect_to_monitor(xcb_rectangle_t rect,
 static void update_theme(const struct natwm_state *state, struct client *client,
                          uint16_t previous_border_width)
 {
+        if (client->is_fullscreen) {
+                // No need to upate theme if client is fullscreen
+                return;
+        }
+
         uint16_t current_border_width = client_get_active_border_width(
                 state->workspace_list->theme, client);
         const struct color_value *border_color = client_get_active_border_color(
