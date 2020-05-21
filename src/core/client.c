@@ -177,6 +177,11 @@ static xcb_rectangle_t clamp_rect_to_monitor(xcb_rectangle_t rect,
 static void update_theme(const struct natwm_state *state, struct client *client,
                          uint16_t previous_border_width)
 {
+        if (client->is_fullscreen) {
+                // No need to upate theme if client is fullscreen
+                return;
+        }
+
         uint16_t current_border_width = client_get_active_border_width(
                 state->workspace_list->theme, client);
         const struct color_value *border_color = client_get_active_border_color(
@@ -260,6 +265,7 @@ struct client *client_create(xcb_window_t window, xcb_rectangle_t rect,
         }
 
         client->is_focused = false;
+        client->is_fullscreen = false;
         client->state = CLIENT_NORMAL;
 
         return client;
@@ -643,6 +649,112 @@ client_get_active_border_color(const struct client_theme *theme,
         }
 
         return theme->color->unfocused;
+}
+
+enum natwm_error client_set_fullscreen(const struct natwm_state *state,
+                                       struct client *client)
+{
+        struct workspace *workspace = workspace_list_find_client_workspace(
+                state->workspace_list, client);
+
+        if (workspace == NULL) {
+                return NOT_FOUND_ERROR;
+        }
+
+        struct monitor *monitor = monitor_list_get_workspace_monitor(
+                state->monitor_list, workspace);
+
+        if (monitor == NULL) {
+                return RESOLUTION_FAILURE;
+        }
+
+        uint16_t mask = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y
+                | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT
+                | XCB_CONFIG_WINDOW_BORDER_WIDTH;
+        uint32_t values[] = {
+                (uint16_t)monitor->rect.x,
+                (uint16_t)monitor->rect.y,
+                monitor->rect.width,
+                monitor->rect.height,
+                0,
+        };
+
+        client->is_fullscreen = true;
+
+        xcb_atom_t atoms[] = {
+                state->ewmh->_NET_WM_STATE_FULLSCREEN,
+        };
+
+        ewmh_add_wm_state_values(state, atoms, 1, client->window);
+
+        xcb_configure_window(state->xcb, client->window, mask, values);
+
+        return NO_ERROR;
+}
+
+enum natwm_error client_unset_fullscreen(struct natwm_state *state,
+                                         struct client *client)
+{
+        struct workspace *workspace = workspace_list_find_client_workspace(
+                state->workspace_list, client);
+
+        if (workspace == NULL) {
+                return NOT_FOUND_ERROR;
+        }
+
+        struct client_theme *theme = state->workspace_list->theme;
+        uint16_t border_width = client_get_active_border_width(theme, client);
+        uint16_t mask = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y
+                | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT
+                | XCB_CONFIG_WINDOW_BORDER_WIDTH;
+        uint32_t values[] = {
+                (uint16_t)client->rect.x,
+                (uint16_t)client->rect.y,
+                client->rect.width,
+                client->rect.height,
+                border_width,
+        };
+
+        client->is_fullscreen = false;
+
+        xcb_atom_t atoms[] = {
+                state->ewmh->_NET_WM_STATE_FULLSCREEN,
+        };
+
+        ewmh_remove_wm_state_values(state, atoms, 1, client->window);
+
+        xcb_configure_window(state->xcb, client->window, mask, values);
+
+        return NO_ERROR;
+}
+
+enum natwm_error
+client_handle_fullscreen_window(struct natwm_state *state,
+                                xcb_ewmh_wm_state_action_t action,
+                                xcb_window_t window)
+{
+        struct workspace *workspace = workspace_list_find_window_workspace(
+                state->workspace_list, window);
+
+        if (workspace == NULL) {
+                // window is not registered with us - just ignore it
+                return NO_ERROR;
+        }
+
+        struct client *client = workspace_find_window_client(workspace, window);
+
+        switch (action) {
+        case XCB_EWMH_WM_STATE_ADD:
+                return client_set_fullscreen(state, client);
+        case XCB_EWMH_WM_STATE_REMOVE:
+                return client_unset_fullscreen(state, client);
+        case XCB_EWMH_WM_STATE_TOGGLE:
+                return (client->is_fullscreen)
+                        ? client_unset_fullscreen(state, client)
+                        : client_set_fullscreen(state, client);
+        }
+
+        return GENERIC_ERROR;
 }
 
 void client_set_input_focus(const struct natwm_state *state,
