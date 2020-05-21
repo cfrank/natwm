@@ -22,6 +22,7 @@ addons:
             - libxcb-keysyms1-dev
             - libxcb-ewmh-dev
             - libxcb-icccm4-dev
+            - libxcb-util-dev
 
 cache:
     apt: true
