@@ -57,6 +57,9 @@ enum natwm_error client_handle_button_press(struct natwm_state *state,
                                             xcb_button_press_event_t *event);
 enum natwm_error client_configure_window(struct natwm_state *state,
                                          xcb_configure_request_event_t *event);
+void client_configure_window_rect(xcb_connection_t *connection,
+                                  xcb_window_t window, xcb_rectangle_t rect,
+                                  uint32_t border_width);
 enum natwm_error client_unmap_window(struct natwm_state *state,
                                      xcb_window_t window);
 enum natwm_error client_destroy_window(struct natwm_state *state,

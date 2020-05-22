@@ -14,8 +14,8 @@
 #include "mouse.h"
 #include "workspace.h"
 
-static void configure_window(xcb_connection_t *connection,
-                             xcb_configure_request_event_t *event)
+static void handle_configure_request(xcb_connection_t *connection,
+                                     xcb_configure_request_event_t *event)
 {
         uint16_t mask = 0;
         uint32_t values[6];
@@ -327,19 +327,10 @@ struct client *client_register_window(struct natwm_state *state,
         client->rect = client_initialize_rect(
                 client, theme->border_width->unfocused, workspace_monitor_rect);
 
-        // Set the adjusted rect to the client window
-        uint16_t mask = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y
-                | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT
-                | XCB_CONFIG_WINDOW_BORDER_WIDTH;
-        uint32_t values[] = {
-                (uint16_t)client->rect.x,
-                (uint16_t)client->rect.y,
-                client->rect.width,
-                client->rect.height,
-                theme->border_width->unfocused,
-        };
-
-        xcb_configure_window(state->xcb, client->window, mask, values);
+        client_configure_window_rect(state->xcb,
+                                     client->window,
+                                     client->rect,
+                                     theme->border_width->unfocused);
 
         // Listen for button events
         mouse_initialize_client_listeners(state, client);
@@ -489,12 +480,30 @@ enum natwm_error client_configure_window(struct natwm_state *state,
                 }
         }
 
-        configure_window(state->xcb, &new_event);
+        handle_configure_request(state->xcb, &new_event);
 
 handle_not_registered:
-        configure_window(state->xcb, event);
+        handle_configure_request(state->xcb, event);
 
         return NO_ERROR;
+}
+
+void client_configure_window_rect(xcb_connection_t *connection,
+                                  xcb_window_t window, xcb_rectangle_t rect,
+                                  uint32_t border_width)
+{
+        uint16_t mask = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y
+                | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT
+                | XCB_CONFIG_WINDOW_BORDER_WIDTH;
+        uint32_t values[] = {
+                (uint16_t)rect.x,
+                (uint16_t)rect.y,
+                rect.width,
+                rect.height,
+                border_width,
+        };
+
+        xcb_configure_window(connection, window, mask, values);
 }
 
 enum natwm_error client_unmap_window(struct natwm_state *state,
@@ -660,23 +669,13 @@ enum natwm_error client_set_fullscreen(const struct natwm_state *state,
                 return RESOLUTION_FAILURE;
         }
 
-        uint16_t mask = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y
-                | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT
-                | XCB_CONFIG_WINDOW_BORDER_WIDTH;
-        uint32_t values[] = {
-                (uint16_t)monitor->rect.x,
-                (uint16_t)monitor->rect.y,
-                monitor->rect.width,
-                monitor->rect.height,
-                0,
-        };
-
         client->is_fullscreen = true;
 
         ewmh_add_window_state(
                 state, client->window, state->ewmh->_NET_WM_STATE_FULLSCREEN);
 
-        xcb_configure_window(state->xcb, client->window, mask, values);
+        client_configure_window_rect(
+                state->xcb, client->window, monitor->rect, 0);
 
         return NO_ERROR;
 }
@@ -686,22 +685,13 @@ enum natwm_error client_unset_fullscreen(const struct natwm_state *state,
 {
         struct client_theme *theme = state->workspace_list->theme;
         uint16_t border_width = client_get_active_border_width(theme, client);
-        uint16_t mask = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y
-                | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT
-                | XCB_CONFIG_WINDOW_BORDER_WIDTH;
-        uint32_t values[] = {
-                (uint16_t)client->rect.x,
-                (uint16_t)client->rect.y,
-                client->rect.width,
-                client->rect.height,
-                border_width,
-        };
 
         client->is_fullscreen = false;
 
         ewmh_remove_window_state(state, client->window);
 
-        xcb_configure_window(state->xcb, client->window, mask, values);
+        client_configure_window_rect(
+                state->xcb, client->window, client->rect, border_width);
 
         return NO_ERROR;
 }
