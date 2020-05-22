@@ -368,7 +368,7 @@ void workspace_reset_input_focus(struct natwm_state *state,
                         continue;
                 }
 
-                client_set_input_focus(state, client);
+                client_set_window_input_focus(state, client->window);
 
                 return;
         }

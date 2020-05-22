@@ -225,17 +225,14 @@ static void update_theme(const struct natwm_state *state, struct client *client,
 }
 
 static void update_stack_mode(const struct natwm_state *state,
-                              const struct client *client,
-                              xcb_stack_mode_t stack_mode)
+                              xcb_window_t window, xcb_stack_mode_t stack_mode)
 {
         uint32_t values[] = {
                 stack_mode,
         };
 
-        xcb_configure_window(state->xcb,
-                             client->window,
-                             XCB_CONFIG_WINDOW_STACK_MODE,
-                             values);
+        xcb_configure_window(
+                state->xcb, window, XCB_CONFIG_WINDOW_STACK_MODE, values);
 
         xcb_flush(state->xcb);
 }
@@ -656,11 +653,6 @@ enum natwm_error client_set_fullscreen(const struct natwm_state *state,
 {
         struct workspace *workspace = workspace_list_find_client_workspace(
                 state->workspace_list, client);
-
-        if (workspace == NULL) {
-                return NOT_FOUND_ERROR;
-        }
-
         struct monitor *monitor = monitor_list_get_workspace_monitor(
                 state->monitor_list, workspace);
 
@@ -681,27 +673,17 @@ enum natwm_error client_set_fullscreen(const struct natwm_state *state,
 
         client->is_fullscreen = true;
 
-        xcb_atom_t atoms[] = {
-                state->ewmh->_NET_WM_STATE_FULLSCREEN,
-        };
-
-        ewmh_add_wm_state_values(state, atoms, 1, client->window);
+        ewmh_add_window_state(
+                state, client->window, state->ewmh->_NET_WM_STATE_FULLSCREEN);
 
         xcb_configure_window(state->xcb, client->window, mask, values);
 
         return NO_ERROR;
 }
 
-enum natwm_error client_unset_fullscreen(struct natwm_state *state,
+enum natwm_error client_unset_fullscreen(const struct natwm_state *state,
                                          struct client *client)
 {
-        struct workspace *workspace = workspace_list_find_client_workspace(
-                state->workspace_list, client);
-
-        if (workspace == NULL) {
-                return NOT_FOUND_ERROR;
-        }
-
         struct client_theme *theme = state->workspace_list->theme;
         uint16_t border_width = client_get_active_border_width(theme, client);
         uint16_t mask = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y
@@ -717,11 +699,7 @@ enum natwm_error client_unset_fullscreen(struct natwm_state *state,
 
         client->is_fullscreen = false;
 
-        xcb_atom_t atoms[] = {
-                state->ewmh->_NET_WM_STATE_FULLSCREEN,
-        };
-
-        ewmh_remove_wm_state_values(state, atoms, 1, client->window);
+        ewmh_remove_window_state(state, client->window);
 
         xcb_configure_window(state->xcb, client->window, mask, values);
 
@@ -733,15 +711,12 @@ client_handle_fullscreen_window(struct natwm_state *state,
                                 xcb_ewmh_wm_state_action_t action,
                                 xcb_window_t window)
 {
-        struct workspace *workspace = workspace_list_find_window_workspace(
+        struct client *client = workspace_list_find_window_client(
                 state->workspace_list, window);
 
-        if (workspace == NULL) {
-                // window is not registered with us - just ignore it
-                return NO_ERROR;
+        if (client == NULL) {
+                return NOT_FOUND_ERROR;
         }
-
-        struct client *client = workspace_find_window_client(workspace, window);
 
         switch (action) {
         case XCB_EWMH_WM_STATE_ADD:
@@ -757,15 +732,17 @@ client_handle_fullscreen_window(struct natwm_state *state,
         return GENERIC_ERROR;
 }
 
-void client_set_input_focus(const struct natwm_state *state,
-                            struct client *client)
+void client_set_window_input_focus(const struct natwm_state *state,
+                                   xcb_window_t window)
 {
-        ewmh_update_active_window(state, client->window);
+        ewmh_update_active_window(state, window);
 
         xcb_set_input_focus(state->xcb,
                             XCB_INPUT_FOCUS_POINTER_ROOT,
-                            client->window,
+                            window,
                             XCB_TIME_CURRENT_TIME);
+
+        update_stack_mode(state, window, XCB_STACK_MODE_ABOVE);
 }
 
 void client_set_focused(const struct natwm_state *state, struct client *client)
@@ -778,13 +755,7 @@ void client_set_focused(const struct natwm_state *state, struct client *client)
 
         client->is_focused = true;
 
-        client_set_input_focus(state, client);
-
-        update_stack_mode(state, client, XCB_STACK_MODE_ABOVE);
-
-        if (client->state != CLIENT_NORMAL) {
-                return;
-        }
+        client_set_window_input_focus(state, client->window);
 
         // Now that we have focused the client, there is no need for "click to
         // focus" so we can remove the button grab
@@ -792,6 +763,10 @@ void client_set_focused(const struct natwm_state *state, struct client *client)
                           client_focus_event.button,
                           client->window,
                           client_focus_event.modifiers);
+
+        if (client->state != CLIENT_NORMAL) {
+                return;
+        }
 
         update_theme(state, client, theme->border_width->unfocused);
 }
@@ -807,16 +782,33 @@ void client_set_unfocused(const struct natwm_state *state,
 
         client->is_focused = false;
 
-        if (client->state != CLIENT_NORMAL) {
-                return;
-        }
-
         // When a client is unfocused we need to grab the mouse button required
         // for "click to focus"
         mouse_event_grab_button(
                 state->xcb, client->window, &client_focus_event);
 
+        if (client->state != CLIENT_NORMAL) {
+                return;
+        }
+
         update_theme(state, client, theme->border_width->focused);
+}
+
+enum natwm_error client_focus_window(const struct natwm_state *state,
+                                     xcb_window_t window)
+{
+        struct client *client = workspace_list_find_window_client(
+                state->workspace_list, window);
+
+        if (client == NULL) {
+                client_set_window_input_focus(state, window);
+
+                return NO_ERROR;
+        }
+
+        client_set_focused(state, client);
+
+        return NO_ERROR;
 }
 
 enum natwm_error client_update_hints(const struct natwm_state *state,

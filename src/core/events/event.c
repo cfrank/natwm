@@ -4,6 +4,7 @@
 
 #include <xcb/randr.h>
 #include <xcb/xcb.h>
+#include <xcb/xcb_util.h>
 
 #include <common/constants.h>
 #include <common/logger.h>
@@ -27,15 +28,20 @@ static enum natwm_error
 event_handle_client_message(struct natwm_state *state,
                             xcb_client_message_event_t *event)
 {
-        xcb_atom_t state_atom = (event->data.data32[1] != NO_ERROR)
-                ? event->data.data32[1]
-                : event->data.data32[2];
+        xcb_window_t window = event->window;
 
-        if (state_atom == state->ewmh->_NET_WM_STATE_FULLSCREEN) {
+        if (event->type == state->ewmh->_NET_ACTIVE_WINDOW) {
+                return client_focus_window(state, window);
+        } else if (event->type == state->ewmh->_NET_WM_STATE) {
+                xcb_atom_t state_atom = (event->data.data32[1] != NO_ERROR)
+                        ? event->data.data32[1]
+                        : event->data.data32[2];
                 xcb_ewmh_wm_state_action_t action = event->data.data32[0];
 
-                return client_handle_fullscreen_window(
-                        state, action, event->window);
+                if (state_atom == state->ewmh->_NET_WM_STATE_FULLSCREEN) {
+                        return client_handle_fullscreen_window(
+                                state, action, window);
+                }
         }
 
         return NO_ERROR;
@@ -46,6 +52,15 @@ event_handle_configure_request(struct natwm_state *state,
                                xcb_configure_request_event_t *event)
 {
         return client_configure_window(state, event);
+}
+
+static enum natwm_error
+event_handle_circulate_request(struct natwm_state *state,
+                               xcb_circulate_request_event_t *event)
+{
+        xcb_circulate_window(state->xcb, event->place, event->window);
+
+        return NO_ERROR;
 }
 
 static enum natwm_error
@@ -110,6 +125,10 @@ enum natwm_error event_handle(struct natwm_state *state,
                 err = event_handle_configure_request(
                         state, (xcb_configure_request_event_t *)event);
                 break;
+        case XCB_CIRCULATE_REQUEST:
+                err = event_handle_circulate_request(
+                        state, (xcb_circulate_request_event_t *)event);
+                break;
         case XCB_DESTROY_NOTIFY:
                 err = event_handle_destroy_notify(
                         state, (xcb_destroy_notify_event_t *)event);
@@ -128,7 +147,11 @@ enum natwm_error event_handle(struct natwm_state *state,
         // related to the monitors. If we don't support these events we can just
         // return now
         if (state->monitor_list->extension->type != RANDR) {
-                return NO_ERROR;
+                LOG_ERROR(natwm_logger,
+                          "Failed to perform %s",
+                          xcb_event_get_label(type));
+
+                return err;
         }
 
         err = handle_randr_event(state, event, type);
