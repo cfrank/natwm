@@ -12,6 +12,7 @@
 #include "ewmh.h"
 #include "monitor.h"
 #include "mouse.h"
+#include "workspace.h"
 
 static void configure_window(xcb_connection_t *connection,
                              xcb_configure_request_event_t *event)
