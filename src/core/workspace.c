@@ -501,6 +501,21 @@ workspace_list_find_window_client(const struct workspace_list *list,
         return NULL;
 }
 
+enum natwm_error
+workspace_list_switch_to_workspace(const struct natwm_state *state,
+                                   uint32_t workspace_num)
+{
+        if (workspace_num >= state->workspace_list->count) {
+                LOG_WARNING(natwm_logger,
+                            "Attempted to switch to non-existent workspace %u",
+                            workspace_num);
+
+                return INVALID_INPUT_ERROR;
+        }
+
+        return NO_ERROR;
+}
+
 void workspace_list_destroy(struct workspace_list *workspace_list)
 {
         if (workspace_list->theme != NULL) {
