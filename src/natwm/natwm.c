@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <xcb/xcb.h>
+#include <xcb/xcb_util.h>
 
 #include <common/constants.h>
 #include <common/logger.h>
@@ -154,13 +155,31 @@ static int root_window_subscribe(const struct natwm_state *state)
 static void *start_wm_events_thread(void *passed_state)
 {
         struct natwm_state *state = (struct natwm_state *)passed_state;
-        xcb_generic_event_t *event = NULL;
 
         while (program_status & RUNNING) {
-                event = xcb_wait_for_event(state->xcb);
+                xcb_generic_event_t *event = xcb_wait_for_event(state->xcb);
 
                 if (event) {
-                        event_handle(state, event);
+                        enum natwm_error err = event_handle(state, event);
+
+                        if (err == NOT_FOUND_ERROR) {
+                                free(event);
+
+                                continue;
+                        }
+
+                        if (err != NO_ERROR) {
+                                uint8_t rtype = event->response_type;
+                                uint8_t type = (uint8_t)(GET_EVENT_TYPE(rtype));
+
+                                LOG_WARNING(natwm_logger,
+                                            "Failed to perform %s",
+                                            xcb_event_get_label(type));
+
+                                free(event);
+
+                                continue;
+                        }
 
                         free(event);
 
