@@ -2,10 +2,12 @@
 // Licensed under BSD-3-Clause
 // Refer to the license.txt file included in the root of the project
 
+#include <assert.h>
 #include <string.h>
 #include <xcb/randr.h>
 #include <xcb/xinerama.h>
 
+#include <common/constants.h>
 #include <common/error.h>
 #include <common/logger.h>
 #include <common/util.h>
@@ -384,6 +386,49 @@ enum natwm_error monitor_setup(const struct natwm_state *state,
         *result = monitor_list;
 
         return NO_ERROR;
+}
+
+xcb_rectangle_t monitor_clamp_rect(xcb_rectangle_t monitor_rect,
+                                   xcb_rectangle_t rect)
+{
+        int32_t x = rect.x;
+        int32_t y = rect.y;
+        int32_t width = rect.width;
+        int32_t height = rect.height;
+        int32_t end_x_pos = width + x;
+        int32_t end_y_pos = height + y;
+
+        if (end_x_pos > monitor_rect.width) {
+                int32_t overflow = end_x_pos - monitor_rect.width;
+                int32_t new_x = x - overflow;
+
+                x = MAX(monitor_rect.x, new_x);
+                width = MIN(monitor_rect.width, width);
+        } else {
+                x = MAX(monitor_rect.x, x);
+        }
+
+        if (end_y_pos > monitor_rect.height) {
+                int32_t overflow = end_y_pos - monitor_rect.height;
+                int32_t new_y = y - overflow;
+
+                y = MAX(monitor_rect.y, new_y);
+                height = MIN(monitor_rect.height, height);
+        } else {
+                y = MAX(monitor_rect.y, y);
+        }
+
+        assert(width <= UINT16_MAX);
+        assert(height <= UINT16_MAX);
+
+        xcb_rectangle_t new_rect = {
+                .x = (int16_t)x,
+                .y = (int16_t)y,
+                .width = (uint16_t)width,
+                .height = (uint16_t)height,
+        };
+
+        return new_rect;
 }
 
 xcb_rectangle_t monitor_get_offset_rect(const struct monitor *monitor)

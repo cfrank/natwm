@@ -134,46 +134,6 @@ get_window_attributes(xcb_connection_t *connection, xcb_window_t window)
         return reply;
 }
 
-static xcb_rectangle_t clamp_rect_to_monitor(xcb_rectangle_t rect,
-                                             xcb_rectangle_t monitor_rect)
-{
-        int32_t x = rect.x;
-        int32_t y = rect.y;
-        int32_t width = rect.width;
-        int32_t height = rect.height;
-        int32_t end_x_pos = width + x;
-        int32_t end_y_pos = height + y;
-
-        if (end_x_pos > monitor_rect.width) {
-                int32_t overflow = end_x_pos - monitor_rect.width;
-                int32_t new_x = x - overflow;
-
-                x = MAX(monitor_rect.x, new_x);
-                width = MIN(monitor_rect.width, width);
-        } else {
-                x = MAX(monitor_rect.x, x);
-        }
-
-        if (end_y_pos > monitor_rect.height) {
-                int32_t overflow = end_y_pos - monitor_rect.height;
-                int32_t new_y = y - overflow;
-
-                y = MAX(monitor_rect.y, new_y);
-                height = MIN(monitor_rect.height, height);
-        } else {
-                y = MAX(monitor_rect.y, y);
-        }
-
-        xcb_rectangle_t new_rect = {
-                .x = (int16_t)x,
-                .y = (int16_t)y,
-                .width = (uint16_t)width,
-                .height = (uint16_t)height,
-        };
-
-        return new_rect;
-}
-
 static void update_theme(const struct natwm_state *state, struct client *client,
                          uint16_t previous_border_width)
 {
@@ -413,7 +373,6 @@ enum natwm_error client_configure_window(struct natwm_state *state,
                 return RESOLUTION_FAILURE;
         }
 
-        xcb_rectangle_t monitor_rect = monitor_get_offset_rect(monitor);
         xcb_rectangle_t new_rect = client->rect;
         xcb_configure_request_event_t new_event = *event;
 
@@ -449,7 +408,8 @@ enum natwm_error client_configure_window(struct natwm_state *state,
                 }
         }
 
-        client->rect = clamp_rect_to_monitor(new_rect, monitor_rect);
+        client->rect = monitor_clamp_rect(monitor_get_offset_rect(monitor),
+                                          new_rect);
 
         new_event.x = client->rect.x;
         new_event.y = client->rect.y;
@@ -607,7 +567,7 @@ xcb_rectangle_t client_initialize_rect(const struct client *client,
                 new_rect.height = (uint16_t)client->size_hints->height;
         }
 
-        new_rect = clamp_rect_to_monitor(new_rect, monitor_rect);
+        new_rect = monitor_clamp_rect(monitor_rect, new_rect);
 
         // Account for initial border_width
         int32_t border_padding = border_width * 2;
