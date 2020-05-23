@@ -3,6 +3,7 @@
 // Refer to the license.txt file included in the root of the project
 
 #include <assert.h>
+#include <math.h>
 #include <string.h>
 #include <xcb/randr.h>
 #include <xcb/xinerama.h>
@@ -17,6 +18,13 @@
 #include "monitor.h"
 #include "randr.h"
 #include "xinerama.h"
+
+static bool are_monitors_same_size(const struct monitor *one,
+                                   const struct monitor *two)
+{
+        return (one->rect.width == two->rect.width)
+                && (one->rect.height == two->rect.height);
+}
 
 static void monitors_destroy(struct list *monitors)
 {
@@ -300,8 +308,7 @@ monitor_list_get_workspace_monitor(const struct monitor_list *monitor_list,
                         continue;
                 }
 
-                // TODO: Not sure if matching strings is the best way to do this
-                if (strcmp(monitor->workspace->name, workspace->name) == 0) {
+                if (monitor->workspace->index == workspace->index) {
                         return monitor;
                 }
         }
@@ -388,13 +395,13 @@ enum natwm_error monitor_setup(const struct natwm_state *state,
         return NO_ERROR;
 }
 
-xcb_rectangle_t monitor_clamp_rect(xcb_rectangle_t monitor_rect,
-                                   xcb_rectangle_t rect)
+xcb_rectangle_t monitor_clamp_client_rect(xcb_rectangle_t monitor_rect,
+                                          xcb_rectangle_t client_rect)
 {
-        int32_t x = rect.x;
-        int32_t y = rect.y;
-        int32_t width = rect.width;
-        int32_t height = rect.height;
+        int32_t x = client_rect.x;
+        int32_t y = client_rect.y;
+        int32_t width = client_rect.width;
+        int32_t height = client_rect.height;
         int32_t end_x_pos = width + x;
         int32_t end_y_pos = height + y;
 
@@ -426,6 +433,33 @@ xcb_rectangle_t monitor_clamp_rect(xcb_rectangle_t monitor_rect,
                 .y = (int16_t)y,
                 .width = (uint16_t)width,
                 .height = (uint16_t)height,
+        };
+
+        return new_rect;
+}
+
+xcb_rectangle_t monitor_move_client_rect(const struct monitor *previous_monitor,
+                                         const struct monitor *next_monitor,
+                                         const struct client *client)
+{
+        if (previous_monitor == NULL) {
+                return client->rect;
+        }
+
+        if (are_monitors_same_size(previous_monitor, next_monitor)) {
+                return client->rect;
+        }
+
+        float x_diff = client->rect.x / previous_monitor->rect.width;
+        float y_diff = client->rect.y / previous_monitor->rect.height;
+        float width_diff = client->rect.width / previous_monitor->rect.width;
+        float height_diff = client->rect.height / previous_monitor->rect.height;
+
+        xcb_rectangle_t new_rect = {
+                .x = (int16_t)(next_monitor->rect.width * x_diff),
+                .y = (int16_t)(next_monitor->rect.height * y_diff),
+                .width = (uint16_t)(next_monitor->rect.width * width_diff),
+                .height = (uint16_t)(next_monitor->rect.height * height_diff),
         };
 
         return new_rect;

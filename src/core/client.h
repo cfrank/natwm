@@ -16,10 +16,11 @@
 #include "state.h"
 
 enum client_state {
-        CLIENT_URGENT,
-        CLIENT_STICKY,
-        CLIENT_HIDDEN,
-        CLIENT_NORMAL,
+        CLIENT_URGENT = 1U << 0U,
+        CLIENT_STICKY = 1U << 1U,
+        CLIENT_HIDDEN = 1U << 2U,
+        CLIENT_OFF_SCREEN = 1U << 3U,
+        CLIENT_NORMAL = 1U << 4U,
 };
 
 enum client_hints {
@@ -60,6 +61,8 @@ enum natwm_error client_configure_window(struct natwm_state *state,
 void client_configure_window_rect(xcb_connection_t *connection,
                                   xcb_window_t window, xcb_rectangle_t rect,
                                   uint32_t border_width);
+void client_map(const struct natwm_state *state, struct client *client,
+                xcb_rectangle_t monitor_rect);
 enum natwm_error client_unmap_window(struct natwm_state *state,
                                      xcb_window_t window);
 enum natwm_error client_destroy_window(struct natwm_state *state,

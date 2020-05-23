@@ -287,17 +287,12 @@ struct client *client_register_window(struct natwm_state *state,
         client->rect = client_initialize_rect(
                 client, theme->border_width->unfocused, workspace_monitor_rect);
 
-        client_configure_window_rect(state->xcb,
-                                     client->window,
-                                     client->rect,
-                                     theme->border_width->unfocused);
-
         // Listen for button events
         mouse_initialize_client_listeners(state, client);
 
         xcb_change_save_set(state->xcb, XCB_SET_MODE_INSERT, client->window);
 
-        xcb_map_window(state->xcb, client->window);
+        client_map(state, client, workspace_monitor->rect);
 
         err = workspace_add_client(state, focused_workspace, client);
 
@@ -342,6 +337,7 @@ enum natwm_error client_handle_button_press(struct natwm_state *state,
                 = workspace_find_window_client(workspace, event->event);
 
         if (client == NULL) {
+                LOG_INFO(natwm_logger, "no client");
                 return RESOLUTION_FAILURE;
         }
 
@@ -408,8 +404,8 @@ enum natwm_error client_configure_window(struct natwm_state *state,
                 }
         }
 
-        client->rect = monitor_clamp_rect(monitor_get_offset_rect(monitor),
-                                          new_rect);
+        client->rect = monitor_clamp_client_rect(
+                monitor_get_offset_rect(monitor), new_rect);
 
         new_event.x = client->rect.x;
         new_event.y = client->rect.y;
@@ -464,6 +460,34 @@ void client_configure_window_rect(xcb_connection_t *connection,
         };
 
         xcb_configure_window(connection, window, mask, values);
+
+        xcb_flush(connection);
+}
+
+void client_map(const struct natwm_state *state, struct client *client,
+                xcb_rectangle_t monitor_rect)
+{
+        if (client == NULL || client->state & CLIENT_HIDDEN) {
+                // Skip this client
+                return;
+        }
+
+        struct client_theme *theme = state->workspace_list->theme;
+        uint32_t border_width = client_get_active_border_width(theme, client);
+
+        if (client->is_fullscreen) {
+                client_configure_window_rect(
+                        state->xcb, client->window, monitor_rect, border_width);
+        } else {
+                client_configure_window_rect(
+                        state->xcb, client->window, client->rect, border_width);
+        }
+
+        xcb_map_window(state->xcb, client->window);
+
+        if (client->is_focused) {
+                client_set_window_input_focus(state, client->window);
+        }
 }
 
 enum natwm_error client_unmap_window(struct natwm_state *state,
@@ -490,7 +514,13 @@ enum natwm_error client_unmap_window(struct natwm_state *state,
                 return NOT_FOUND_ERROR;
         }
 
-        client->state = CLIENT_HIDDEN;
+        if (client->state & CLIENT_OFF_SCREEN) {
+                xcb_unmap_window(state->xcb, client->window);
+
+                return NO_ERROR;
+        }
+
+        client->state |= CLIENT_HIDDEN;
 
         workspace_reset_focus(state, workspace);
 
@@ -567,7 +597,7 @@ xcb_rectangle_t client_initialize_rect(const struct client *client,
                 new_rect.height = (uint16_t)client->size_hints->height;
         }
 
-        new_rect = monitor_clamp_rect(monitor_rect, new_rect);
+        new_rect = monitor_clamp_client_rect(monitor_rect, new_rect);
 
         // Account for initial border_width
         int32_t border_padding = border_width * 2;
@@ -583,11 +613,15 @@ xcb_rectangle_t client_initialize_rect(const struct client *client,
 uint16_t client_get_active_border_width(const struct client_theme *theme,
                                         const struct client *client)
 {
-        if (client->state == CLIENT_URGENT) {
+        if (client->is_fullscreen) {
+                return 0;
+        }
+
+        if (client->state & CLIENT_URGENT) {
                 return theme->border_width->urgent;
         }
 
-        if (client->state == CLIENT_STICKY) {
+        if (client->state & CLIENT_STICKY) {
                 return theme->border_width->sticky;
         }
 
@@ -602,11 +636,11 @@ struct color_value *
 client_get_active_border_color(const struct client_theme *theme,
                                const struct client *client)
 {
-        if (client->state == CLIENT_URGENT) {
+        if (client->state & CLIENT_URGENT) {
                 return theme->color->urgent;
         }
 
-        if (client->state == CLIENT_STICKY) {
+        if (client->state & CLIENT_STICKY) {
                 return theme->color->sticky;
         }
 
@@ -652,6 +686,8 @@ enum natwm_error client_unset_fullscreen(const struct natwm_state *state,
 
         client_configure_window_rect(
                 state->xcb, client->window, client->rect, border_width);
+
+        update_theme(state, client, border_width);
 
         return NO_ERROR;
 }
@@ -714,7 +750,7 @@ void client_set_focused(const struct natwm_state *state, struct client *client)
                           client->window,
                           client_focus_event.modifiers);
 
-        if (client->state != CLIENT_NORMAL) {
+        if (!(client->state & CLIENT_NORMAL)) {
                 return;
         }
 
@@ -737,7 +773,7 @@ void client_set_unfocused(const struct natwm_state *state,
         mouse_event_grab_button(
                 state->xcb, client->window, &client_focus_event);
 
-        if (client->state != CLIENT_NORMAL) {
+        if (!(client->state & CLIENT_NORMAL)) {
                 return;
         }
 
