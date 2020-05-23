@@ -450,8 +450,8 @@ xcb_rectangle_t monitor_move_client_rect(const struct monitor *previous_monitor,
                 return client->rect;
         }
 
-        float x_diff = client->rect.x / previous_monitor->rect.width;
-        float y_diff = client->rect.y / previous_monitor->rect.height;
+        float x_diff = (float)(client->rect.x / previous_monitor->rect.width);
+        float y_diff = (float)(client->rect.y / previous_monitor->rect.height);
         float width_diff = client->rect.width / previous_monitor->rect.width;
         float height_diff = client->rect.height / previous_monitor->rect.height;
 
