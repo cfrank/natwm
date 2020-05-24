@@ -337,7 +337,6 @@ enum natwm_error client_handle_button_press(struct natwm_state *state,
                 = workspace_find_window_client(workspace, event->event);
 
         if (client == NULL) {
-                LOG_INFO(natwm_logger, "no client");
                 return RESOLUTION_FAILURE;
         }
 
@@ -484,10 +483,6 @@ void client_map(const struct natwm_state *state, struct client *client,
         }
 
         xcb_map_window(state->xcb, client->window);
-
-        if (client->is_focused) {
-                client_set_window_input_focus(state, client->window);
-        }
 }
 
 enum natwm_error client_unmap_window(struct natwm_state *state,
