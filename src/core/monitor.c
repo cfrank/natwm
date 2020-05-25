@@ -19,11 +19,9 @@
 #include "randr.h"
 #include "xinerama.h"
 
-static bool are_monitors_same_size(const struct monitor *one,
-                                   const struct monitor *two)
+static bool is_monitor_rect_same(xcb_rectangle_t one, xcb_rectangle_t two)
 {
-        return (one->rect.width == two->rect.width)
-                && (one->rect.height == two->rect.height);
+        return one.width == two.width && one.height == two.height;
 }
 
 static void monitors_destroy(struct list *monitors)
@@ -446,7 +444,7 @@ xcb_rectangle_t monitor_move_client_rect(const struct monitor *previous_monitor,
                 return client->rect;
         }
 
-        if (are_monitors_same_size(previous_monitor, next_monitor)) {
+        if (is_monitor_rect_same(previous_monitor->rect, next_monitor->rect)) {
                 return client->rect;
         }
 
