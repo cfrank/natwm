@@ -2,10 +2,13 @@
 // Licensed under BSD-3-Clause
 // Refer to the license.txt file included in the root of the project
 
+#include <assert.h>
+#include <math.h>
 #include <string.h>
 #include <xcb/randr.h>
 #include <xcb/xinerama.h>
 
+#include <common/constants.h>
 #include <common/error.h>
 #include <common/logger.h>
 #include <common/util.h>
@@ -15,6 +18,11 @@
 #include "monitor.h"
 #include "randr.h"
 #include "xinerama.h"
+
+static bool is_monitor_rect_same(xcb_rectangle_t one, xcb_rectangle_t two)
+{
+        return one.width == two.width && one.height == two.height;
+}
 
 static void monitors_destroy(struct list *monitors)
 {
@@ -298,8 +306,7 @@ monitor_list_get_workspace_monitor(const struct monitor_list *monitor_list,
                         continue;
                 }
 
-                // TODO: Not sure if matching strings is the best way to do this
-                if (strcmp(monitor->workspace->name, workspace->name) == 0) {
+                if (monitor->workspace->index == workspace->index) {
                         return monitor;
                 }
         }
@@ -384,6 +391,76 @@ enum natwm_error monitor_setup(const struct natwm_state *state,
         *result = monitor_list;
 
         return NO_ERROR;
+}
+
+xcb_rectangle_t monitor_clamp_client_rect(xcb_rectangle_t monitor_rect,
+                                          xcb_rectangle_t client_rect)
+{
+        int32_t x = client_rect.x;
+        int32_t y = client_rect.y;
+        int32_t width = client_rect.width;
+        int32_t height = client_rect.height;
+        int32_t end_x_pos = width + x;
+        int32_t end_y_pos = height + y;
+
+        if (end_x_pos > monitor_rect.width) {
+                int32_t overflow = end_x_pos - monitor_rect.width;
+                int32_t new_x = x - overflow;
+
+                x = MAX(monitor_rect.x, new_x);
+                width = MIN(monitor_rect.width, width);
+        } else {
+                x = MAX(monitor_rect.x, x);
+        }
+
+        if (end_y_pos > monitor_rect.height) {
+                int32_t overflow = end_y_pos - monitor_rect.height;
+                int32_t new_y = y - overflow;
+
+                y = MAX(monitor_rect.y, new_y);
+                height = MIN(monitor_rect.height, height);
+        } else {
+                y = MAX(monitor_rect.y, y);
+        }
+
+        assert(width <= UINT16_MAX);
+        assert(height <= UINT16_MAX);
+
+        xcb_rectangle_t new_rect = {
+                .x = (int16_t)x,
+                .y = (int16_t)y,
+                .width = (uint16_t)width,
+                .height = (uint16_t)height,
+        };
+
+        return new_rect;
+}
+
+xcb_rectangle_t monitor_move_client_rect(const struct monitor *previous_monitor,
+                                         const struct monitor *next_monitor,
+                                         const struct client *client)
+{
+        if (previous_monitor == NULL) {
+                return client->rect;
+        }
+
+        if (is_monitor_rect_same(previous_monitor->rect, next_monitor->rect)) {
+                return client->rect;
+        }
+
+        float x_diff = (float)(client->rect.x / previous_monitor->rect.width);
+        float y_diff = (float)(client->rect.y / previous_monitor->rect.height);
+        float width_diff = client->rect.width / previous_monitor->rect.width;
+        float height_diff = client->rect.height / previous_monitor->rect.height;
+
+        xcb_rectangle_t new_rect = {
+                .x = (int16_t)(next_monitor->rect.width * x_diff),
+                .y = (int16_t)(next_monitor->rect.height * y_diff),
+                .width = (uint16_t)(next_monitor->rect.width * width_diff),
+                .height = (uint16_t)(next_monitor->rect.height * height_diff),
+        };
+
+        return new_rect;
 }
 
 xcb_rectangle_t monitor_get_offset_rect(const struct monitor *monitor)

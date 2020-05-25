@@ -53,6 +53,8 @@ void workspace_reset_input_focus(struct natwm_state *state,
                                  struct workspace *workspace);
 enum natwm_error workspace_reset_focus(struct natwm_state *state,
                                        struct workspace *workspace);
+enum natwm_error workspace_change_monitor(struct natwm_state *state,
+                                          struct workspace *workspace);
 struct workspace *workspace_list_get_focused(const struct workspace_list *list);
 struct workspace *
 workspace_list_find_client_workspace(const struct workspace_list *list,
@@ -63,5 +65,7 @@ workspace_list_find_window_workspace(const struct workspace_list *list,
 struct client *
 workspace_list_find_window_client(const struct workspace_list *list,
                                   xcb_window_t window);
+enum natwm_error workspace_list_switch_to_workspace(struct natwm_state *state,
+                                                    uint32_t workspace_num);
 void workspace_list_destroy(struct workspace_list *workspace_list);
 void workspace_destroy(struct workspace *workspace);

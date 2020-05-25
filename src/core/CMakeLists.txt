@@ -35,6 +35,5 @@ target_link_libraries(core
         xcb-ewmh
         xcb-icccm
         xcb-randr
-        xcb-util
         xcb-xinerama
 )

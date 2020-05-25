@@ -13,4 +13,5 @@ target_link_libraries(natwm
         core
         pthread
         xcb
+        xcb-util
 )
