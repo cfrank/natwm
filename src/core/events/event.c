@@ -33,9 +33,10 @@ event_handle_client_message(struct natwm_state *state,
         if (event->type == state->ewmh->_NET_ACTIVE_WINDOW) {
                 return client_focus_window(state, window);
         } else if (event->type == state->ewmh->_NET_CURRENT_DESKTOP) {
-                uint32_t workspace_num = event->data.data32[0];
+                uint32_t workspace_index = event->data.data32[0];
 
-                return workspace_list_switch_to_workspace(state, workspace_num);
+                return workspace_list_switch_to_workspace(state,
+                                                          workspace_index);
         } else if (event->type == state->ewmh->_NET_WM_STATE) {
                 xcb_atom_t state_atom = (event->data.data32[1] != NO_ERROR)
                         ? event->data.data32[1]

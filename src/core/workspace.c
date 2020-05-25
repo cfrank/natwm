@@ -600,18 +600,18 @@ workspace_list_find_window_client(const struct workspace_list *list,
 }
 
 enum natwm_error workspace_list_switch_to_workspace(struct natwm_state *state,
-                                                    uint32_t workspace_num)
+                                                    uint32_t workspace_index)
 {
-        if (workspace_num >= state->workspace_list->count) {
+        if (workspace_index >= state->workspace_list->count) {
                 LOG_WARNING(natwm_logger,
                             "Attempted to switch to non-existent workspace %u",
-                            workspace_num);
+                            workspace_index);
 
                 return INVALID_INPUT_ERROR;
         }
 
         struct workspace *next_workspace
-                = state->workspace_list->workspaces[workspace_num];
+                = state->workspace_list->workspaces[workspace_index];
 
         return workspace_change_monitor(state, next_workspace);
 
