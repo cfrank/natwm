@@ -493,8 +493,6 @@ enum natwm_error client_unmap_window(struct natwm_state *state,
 
         if (workspace == NULL) {
                 // We do not have this window in our registry
-                xcb_unmap_window(state->xcb, window);
-
                 return NO_ERROR;
         }
 
@@ -504,14 +502,10 @@ enum natwm_error client_unmap_window(struct natwm_state *state,
                 LOG_ERROR(natwm_logger,
                           "Failed to find registered client during unmap");
 
-                xcb_unmap_window(state->xcb, window);
-
                 return NOT_FOUND_ERROR;
         }
 
         if (client->state & CLIENT_OFF_SCREEN) {
-                xcb_unmap_window(state->xcb, client->window);
-
                 return NO_ERROR;
         }
 

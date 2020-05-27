@@ -143,6 +143,10 @@ static void workspace_send_to_monitor(struct natwm_state *state,
                         previous_monitor, monitor, client);
 
                 client_map(state, client, monitor->rect);
+
+                if (client->is_focused) {
+                        client_set_window_input_focus(state, client->window);
+                }
         }
 
         if (list_is_empty(workspace->clients)) {
@@ -376,13 +380,6 @@ enum natwm_error workspace_unfocus_existing_client(struct natwm_state *state,
 enum natwm_error workspace_reset_focus(struct natwm_state *state,
                                        struct workspace *workspace)
 {
-        if (!workspace->is_focused) {
-                // If the workspace is not visible there is no need to
-                // update the focused client.
-
-                return NO_ERROR;
-        }
-
         LIST_FOR_EACH(workspace->clients, node)
         {
                 struct client *client = get_client_from_client_node(node);
@@ -420,6 +417,8 @@ enum natwm_error workspace_change_monitor(struct natwm_state *state,
                 = workspace_list_get_focused(state->workspace_list);
         struct monitor *current_monitor
                 = monitor_list_get_active_monitor(state->monitor_list);
+        struct monitor *next_monitor = monitor_list_get_workspace_monitor(
+                state->monitor_list, next_workspace);
 
         if (current_workspace == NULL) {
                 return RESOLUTION_FAILURE;
@@ -428,11 +427,7 @@ enum natwm_error workspace_change_monitor(struct natwm_state *state,
         // Hide the current workspace
         workspace_hide(state, current_workspace);
 
-        if (next_workspace->is_visible) {
-                struct monitor *next_monitor
-                        = monitor_list_get_workspace_monitor(
-                                state->monitor_list, next_workspace);
-
+        if (next_workspace->is_visible && next_monitor) {
                 workspace_hide(state, next_workspace);
 
                 workspace_send_to_monitor(
