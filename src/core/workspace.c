@@ -136,26 +136,15 @@ static void workspace_send_to_monitor(struct natwm_state *state,
                         continue;
                 }
 
-                client->state &= (uint8_t)~CLIENT_OFF_SCREEN;
-
                 // Update client size to match aspect ratio of new monitor
                 client->rect = monitor_move_client_rect(
                         previous_monitor, monitor, client);
 
                 client_map(state, client, monitor->rect);
-
-                if (client->is_focused) {
-                        client_set_window_input_focus(state, client->window);
-                }
-        }
-
-        if (list_is_empty(workspace->clients)) {
-                client_set_window_input_focus(state, state->screen->root);
         }
 
         workspace->is_visible = true;
         monitor->workspace = workspace;
-        ewmh_update_current_desktop(state, workspace->index);
 }
 
 static void workspace_hide(const struct natwm_state *state,
@@ -174,6 +163,10 @@ static void workspace_hide(const struct natwm_state *state,
 
                 if (client == NULL || client->state & CLIENT_HIDDEN) {
                         continue;
+                }
+
+                if (client->is_focused) {
+                        client_set_unfocused(state, client);
                 }
 
                 client->state |= CLIENT_OFF_SCREEN;
@@ -380,27 +373,28 @@ enum natwm_error workspace_unfocus_existing_client(struct natwm_state *state,
 enum natwm_error workspace_reset_focus(struct natwm_state *state,
                                        struct workspace *workspace)
 {
+        if (!workspace->is_focused) {
+                return INVALID_INPUT_ERROR;
+        }
+
+        if (list_is_empty(workspace->clients)) {
+                reset_input_focus(state);
+
+                return NO_ERROR;
+        }
+
         LIST_FOR_EACH(workspace->clients, node)
         {
                 struct client *client = get_client_from_client_node(node);
 
-                if (client->state & CLIENT_HIDDEN) {
+                if (client == NULL || client->state & CLIENT_HIDDEN) {
                         continue;
-                }
-
-                if (client->is_focused) {
-                        return NO_ERROR;
                 }
 
                 focus_client(state, workspace, node, client);
 
                 return NO_ERROR;
         }
-
-        // There are no more clients on this workspace
-        workspace->active_client = NULL;
-
-        reset_input_focus(state);
 
         return NOT_FOUND_ERROR;
 }
@@ -420,7 +414,7 @@ enum natwm_error workspace_change_monitor(struct natwm_state *state,
         struct monitor *next_monitor = monitor_list_get_workspace_monitor(
                 state->monitor_list, next_workspace);
 
-        if (current_workspace == NULL) {
+        if (current_workspace == NULL || current_monitor == NULL) {
                 return RESOLUTION_FAILURE;
         }
 
@@ -440,33 +434,11 @@ enum natwm_error workspace_change_monitor(struct natwm_state *state,
 
         state->workspace_list->active_index = next_workspace->index;
 
+        ewmh_update_current_desktop(state, next_workspace->index);
+
+        workspace_reset_focus(state, next_workspace);
+
         return NO_ERROR;
-}
-
-// This is a more simple version of workspace_reset_focus - all it does is
-// reset the input focus of the first client it can find, falling back to the
-// root window.
-void workspace_reset_input_focus(struct natwm_state *state,
-                                 struct workspace *workspace)
-{
-        if (!workspace->is_visible) {
-                return;
-        }
-
-        LIST_FOR_EACH(workspace->clients, node)
-        {
-                struct client *client = get_client_from_client_node(node);
-
-                if (client == NULL || client->state & CLIENT_HIDDEN) {
-                        continue;
-                }
-
-                client_set_window_input_focus(state, client->window);
-
-                return;
-        }
-
-        reset_input_focus(state);
 }
 
 enum natwm_error workspace_add_client(struct natwm_state *state,
@@ -603,6 +575,10 @@ enum natwm_error workspace_list_switch_to_workspace(struct natwm_state *state,
                             workspace_index);
 
                 return INVALID_INPUT_ERROR;
+        }
+
+        if (workspace_index == state->workspace_list->active_index) {
+                return NO_ERROR;
         }
 
         struct workspace *next_workspace

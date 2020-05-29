@@ -478,11 +478,53 @@ void client_map(const struct natwm_state *state, struct client *client,
                 client_configure_window_rect(
                         state->xcb, client->window, monitor_rect, border_width);
         } else {
+                xcb_rectangle_t new_rect = {
+                        (int16_t)(client->rect.x + monitor_rect.x),
+                        (int16_t)(client->rect.y + monitor_rect.y),
+                        client->rect.width,
+                        client->rect.height,
+                };
+
                 client_configure_window_rect(
-                        state->xcb, client->window, client->rect, border_width);
+                        state->xcb, client->window, new_rect, border_width);
         }
 
         xcb_map_window(state->xcb, client->window);
+}
+
+enum natwm_error client_handle_map_notify(const struct natwm_state *state,
+                                          xcb_window_t window)
+{
+        struct workspace *workspace = workspace_list_find_window_workspace(
+                state->workspace_list, window);
+
+        if (workspace == NULL) {
+                // We do not have this window in our registry
+                return NO_ERROR;
+        }
+
+        struct client *client = workspace_find_window_client(workspace, window);
+
+        if (client == NULL) {
+                return NOT_FOUND_ERROR;
+        }
+
+        if (!(client->state & CLIENT_OFF_SCREEN) || !workspace->is_visible) {
+                return NO_ERROR;
+        }
+
+        if (client->is_focused && workspace->is_focused) {
+                uint16_t border_width = client_get_active_border_width(
+                        state->workspace_list->theme, client);
+
+                client->state &= (uint8_t)~CLIENT_OFF_SCREEN;
+
+                update_theme(state, client, border_width);
+        } else {
+                client->state &= (uint8_t)~CLIENT_OFF_SCREEN;
+        }
+
+        return NO_ERROR;
 }
 
 enum natwm_error client_unmap_window(struct natwm_state *state,
@@ -505,11 +547,11 @@ enum natwm_error client_unmap_window(struct natwm_state *state,
                 return NOT_FOUND_ERROR;
         }
 
-        if (client->state & CLIENT_OFF_SCREEN) {
-                return NO_ERROR;
-        }
+        LOG_INFO(natwm_logger, "Client unmap window");
 
-        client->state |= CLIENT_HIDDEN;
+        if (!(client->state & CLIENT_OFF_SCREEN)) {
+                client->state = CLIENT_HIDDEN;
+        }
 
         workspace_reset_focus(state, workspace);
 
@@ -527,7 +569,7 @@ enum natwm_error client_destroy_window(struct natwm_state *state,
                 struct workspace *active_workspace
                         = workspace_list_get_focused(state->workspace_list);
 
-                workspace_reset_input_focus(state, active_workspace);
+                workspace_reset_focus(state, active_workspace);
 
                 xcb_destroy_window(state->xcb, window);
 
@@ -614,7 +656,7 @@ uint16_t client_get_active_border_width(const struct client_theme *theme,
                 return theme->border_width->sticky;
         }
 
-        if (client->is_focused) {
+        if (client->is_focused && !(client->state & CLIENT_OFF_SCREEN)) {
                 return theme->border_width->focused;
         }
 
@@ -633,7 +675,7 @@ client_get_active_border_color(const struct client_theme *theme,
                 return theme->color->sticky;
         }
 
-        if (client->is_focused) {
+        if (client->is_focused && !(client->state & CLIENT_OFF_SCREEN)) {
                 return theme->color->focused;
         }
 
@@ -722,7 +764,7 @@ void client_set_window_input_focus(const struct natwm_state *state,
 
 void client_set_focused(const struct natwm_state *state, struct client *client)
 {
-        if (client == NULL || client->is_focused) {
+        if (client == NULL || client->state & CLIENT_HIDDEN) {
                 return;
         }
 
@@ -739,17 +781,13 @@ void client_set_focused(const struct natwm_state *state, struct client *client)
                           client->window,
                           client_focus_event.modifiers);
 
-        if (!(client->state & CLIENT_NORMAL)) {
-                return;
-        }
-
         update_theme(state, client, theme->border_width->unfocused);
 }
 
 void client_set_unfocused(const struct natwm_state *state,
                           struct client *client)
 {
-        if (client == NULL || client->is_focused == false) {
+        if (client == NULL || client->state & CLIENT_HIDDEN) {
                 return;
         }
 
@@ -761,10 +799,6 @@ void client_set_unfocused(const struct natwm_state *state,
         // for "click to focus"
         mouse_event_grab_button(
                 state->xcb, client->window, &client_focus_event);
-
-        if (!(client->state & CLIENT_NORMAL)) {
-                return;
-        }
 
         update_theme(state, client, theme->border_width->focused);
 }

@@ -63,6 +63,8 @@ void client_configure_window_rect(xcb_connection_t *connection,
                                   uint32_t border_width);
 void client_map(const struct natwm_state *state, struct client *client,
                 xcb_rectangle_t monitor_rect);
+enum natwm_error client_handle_map_notify(const struct natwm_state *state,
+                                          xcb_window_t window);
 enum natwm_error client_unmap_window(struct natwm_state *state,
                                      xcb_window_t window);
 enum natwm_error client_destroy_window(struct natwm_state *state,
