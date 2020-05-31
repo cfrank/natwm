@@ -100,6 +100,16 @@ static enum natwm_error event_handle_map_request(struct natwm_state *state,
         return NO_ERROR;
 }
 
+static enum natwm_error event_handle_map_notify(struct natwm_state *state,
+                                                xcb_map_notify_event_t *event)
+{
+        xcb_window_t window = event->window;
+
+        client_handle_map_notify(state, window);
+
+        return NO_ERROR;
+}
+
 static enum natwm_error
 event_handle_unmap_notify(struct natwm_state *state,
                           xcb_unmap_notify_event_t *event)
@@ -140,6 +150,10 @@ enum natwm_error event_handle(struct natwm_state *state,
         case XCB_MAP_REQUEST:
                 return event_handle_map_request(
                         state, (xcb_map_request_event_t *)event);
+                break;
+        case XCB_MAP_NOTIFY:
+                return event_handle_map_notify(state,
+                                               (xcb_map_notify_event_t *)event);
                 break;
         case XCB_UNMAP_NOTIFY:
                 return event_handle_unmap_notify(
