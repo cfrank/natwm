@@ -341,8 +341,7 @@ enum natwm_error client_handle_button_press(struct natwm_state *state,
         }
 
         if (event->state == XCB_NONE) {
-                return workspace_focus_existing_client(
-                        state, workspace, client);
+                return workspace_focus_client(state, workspace, client);
         }
 
         return NO_ERROR;
@@ -420,12 +419,10 @@ enum natwm_error client_configure_window(struct natwm_state *state,
                 }
 
                 if (event->stack_mode == XCB_STACK_MODE_ABOVE) {
-                        workspace_focus_existing_client(
-                                state, workspace, client);
+                        workspace_focus_client(state, workspace, client);
 
                 } else if (event->stack_mode == XCB_STACK_MODE_BELOW) {
-                        workspace_unfocus_existing_client(
-                                state, workspace, client);
+                        workspace_unfocus_client(state, workspace, client);
                 } else {
                         // TODO: Support XCB_STACK_MODE_{OPPOSITE, TOP_IF,
                         // BOTTOM_IF}

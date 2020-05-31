@@ -43,12 +43,12 @@ enum natwm_error workspace_remove_client(struct natwm_state *state,
                                          struct client *client);
 struct client *workspace_find_window_client(const struct workspace *workspace,
                                             xcb_window_t window);
-enum natwm_error workspace_focus_existing_client(struct natwm_state *state,
-                                                 struct workspace *workspace,
-                                                 struct client *client);
-enum natwm_error workspace_unfocus_existing_client(struct natwm_state *state,
-                                                   struct workspace *workspace,
-                                                   struct client *client);
+enum natwm_error workspace_focus_client(struct natwm_state *state,
+                                        struct workspace *workspace,
+                                        struct client *client);
+enum natwm_error workspace_unfocus_client(struct natwm_state *state,
+                                          struct workspace *workspace,
+                                          struct client *client);
 enum natwm_error workspace_reset_focus(struct natwm_state *state,
                                        struct workspace *workspace);
 enum natwm_error workspace_change_monitor(struct natwm_state *state,

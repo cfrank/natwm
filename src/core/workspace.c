@@ -320,9 +320,9 @@ enum natwm_error workspace_list_init(const struct natwm_state *state,
         return NO_ERROR;
 }
 
-enum natwm_error workspace_focus_existing_client(struct natwm_state *state,
-                                                 struct workspace *workspace,
-                                                 struct client *client)
+enum natwm_error workspace_focus_client(struct natwm_state *state,
+                                        struct workspace *workspace,
+                                        struct client *client)
 {
         if (client->is_focused || client->state & CLIENT_HIDDEN) {
                 return INVALID_INPUT_ERROR;
@@ -340,9 +340,9 @@ enum natwm_error workspace_focus_existing_client(struct natwm_state *state,
         return NO_ERROR;
 }
 
-enum natwm_error workspace_unfocus_existing_client(struct natwm_state *state,
-                                                   struct workspace *workspace,
-                                                   struct client *client)
+enum natwm_error workspace_unfocus_client(struct natwm_state *state,
+                                          struct workspace *workspace,
+                                          struct client *client)
 {
         struct node *client_node
                 = get_client_node_from_client(workspace->clients, client);
@@ -360,7 +360,7 @@ enum natwm_error workspace_unfocus_existing_client(struct natwm_state *state,
                 struct client *next_client
                         = get_client_from_client_node(next_node);
 
-                workspace_focus_existing_client(state, workspace, next_client);
+                workspace_focus_client(state, workspace, next_client);
         }
 
         list_move_node_to_tail(workspace->clients, client_node);
