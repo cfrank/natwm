@@ -567,7 +567,7 @@ workspace_list_find_window_client(const struct workspace_list *list,
 }
 
 enum natwm_error workspace_list_switch_to_workspace(struct natwm_state *state,
-                                                    uint32_t workspace_index)
+                                                    size_t workspace_index)
 {
         if (workspace_index >= state->workspace_list->count) {
                 LOG_WARNING(natwm_logger,
