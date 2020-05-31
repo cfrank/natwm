@@ -466,7 +466,7 @@ void client_configure_window_rect(xcb_connection_t *connection,
 void client_map(const struct natwm_state *state, struct client *client,
                 xcb_rectangle_t monitor_rect)
 {
-        if (client == NULL || client->state & CLIENT_HIDDEN) {
+        if (client == NULL) {
                 // Skip this client
                 return;
         }
@@ -487,6 +487,10 @@ void client_map(const struct natwm_state *state, struct client *client,
 
                 client_configure_window_rect(
                         state->xcb, client->window, new_rect, border_width);
+        }
+
+        if (client->state & CLIENT_HIDDEN) {
+                client->state &= (uint8_t)~CLIENT_HIDDEN;
         }
 
         xcb_map_window(state->xcb, client->window);
@@ -514,6 +518,8 @@ enum natwm_error client_handle_map_notify(const struct natwm_state *state,
         }
 
         if (client->is_focused && workspace->is_focused) {
+                // We need to get the previous border_width before removing
+                // CLIENT_OFF_SCREEN
                 uint16_t border_width = client_get_active_border_width(
                         state->workspace_list->theme, client);
 
@@ -547,10 +553,8 @@ enum natwm_error client_unmap_window(struct natwm_state *state,
                 return NOT_FOUND_ERROR;
         }
 
-        LOG_INFO(natwm_logger, "Client unmap window");
-
         if (!(client->state & CLIENT_OFF_SCREEN)) {
-                client->state = CLIENT_HIDDEN;
+                client->state |= CLIENT_HIDDEN;
         }
 
         workspace_reset_focus(state, workspace);
@@ -656,7 +660,11 @@ uint16_t client_get_active_border_width(const struct client_theme *theme,
                 return theme->border_width->sticky;
         }
 
-        if (client->is_focused && !(client->state & CLIENT_OFF_SCREEN)) {
+        if (client->state & CLIENT_OFF_SCREEN) {
+                return theme->border_width->unfocused;
+        }
+
+        if (client->is_focused) {
                 return theme->border_width->focused;
         }
 
@@ -675,7 +683,11 @@ client_get_active_border_color(const struct client_theme *theme,
                 return theme->color->sticky;
         }
 
-        if (client->is_focused && !(client->state & CLIENT_OFF_SCREEN)) {
+        if (client->state & CLIENT_OFF_SCREEN) {
+                return theme->color->unfocused;
+        }
+
+        if (client->is_focused) {
                 return theme->color->focused;
         }
 
