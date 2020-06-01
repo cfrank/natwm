@@ -320,6 +320,19 @@ enum natwm_error workspace_list_init(const struct natwm_state *state,
         return NO_ERROR;
 }
 
+void workspace_focus(struct natwm_state *state, struct workspace *workspace)
+{
+        if (workspace->is_focused) {
+                return;
+        }
+
+        workspace->is_focused = true;
+
+        state->workspace_list->active_index = workspace->index;
+
+        ewmh_update_current_desktop(state, workspace->index);
+}
+
 enum natwm_error workspace_focus_client(struct natwm_state *state,
                                         struct workspace *workspace,
                                         struct client *client)
@@ -430,11 +443,7 @@ enum natwm_error workspace_change_monitor(struct natwm_state *state,
 
         workspace_send_to_monitor(state, next_workspace, current_monitor);
 
-        next_workspace->is_focused = true;
-
-        state->workspace_list->active_index = next_workspace->index;
-
-        ewmh_update_current_desktop(state, next_workspace->index);
+        workspace_focus(state, next_workspace);
 
         workspace_reset_focus(state, next_workspace);
 
