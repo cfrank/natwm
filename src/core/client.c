@@ -771,9 +771,16 @@ void client_set_window_input_focus(const struct natwm_state *state,
         update_stack_mode(state, window, XCB_STACK_MODE_ABOVE);
 }
 
-void client_set_focused(const struct natwm_state *state, struct client *client)
+void client_set_focused(struct natwm_state *state, struct client *client)
 {
         if (client == NULL || client->state & CLIENT_HIDDEN) {
+                return;
+        }
+
+        struct workspace *workspace = workspace_list_find_client_workspace(
+                state->workspace_list, client);
+
+        if (workspace == NULL) {
                 return;
         }
 
@@ -782,6 +789,10 @@ void client_set_focused(const struct natwm_state *state, struct client *client)
         client->is_focused = true;
 
         client_set_window_input_focus(state, client->window);
+
+        if (!workspace->is_focused) {
+                workspace_focus(state, workspace);
+        }
 
         // Now that we have focused the client, there is no need for "click to
         // focus" so we can remove the button grab
@@ -812,7 +823,7 @@ void client_set_unfocused(const struct natwm_state *state,
         update_theme(state, client, theme->border_width->focused);
 }
 
-enum natwm_error client_focus_window(const struct natwm_state *state,
+enum natwm_error client_focus_window(struct natwm_state *state,
                                      xcb_window_t window)
 {
         struct client *client = workspace_list_find_window_client(

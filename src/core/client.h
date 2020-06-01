@@ -87,10 +87,10 @@ client_handle_fullscreen_window(struct natwm_state *state,
                                 xcb_window_t window);
 void client_set_window_input_focus(const struct natwm_state *state,
                                    xcb_window_t window);
-void client_set_focused(const struct natwm_state *state, struct client *client);
+void client_set_focused(struct natwm_state *state, struct client *client);
 void client_set_unfocused(const struct natwm_state *state,
                           struct client *client);
-enum natwm_error client_focus_window(const struct natwm_state *state,
+enum natwm_error client_focus_window(struct natwm_state *state,
                                      xcb_window_t window);
 enum natwm_error client_update_hints(const struct natwm_state *state,
                                      const struct client *client,
