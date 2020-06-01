@@ -393,7 +393,7 @@ enum natwm_error monitor_setup(const struct natwm_state *state,
         return NO_ERROR;
 }
 
-xcb_rectangle_t monitor_clamp_client_rect(xcb_rectangle_t monitor_rect,
+xcb_rectangle_t monitor_clamp_client_rect(const struct monitor *monitor,
                                           xcb_rectangle_t client_rect)
 {
         int32_t x = client_rect.x;
@@ -403,24 +403,24 @@ xcb_rectangle_t monitor_clamp_client_rect(xcb_rectangle_t monitor_rect,
         int32_t end_x_pos = width + x;
         int32_t end_y_pos = height + y;
 
-        if (end_x_pos > monitor_rect.width) {
-                int32_t overflow = end_x_pos - monitor_rect.width;
+        if (end_x_pos > monitor->rect.width) {
+                int32_t overflow = end_x_pos - monitor->rect.width;
                 int32_t new_x = x - overflow;
 
-                x = MAX(monitor_rect.x, new_x);
-                width = MIN(monitor_rect.width, width);
+                x = MAX(monitor->offsets.left, new_x);
+                width = MIN(monitor->rect.width, width);
         } else {
-                x = MAX(monitor_rect.x, x);
+                x = MAX(monitor->offsets.left, x);
         }
 
-        if (end_y_pos > monitor_rect.height) {
-                int32_t overflow = end_y_pos - monitor_rect.height;
+        if (end_y_pos > monitor->rect.height) {
+                int32_t overflow = end_y_pos - monitor->rect.height;
                 int32_t new_y = y - overflow;
 
-                y = MAX(monitor_rect.y, new_y);
-                height = MIN(monitor_rect.height, height);
+                y = MAX(monitor->offsets.top, new_y);
+                height = MIN(monitor->rect.height, height);
         } else {
-                y = MAX(monitor_rect.y, y);
+                y = MAX(monitor->offsets.top, y);
         }
 
         assert(width <= UINT16_MAX);
@@ -438,20 +438,20 @@ xcb_rectangle_t monitor_clamp_client_rect(xcb_rectangle_t monitor_rect,
 
 xcb_rectangle_t monitor_move_client_rect(const struct monitor *previous_monitor,
                                          const struct monitor *next_monitor,
-                                         const struct client *client)
+                                         xcb_rectangle_t client_rect)
 {
         if (previous_monitor == NULL) {
-                return client->rect;
+                return client_rect;
         }
 
         if (is_monitor_rect_same(previous_monitor->rect, next_monitor->rect)) {
-                return client->rect;
+                return client_rect;
         }
 
-        float x_diff = (float)(client->rect.x / previous_monitor->rect.width);
-        float y_diff = (float)(client->rect.y / previous_monitor->rect.height);
-        float width_diff = client->rect.width / previous_monitor->rect.width;
-        float height_diff = client->rect.height / previous_monitor->rect.height;
+        float x_diff = (float)(client_rect.x / previous_monitor->rect.width);
+        float y_diff = (float)(client_rect.y / previous_monitor->rect.height);
+        float width_diff = client_rect.width / previous_monitor->rect.width;
+        float height_diff = client_rect.height / previous_monitor->rect.height;
 
         xcb_rectangle_t new_rect = {
                 .x = (int16_t)(next_monitor->rect.width * x_diff),

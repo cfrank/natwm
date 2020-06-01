@@ -138,7 +138,7 @@ static void workspace_send_to_monitor(struct natwm_state *state,
 
                 // Update client size to match aspect ratio of new monitor
                 client->rect = monitor_move_client_rect(
-                        previous_monitor, monitor, client);
+                        previous_monitor, monitor, client->rect);
 
                 client_map(state, client, monitor->rect);
         }
@@ -324,6 +324,14 @@ void workspace_focus(struct natwm_state *state, struct workspace *workspace)
 {
         if (workspace->is_focused) {
                 return;
+        }
+
+        struct workspace *current_workspace
+                = state->workspace_list
+                          ->workspaces[state->workspace_list->active_index];
+
+        if (current_workspace && current_workspace->is_focused) {
+                current_workspace->is_focused = false;
         }
 
         workspace->is_focused = true;

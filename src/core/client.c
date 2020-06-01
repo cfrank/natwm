@@ -280,12 +280,10 @@ struct client *client_register_window(struct natwm_state *state,
 
         // Load the client theme from the workspace list
         struct client_theme *theme = state->workspace_list->theme;
-        xcb_rectangle_t workspace_monitor_rect
-                = monitor_get_offset_rect(workspace_monitor);
 
         // Adjust window rect to fit workspace monitor
         client->rect = client_initialize_rect(
-                client, theme->border_width->unfocused, workspace_monitor_rect);
+                client, workspace_monitor, theme->border_width->unfocused);
 
         // Listen for button events
         mouse_initialize_client_listeners(state, client);
@@ -402,8 +400,7 @@ enum natwm_error client_configure_window(struct natwm_state *state,
                 }
         }
 
-        client->rect = monitor_clamp_client_rect(
-                monitor_get_offset_rect(monitor), new_rect);
+        client->rect = monitor_clamp_client_rect(monitor, new_rect);
 
         new_event.x = client->rect.x;
         new_event.y = client->rect.y;
@@ -608,8 +605,8 @@ enum natwm_error client_destroy_window(struct natwm_state *state,
 }
 
 xcb_rectangle_t client_initialize_rect(const struct client *client,
-                                       uint16_t border_width,
-                                       xcb_rectangle_t monitor_rect)
+                                       const struct monitor *monitor,
+                                       uint16_t border_width)
 {
         xcb_rectangle_t new_rect = client->rect;
 
@@ -629,7 +626,7 @@ xcb_rectangle_t client_initialize_rect(const struct client *client,
                 new_rect.height = (uint16_t)client->size_hints->height;
         }
 
-        new_rect = monitor_clamp_client_rect(monitor_rect, new_rect);
+        new_rect = monitor_clamp_client_rect(monitor, new_rect);
 
         // Account for initial border_width
         int32_t border_padding = border_width * 2;

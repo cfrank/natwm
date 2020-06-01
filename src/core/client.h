@@ -15,6 +15,9 @@
 
 #include "state.h"
 
+// Provided by workspace.h
+struct monitor;
+
 enum client_state {
         CLIENT_URGENT = 1U << 0U,
         CLIENT_STICKY = 1U << 1U,
@@ -70,8 +73,8 @@ enum natwm_error client_unmap_window(struct natwm_state *state,
 enum natwm_error client_destroy_window(struct natwm_state *state,
                                        xcb_window_t window);
 xcb_rectangle_t client_initialize_rect(const struct client *client,
-                                       uint16_t border_width,
-                                       xcb_rectangle_t monitor_rect);
+                                       const struct monitor *monitor,
+                                       uint16_t border_width);
 uint16_t client_get_active_border_width(const struct client_theme *theme,
                                         const struct client *client);
 struct color_value *
