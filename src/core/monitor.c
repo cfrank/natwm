@@ -396,6 +396,7 @@ enum natwm_error monitor_setup(const struct natwm_state *state,
 xcb_rectangle_t monitor_clamp_client_rect(const struct monitor *monitor,
                                           xcb_rectangle_t client_rect)
 {
+        xcb_rectangle_t monitor_rect = monitor_get_offset_rect(monitor);
         int32_t x = client_rect.x;
         int32_t y = client_rect.y;
         int32_t width = client_rect.width;
@@ -403,22 +404,22 @@ xcb_rectangle_t monitor_clamp_client_rect(const struct monitor *monitor,
         int32_t end_x_pos = width + x;
         int32_t end_y_pos = height + y;
 
-        if (end_x_pos > monitor->rect.width) {
-                int32_t overflow = end_x_pos - monitor->rect.width;
+        if (end_x_pos > monitor_rect.width) {
+                int32_t overflow = end_x_pos - monitor_rect.width;
                 int32_t new_x = x - overflow;
 
                 x = MAX(monitor->offsets.left, new_x);
-                width = MIN(monitor->rect.width, width);
+                width = MIN(monitor_rect.width, width);
         } else {
                 x = MAX(monitor->offsets.left, x);
         }
 
-        if (end_y_pos > monitor->rect.height) {
-                int32_t overflow = end_y_pos - monitor->rect.height;
+        if (end_y_pos > monitor_rect.height) {
+                int32_t overflow = end_y_pos - monitor_rect.height;
                 int32_t new_y = y - overflow;
 
                 y = MAX(monitor->offsets.top, new_y);
-                height = MIN(monitor->rect.height, height);
+                height = MIN(monitor_rect.height, height);
         } else {
                 y = MAX(monitor->offsets.top, y);
         }
