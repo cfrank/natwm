@@ -19,11 +19,6 @@
 #include "randr.h"
 #include "xinerama.h"
 
-static bool is_monitor_rect_same(xcb_rectangle_t one, xcb_rectangle_t two)
-{
-        return one.width == two.width && one.height == two.height;
-}
-
 static void monitors_destroy(struct list *monitors)
 {
         LIST_FOR_EACH(monitors, item)
@@ -432,33 +427,6 @@ xcb_rectangle_t monitor_clamp_client_rect(const struct monitor *monitor,
                 .y = (int16_t)y,
                 .width = (uint16_t)width,
                 .height = (uint16_t)height,
-        };
-
-        return new_rect;
-}
-
-xcb_rectangle_t monitor_move_client_rect(const struct monitor *previous_monitor,
-                                         const struct monitor *next_monitor,
-                                         xcb_rectangle_t client_rect)
-{
-        if (previous_monitor == NULL) {
-                return client_rect;
-        }
-
-        if (is_monitor_rect_same(previous_monitor->rect, next_monitor->rect)) {
-                return client_rect;
-        }
-
-        float x_diff = (float)(client_rect.x / previous_monitor->rect.width);
-        float y_diff = (float)(client_rect.y / previous_monitor->rect.height);
-        float width_diff = client_rect.width / previous_monitor->rect.width;
-        float height_diff = client_rect.height / previous_monitor->rect.height;
-
-        xcb_rectangle_t new_rect = {
-                .x = (int16_t)(next_monitor->rect.width * x_diff),
-                .y = (int16_t)(next_monitor->rect.height * y_diff),
-                .width = (uint16_t)(next_monitor->rect.width * width_diff),
-                .height = (uint16_t)(next_monitor->rect.height * height_diff),
         };
 
         return new_rect;

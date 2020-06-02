@@ -290,7 +290,7 @@ struct client *client_register_window(struct natwm_state *state,
 
         xcb_change_save_set(state->xcb, XCB_SET_MODE_INSERT, client->window);
 
-        client_map(state, client, workspace_monitor->rect);
+        client_map(state, client, workspace_monitor);
 
         err = workspace_add_client(state, focused_workspace, client);
 
@@ -458,7 +458,7 @@ void client_configure_window_rect(xcb_connection_t *connection,
 }
 
 void client_map(const struct natwm_state *state, struct client *client,
-                xcb_rectangle_t monitor_rect)
+                const struct monitor *monitor)
 {
         if (client == NULL) {
                 // Skip this client
@@ -469,12 +469,14 @@ void client_map(const struct natwm_state *state, struct client *client,
         uint32_t border_width = client_get_active_border_width(theme, client);
 
         if (client->is_fullscreen) {
-                client_configure_window_rect(
-                        state->xcb, client->window, monitor_rect, border_width);
+                client_configure_window_rect(state->xcb,
+                                             client->window,
+                                             monitor->rect,
+                                             border_width);
         } else {
                 xcb_rectangle_t new_rect = {
-                        (int16_t)(client->rect.x + monitor_rect.x),
-                        (int16_t)(client->rect.y + monitor_rect.y),
+                        (int16_t)(client->rect.x + monitor->rect.x),
+                        (int16_t)(client->rect.y + monitor->rect.y),
                         client->rect.width,
                         client->rect.height,
                 };

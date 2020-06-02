@@ -125,9 +125,6 @@ static void workspace_send_to_monitor(struct natwm_state *state,
                                       struct workspace *workspace,
                                       struct monitor *monitor)
 {
-        struct monitor *previous_monitor = monitor_list_get_workspace_monitor(
-                state->monitor_list, workspace);
-
         LIST_FOR_EACH(workspace->clients, node)
         {
                 struct client *client = get_client_from_client_node(node);
@@ -136,11 +133,11 @@ static void workspace_send_to_monitor(struct natwm_state *state,
                         continue;
                 }
 
-                // Update client size to match aspect ratio of new monitor
-                client->rect = monitor_move_client_rect(
-                        previous_monitor, monitor, client->rect);
+                // Move client to next monitor
+                // TODO: Update to match aspect ratio
+                client->rect = monitor_clamp_client_rect(monitor, client->rect);
 
-                client_map(state, client, monitor->rect);
+                client_map(state, client, monitor);
         }
 
         workspace->is_visible = true;
