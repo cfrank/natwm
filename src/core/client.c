@@ -790,7 +790,7 @@ void client_set_focused(struct natwm_state *state, struct client *client)
         client_set_window_input_focus(state, client->window);
 
         if (!workspace->is_focused) {
-                workspace_focus(state, workspace);
+                workspace_set_focused(state, workspace);
         }
 
         // Now that we have focused the client, there is no need for "click to

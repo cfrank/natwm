@@ -317,18 +317,18 @@ enum natwm_error workspace_list_init(const struct natwm_state *state,
         return NO_ERROR;
 }
 
-void workspace_focus(struct natwm_state *state, struct workspace *workspace)
+void workspace_set_focused(const struct natwm_state *state,
+                           struct workspace *workspace)
 {
         if (workspace->is_focused) {
                 return;
         }
 
         struct workspace *current_workspace
-                = state->workspace_list
-                          ->workspaces[state->workspace_list->active_index];
+                = workspace_list_get_focused(state->workspace_list);
 
         if (current_workspace && current_workspace->is_focused) {
-                current_workspace->is_focused = false;
+                workspace_set_unfocused(state, current_workspace);
         }
 
         workspace->is_focused = true;
@@ -336,6 +336,20 @@ void workspace_focus(struct natwm_state *state, struct workspace *workspace)
         state->workspace_list->active_index = workspace->index;
 
         ewmh_update_current_desktop(state, workspace->index);
+}
+
+void workspace_set_unfocused(const struct natwm_state *state,
+                             struct workspace *workspace)
+{
+        if (!workspace->is_focused) {
+                return;
+        }
+
+        if (workspace->active_client != NULL) {
+                client_set_unfocused(state, workspace->active_client);
+        }
+
+        workspace->is_focused = false;
 }
 
 enum natwm_error workspace_focus_client(struct natwm_state *state,
@@ -354,6 +368,10 @@ enum natwm_error workspace_focus_client(struct natwm_state *state,
         }
 
         focus_client(state, workspace, client_node, client);
+
+        if (!workspace->is_focused) {
+                workspace_set_focused(state, workspace);
+        }
 
         return NO_ERROR;
 }
@@ -448,7 +466,7 @@ enum natwm_error workspace_change_monitor(struct natwm_state *state,
 
         workspace_send_to_monitor(state, next_workspace, current_monitor);
 
-        workspace_focus(state, next_workspace);
+        workspace_set_focused(state, next_workspace);
 
         workspace_reset_focus(state, next_workspace);
 
