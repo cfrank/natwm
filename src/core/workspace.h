@@ -43,12 +43,16 @@ enum natwm_error workspace_remove_client(struct natwm_state *state,
                                          struct client *client);
 struct client *workspace_find_window_client(const struct workspace *workspace,
                                             xcb_window_t window);
-enum natwm_error workspace_focus_existing_client(struct natwm_state *state,
-                                                 struct workspace *workspace,
-                                                 struct client *client);
-enum natwm_error workspace_unfocus_existing_client(struct natwm_state *state,
-                                                   struct workspace *workspace,
-                                                   struct client *client);
+void workspace_set_focused(const struct natwm_state *state,
+                           struct workspace *workspace);
+void workspace_set_unfocused(const struct natwm_state *state,
+                             struct workspace *workspace);
+enum natwm_error workspace_focus_client(struct natwm_state *state,
+                                        struct workspace *workspace,
+                                        struct client *client);
+enum natwm_error workspace_unfocus_client(struct natwm_state *state,
+                                          struct workspace *workspace,
+                                          struct client *client);
 enum natwm_error workspace_reset_focus(struct natwm_state *state,
                                        struct workspace *workspace);
 enum natwm_error workspace_change_monitor(struct natwm_state *state,
@@ -64,6 +68,6 @@ struct client *
 workspace_list_find_window_client(const struct workspace_list *list,
                                   xcb_window_t window);
 enum natwm_error workspace_list_switch_to_workspace(struct natwm_state *state,
-                                                    uint32_t workspace_num);
+                                                    size_t workspace_index);
 void workspace_list_destroy(struct workspace_list *workspace_list);
 void workspace_destroy(struct workspace *workspace);

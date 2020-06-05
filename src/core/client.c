@@ -280,19 +280,17 @@ struct client *client_register_window(struct natwm_state *state,
 
         // Load the client theme from the workspace list
         struct client_theme *theme = state->workspace_list->theme;
-        xcb_rectangle_t workspace_monitor_rect
-                = monitor_get_offset_rect(workspace_monitor);
 
         // Adjust window rect to fit workspace monitor
         client->rect = client_initialize_rect(
-                client, theme->border_width->unfocused, workspace_monitor_rect);
+                client, workspace_monitor, theme->border_width->unfocused);
 
         // Listen for button events
         mouse_initialize_client_listeners(state, client);
 
         xcb_change_save_set(state->xcb, XCB_SET_MODE_INSERT, client->window);
 
-        client_map(state, client, workspace_monitor->rect);
+        client_map(state, client, workspace_monitor);
 
         err = workspace_add_client(state, focused_workspace, client);
 
@@ -341,8 +339,7 @@ enum natwm_error client_handle_button_press(struct natwm_state *state,
         }
 
         if (event->state == XCB_NONE) {
-                return workspace_focus_existing_client(
-                        state, workspace, client);
+                return workspace_focus_client(state, workspace, client);
         }
 
         return NO_ERROR;
@@ -403,8 +400,7 @@ enum natwm_error client_configure_window(struct natwm_state *state,
                 }
         }
 
-        client->rect = monitor_clamp_client_rect(
-                monitor_get_offset_rect(monitor), new_rect);
+        client->rect = monitor_clamp_client_rect(monitor, new_rect);
 
         new_event.x = client->rect.x;
         new_event.y = client->rect.y;
@@ -420,12 +416,10 @@ enum natwm_error client_configure_window(struct natwm_state *state,
                 }
 
                 if (event->stack_mode == XCB_STACK_MODE_ABOVE) {
-                        workspace_focus_existing_client(
-                                state, workspace, client);
+                        workspace_focus_client(state, workspace, client);
 
                 } else if (event->stack_mode == XCB_STACK_MODE_BELOW) {
-                        workspace_unfocus_existing_client(
-                                state, workspace, client);
+                        workspace_unfocus_client(state, workspace, client);
                 } else {
                         // TODO: Support XCB_STACK_MODE_{OPPOSITE, TOP_IF,
                         // BOTTOM_IF}
@@ -464,7 +458,7 @@ void client_configure_window_rect(xcb_connection_t *connection,
 }
 
 void client_map(const struct natwm_state *state, struct client *client,
-                xcb_rectangle_t monitor_rect)
+                const struct monitor *monitor)
 {
         if (client == NULL) {
                 // Skip this client
@@ -475,12 +469,14 @@ void client_map(const struct natwm_state *state, struct client *client,
         uint32_t border_width = client_get_active_border_width(theme, client);
 
         if (client->is_fullscreen) {
-                client_configure_window_rect(
-                        state->xcb, client->window, monitor_rect, border_width);
+                client_configure_window_rect(state->xcb,
+                                             client->window,
+                                             monitor->rect,
+                                             border_width);
         } else {
                 xcb_rectangle_t new_rect = {
-                        (int16_t)(client->rect.x + monitor_rect.x),
-                        (int16_t)(client->rect.y + monitor_rect.y),
+                        (int16_t)(client->rect.x + monitor->rect.x),
+                        (int16_t)(client->rect.y + monitor->rect.y),
                         client->rect.width,
                         client->rect.height,
                 };
@@ -611,8 +607,8 @@ enum natwm_error client_destroy_window(struct natwm_state *state,
 }
 
 xcb_rectangle_t client_initialize_rect(const struct client *client,
-                                       uint16_t border_width,
-                                       xcb_rectangle_t monitor_rect)
+                                       const struct monitor *monitor,
+                                       uint16_t border_width)
 {
         xcb_rectangle_t new_rect = client->rect;
 
@@ -632,7 +628,7 @@ xcb_rectangle_t client_initialize_rect(const struct client *client,
                 new_rect.height = (uint16_t)client->size_hints->height;
         }
 
-        new_rect = monitor_clamp_client_rect(monitor_rect, new_rect);
+        new_rect = monitor_clamp_client_rect(monitor, new_rect);
 
         // Account for initial border_width
         int32_t border_padding = border_width * 2;
@@ -774,9 +770,16 @@ void client_set_window_input_focus(const struct natwm_state *state,
         update_stack_mode(state, window, XCB_STACK_MODE_ABOVE);
 }
 
-void client_set_focused(const struct natwm_state *state, struct client *client)
+void client_set_focused(struct natwm_state *state, struct client *client)
 {
         if (client == NULL || client->state & CLIENT_HIDDEN) {
+                return;
+        }
+
+        struct workspace *workspace = workspace_list_find_client_workspace(
+                state->workspace_list, client);
+
+        if (workspace == NULL) {
                 return;
         }
 
@@ -785,6 +788,10 @@ void client_set_focused(const struct natwm_state *state, struct client *client)
         client->is_focused = true;
 
         client_set_window_input_focus(state, client->window);
+
+        if (!workspace->is_focused) {
+                workspace_set_focused(state, workspace);
+        }
 
         // Now that we have focused the client, there is no need for "click to
         // focus" so we can remove the button grab
@@ -815,7 +822,7 @@ void client_set_unfocused(const struct natwm_state *state,
         update_theme(state, client, theme->border_width->focused);
 }
 
-enum natwm_error client_focus_window(const struct natwm_state *state,
+enum natwm_error client_focus_window(struct natwm_state *state,
                                      xcb_window_t window)
 {
         struct client *client = workspace_list_find_window_client(

@@ -125,9 +125,6 @@ static void workspace_send_to_monitor(struct natwm_state *state,
                                       struct workspace *workspace,
                                       struct monitor *monitor)
 {
-        struct monitor *previous_monitor = monitor_list_get_workspace_monitor(
-                state->monitor_list, workspace);
-
         LIST_FOR_EACH(workspace->clients, node)
         {
                 struct client *client = get_client_from_client_node(node);
@@ -136,11 +133,11 @@ static void workspace_send_to_monitor(struct natwm_state *state,
                         continue;
                 }
 
-                // Update client size to match aspect ratio of new monitor
-                client->rect = monitor_move_client_rect(
-                        previous_monitor, monitor, client);
+                // Move client to next monitor
+                // TODO: Update to match aspect ratio
+                client->rect = monitor_clamp_client_rect(monitor, client->rect);
 
-                client_map(state, client, monitor->rect);
+                client_map(state, client, monitor);
         }
 
         workspace->is_visible = true;
@@ -320,9 +317,44 @@ enum natwm_error workspace_list_init(const struct natwm_state *state,
         return NO_ERROR;
 }
 
-enum natwm_error workspace_focus_existing_client(struct natwm_state *state,
-                                                 struct workspace *workspace,
-                                                 struct client *client)
+void workspace_set_focused(const struct natwm_state *state,
+                           struct workspace *workspace)
+{
+        if (workspace->is_focused) {
+                return;
+        }
+
+        struct workspace *current_workspace
+                = workspace_list_get_focused(state->workspace_list);
+
+        if (current_workspace && current_workspace->is_focused) {
+                workspace_set_unfocused(state, current_workspace);
+        }
+
+        workspace->is_focused = true;
+
+        state->workspace_list->active_index = workspace->index;
+
+        ewmh_update_current_desktop(state, workspace->index);
+}
+
+void workspace_set_unfocused(const struct natwm_state *state,
+                             struct workspace *workspace)
+{
+        if (!workspace->is_focused) {
+                return;
+        }
+
+        if (workspace->active_client != NULL) {
+                client_set_unfocused(state, workspace->active_client);
+        }
+
+        workspace->is_focused = false;
+}
+
+enum natwm_error workspace_focus_client(struct natwm_state *state,
+                                        struct workspace *workspace,
+                                        struct client *client)
 {
         if (client->is_focused || client->state & CLIENT_HIDDEN) {
                 return INVALID_INPUT_ERROR;
@@ -337,12 +369,16 @@ enum natwm_error workspace_focus_existing_client(struct natwm_state *state,
 
         focus_client(state, workspace, client_node, client);
 
+        if (!workspace->is_focused) {
+                workspace_set_focused(state, workspace);
+        }
+
         return NO_ERROR;
 }
 
-enum natwm_error workspace_unfocus_existing_client(struct natwm_state *state,
-                                                   struct workspace *workspace,
-                                                   struct client *client)
+enum natwm_error workspace_unfocus_client(struct natwm_state *state,
+                                          struct workspace *workspace,
+                                          struct client *client)
 {
         struct node *client_node
                 = get_client_node_from_client(workspace->clients, client);
@@ -360,7 +396,7 @@ enum natwm_error workspace_unfocus_existing_client(struct natwm_state *state,
                 struct client *next_client
                         = get_client_from_client_node(next_node);
 
-                workspace_focus_existing_client(state, workspace, next_client);
+                workspace_focus_client(state, workspace, next_client);
         }
 
         list_move_node_to_tail(workspace->clients, client_node);
@@ -430,11 +466,7 @@ enum natwm_error workspace_change_monitor(struct natwm_state *state,
 
         workspace_send_to_monitor(state, next_workspace, current_monitor);
 
-        next_workspace->is_focused = true;
-
-        state->workspace_list->active_index = next_workspace->index;
-
-        ewmh_update_current_desktop(state, next_workspace->index);
+        workspace_set_focused(state, next_workspace);
 
         workspace_reset_focus(state, next_workspace);
 
@@ -567,7 +599,7 @@ workspace_list_find_window_client(const struct workspace_list *list,
 }
 
 enum natwm_error workspace_list_switch_to_workspace(struct natwm_state *state,
-                                                    uint32_t workspace_index)
+                                                    size_t workspace_index)
 {
         if (workspace_index >= state->workspace_list->count) {
                 LOG_WARNING(natwm_logger,

@@ -15,6 +15,9 @@
 
 #include "state.h"
 
+// Provided by workspace.h
+struct monitor;
+
 enum client_state {
         CLIENT_URGENT = 1U << 0U,
         CLIENT_STICKY = 1U << 1U,
@@ -62,7 +65,7 @@ void client_configure_window_rect(xcb_connection_t *connection,
                                   xcb_window_t window, xcb_rectangle_t rect,
                                   uint32_t border_width);
 void client_map(const struct natwm_state *state, struct client *client,
-                xcb_rectangle_t monitor_rect);
+                const struct monitor *monitor);
 enum natwm_error client_handle_map_notify(const struct natwm_state *state,
                                           xcb_window_t window);
 enum natwm_error client_unmap_window(struct natwm_state *state,
@@ -70,8 +73,8 @@ enum natwm_error client_unmap_window(struct natwm_state *state,
 enum natwm_error client_destroy_window(struct natwm_state *state,
                                        xcb_window_t window);
 xcb_rectangle_t client_initialize_rect(const struct client *client,
-                                       uint16_t border_width,
-                                       xcb_rectangle_t monitor_rect);
+                                       const struct monitor *monitor,
+                                       uint16_t border_width);
 uint16_t client_get_active_border_width(const struct client_theme *theme,
                                         const struct client *client);
 struct color_value *
@@ -87,10 +90,10 @@ client_handle_fullscreen_window(struct natwm_state *state,
                                 xcb_window_t window);
 void client_set_window_input_focus(const struct natwm_state *state,
                                    xcb_window_t window);
-void client_set_focused(const struct natwm_state *state, struct client *client);
+void client_set_focused(struct natwm_state *state, struct client *client);
 void client_set_unfocused(const struct natwm_state *state,
                           struct client *client);
-enum natwm_error client_focus_window(const struct natwm_state *state,
+enum natwm_error client_focus_window(struct natwm_state *state,
                                      xcb_window_t window);
 enum natwm_error client_update_hints(const struct natwm_state *state,
                                      const struct client *client,
