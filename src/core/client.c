@@ -553,7 +553,9 @@ enum natwm_error client_unmap_window(struct natwm_state *state,
                 client->state |= CLIENT_HIDDEN;
         }
 
-        workspace_reset_focus(state, workspace);
+        if (client->is_focused) {
+                workspace_reset_focus(state, workspace);
+        }
 
         return NO_ERROR;
 }
@@ -825,6 +827,10 @@ enum natwm_error client_focus_window(struct natwm_state *state,
         if (client == NULL) {
                 client_set_window_input_focus(state, window);
 
+                return NO_ERROR;
+        }
+
+        if (client->is_focused) {
                 return NO_ERROR;
         }
 

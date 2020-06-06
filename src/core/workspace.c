@@ -190,8 +190,6 @@ static struct node *get_client_node_from_client(struct list *client_list,
 static void focus_client(struct natwm_state *state, struct workspace *workspace,
                          struct node *node, struct client *client)
 {
-        natwm_state_lock(state);
-
         if (workspace->active_client) {
                 client_set_unfocused(state, workspace->active_client);
         }
@@ -201,8 +199,6 @@ static void focus_client(struct natwm_state *state, struct workspace *workspace,
         list_move_node_to_head(workspace->clients, node);
 
         client_set_focused(state, client);
-
-        natwm_state_unlock(state);
 }
 
 // Focus on the root window when there is no other windows to focus
@@ -413,12 +409,24 @@ enum natwm_error workspace_reset_focus(struct natwm_state *state,
                 return INVALID_INPUT_ERROR;
         }
 
+        // If there are no more clients on this workspace then focus on the
+        // root window
         if (list_is_empty(workspace->clients)) {
                 reset_input_focus(state);
 
                 return NO_ERROR;
         }
 
+        // If we already have a active client we can just reset the input focus
+        // for this client and avoid updating the theme
+        if (workspace->active_client) {
+                client_set_window_input_focus(state,
+                                              workspace->active_client->window);
+
+                return NO_ERROR;
+        }
+
+        // Focus on the next visible client
         LIST_FOR_EACH(workspace->clients, node)
         {
                 struct client *client = get_client_from_client_node(node);
@@ -432,7 +440,11 @@ enum natwm_error workspace_reset_focus(struct natwm_state *state,
                 return NO_ERROR;
         }
 
-        return NOT_FOUND_ERROR;
+        // If there are only hidden clients, then again focus on the root
+        // window
+        reset_input_focus(state);
+
+        return NO_ERROR;
 }
 
 enum natwm_error workspace_change_monitor(struct natwm_state *state,
@@ -516,17 +528,15 @@ enum natwm_error workspace_remove_client(struct natwm_state *state,
                 return NOT_FOUND_ERROR;
         }
 
-        natwm_state_lock(state);
-
         list_remove(workspace->clients, client_node);
 
         node_destroy(client_node);
 
         map_delete(state->workspace_list->client_map, &client->window);
 
-        natwm_state_unlock(state);
+        if (workspace->active_client == client) {
+                workspace->active_client = NULL;
 
-        if (client->is_focused) {
                 workspace_reset_focus(state, workspace);
         }
 
