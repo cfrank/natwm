@@ -73,7 +73,7 @@ event_handle_destroy_notify(struct natwm_state *state,
                             xcb_destroy_notify_event_t *event)
 {
         xcb_window_t window = event->window;
-        enum natwm_error err = client_destroy_window(state, window);
+        enum natwm_error err = client_handle_destroy_notify(state, window);
 
         if (err != NO_ERROR) {
                 // A failure here would corrupt the integrity of the workspace

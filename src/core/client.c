@@ -558,8 +558,8 @@ enum natwm_error client_unmap_window(struct natwm_state *state,
         return NO_ERROR;
 }
 
-enum natwm_error client_destroy_window(struct natwm_state *state,
-                                       xcb_window_t window)
+enum natwm_error client_handle_destroy_notify(struct natwm_state *state,
+                                              xcb_window_t window)
 {
         struct workspace *workspace = workspace_list_find_window_workspace(
                 state->workspace_list, window);
@@ -571,8 +571,6 @@ enum natwm_error client_destroy_window(struct natwm_state *state,
 
                 workspace_reset_focus(state, active_workspace);
 
-                xcb_destroy_window(state->xcb, window);
-
                 return NO_ERROR;
         }
 
@@ -581,8 +579,6 @@ enum natwm_error client_destroy_window(struct natwm_state *state,
         if (client == NULL) {
                 LOG_WARNING(natwm_logger,
                             "Failed to find client during destroy");
-
-                xcb_destroy_window(state->xcb, window);
 
                 return NOT_FOUND_ERROR;
         }
@@ -598,8 +594,6 @@ enum natwm_error client_destroy_window(struct natwm_state *state,
         }
 
         xcb_change_save_set(state->xcb, XCB_SET_MODE_DELETE, client->window);
-
-        xcb_destroy_window(state->xcb, client->window);
 
         client_destroy(client);
 
