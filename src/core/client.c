@@ -163,19 +163,27 @@ static void update_theme(const struct natwm_state *state, struct client *client,
         xcb_rectangle_t monitor_rect = monitor_get_offset_rect(monitor);
 
         int32_t total_border = (current_border_width * 2);
-        int32_t total_width = client->rect.width + total_border;
-        int32_t total_height = client->rect.height + total_border;
+
+        int32_t total_client_width
+                = (client->rect.width + client->rect.x + total_border);
+        int32_t total_monitor_width
+                = (monitor_rect.width + monitor->offsets.left);
+
+        int32_t total_client_height
+                = (client->rect.height + client->rect.y + total_border);
+        int32_t total_monitor_height
+                = (monitor_rect.height + monitor->offsets.top);
 
         // Check if either the width or the height will not be able to fit on
         // the monitor. If either doesn't correct the width to fit
-        if (total_width > monitor_rect.width) {
-                int32_t diff = total_width - monitor_rect.width;
+        if (total_client_width > total_monitor_width) {
+                int32_t diff = total_client_width - total_monitor_width;
 
                 client->rect.width = (uint16_t)(client->rect.width - diff);
         }
 
-        if (total_height > monitor_rect.height) {
-                int32_t diff = total_height - monitor_rect.height;
+        if (total_client_height > total_monitor_height) {
+                int32_t diff = total_client_height - total_monitor_height;
 
                 client->rect.height = (uint16_t)(client->rect.height - diff);
         }
