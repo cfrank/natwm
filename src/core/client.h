@@ -72,9 +72,6 @@ enum natwm_error client_unmap_window(struct natwm_state *state,
                                      xcb_window_t window);
 enum natwm_error client_handle_destroy_notify(struct natwm_state *state,
                                               xcb_window_t window);
-xcb_rectangle_t client_initialize_rect(const struct client *client,
-                                       const struct monitor *monitor,
-                                       uint16_t border_width);
 uint16_t client_get_active_border_width(const struct client_theme *theme,
                                         const struct client *client);
 struct color_value *

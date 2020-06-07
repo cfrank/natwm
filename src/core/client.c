@@ -134,6 +134,30 @@ get_window_attributes(xcb_connection_t *connection, xcb_window_t window)
         return reply;
 }
 
+static xcb_rectangle_t client_initialize_rect(const struct client *client,
+                                              const struct monitor *monitor)
+{
+        xcb_rectangle_t new_rect = client->rect;
+
+        if (client->size_hints->flags & XCB_ICCCM_SIZE_HINT_US_SIZE) {
+                assert(client->size_hints->x <= INT16_MAX);
+                assert(client->size_hints->y <= INT16_MAX);
+
+                new_rect.x = (int16_t)client->size_hints->x;
+                new_rect.y = (int16_t)client->size_hints->y;
+        }
+
+        if (client->size_hints->flags & XCB_ICCCM_SIZE_HINT_P_SIZE) {
+                assert(client->size_hints->width <= UINT16_MAX);
+                assert(client->size_hints->height <= UINT16_MAX);
+
+                new_rect.width = (uint16_t)client->size_hints->width;
+                new_rect.height = (uint16_t)client->size_hints->height;
+        }
+
+        return monitor_clamp_client_rect(monitor, new_rect);
+}
+
 static void update_theme(const struct natwm_state *state, struct client *client,
                          uint16_t previous_border_width)
 {
@@ -297,12 +321,8 @@ struct client *client_register_window(struct natwm_state *state,
                 return NULL;
         }
 
-        // Load the client theme from the workspace list
-        struct client_theme *theme = state->workspace_list->theme;
-
         // Adjust window rect to fit workspace monitor
-        client->rect = client_initialize_rect(
-                client, workspace_monitor, theme->border_width->unfocused);
+        client->rect = client_initialize_rect(client, workspace_monitor);
 
         // Listen for button events
         mouse_initialize_client_listeners(state, client);
@@ -619,41 +639,6 @@ enum natwm_error client_handle_destroy_notify(struct natwm_state *state,
         client_destroy(client);
 
         return NO_ERROR;
-}
-
-xcb_rectangle_t client_initialize_rect(const struct client *client,
-                                       const struct monitor *monitor,
-                                       uint16_t border_width)
-{
-        xcb_rectangle_t new_rect = client->rect;
-
-        if (client->size_hints->flags & XCB_ICCCM_SIZE_HINT_US_SIZE) {
-                assert(client->size_hints->x <= INT16_MAX);
-                assert(client->size_hints->y <= INT16_MAX);
-
-                new_rect.x = (int16_t)client->size_hints->x;
-                new_rect.y = (int16_t)client->size_hints->y;
-        }
-
-        if (client->size_hints->flags & XCB_ICCCM_SIZE_HINT_P_SIZE) {
-                assert(client->size_hints->width <= UINT16_MAX);
-                assert(client->size_hints->height <= UINT16_MAX);
-
-                new_rect.width = (uint16_t)client->size_hints->width;
-                new_rect.height = (uint16_t)client->size_hints->height;
-        }
-
-        new_rect = monitor_clamp_client_rect(monitor, new_rect);
-
-        // Account for initial border_width
-        int32_t border_padding = border_width * 2;
-        int32_t final_width = new_rect.width - border_padding;
-        int32_t final_height = new_rect.height - border_padding;
-
-        new_rect.width = (uint16_t)(MAX(0, final_width));
-        new_rect.height = (uint16_t)(MAX(0, final_height));
-
-        return new_rect;
 }
 
 uint16_t client_get_active_border_width(const struct client_theme *theme,
