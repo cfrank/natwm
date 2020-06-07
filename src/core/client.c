@@ -147,22 +147,40 @@ static void update_theme(const struct natwm_state *state, struct client *client,
         const struct color_value *border_color = client_get_active_border_color(
                 state->workspace_list->theme, client);
 
-        if (previous_border_width == current_border_width) {
-                xcb_change_window_attributes(state->xcb,
-                                             client->window,
-                                             XCB_CW_BORDER_PIXEL,
-                                             &border_color->color_value);
+        xcb_change_window_attributes(state->xcb,
+                                     client->window,
+                                     XCB_CW_BORDER_PIXEL,
+                                     &border_color->color_value);
 
+        if (previous_border_width == current_border_width) {
                 return;
         }
 
-        int32_t border_diff
-                = (previous_border_width - current_border_width) * 2;
-        int32_t new_width = client->rect.width + border_diff;
-        int32_t new_height = client->rect.height + border_diff;
+        struct workspace *workspace = workspace_list_find_client_workspace(
+                state->workspace_list, client);
+        struct monitor *monitor = monitor_list_get_workspace_monitor(
+                state->monitor_list, workspace);
+        xcb_rectangle_t monitor_rect = monitor_get_offset_rect(monitor);
 
-        client->rect.width = (uint16_t)MAX(0, new_width);
-        client->rect.height = (uint16_t)MAX(0, new_height);
+        int32_t total_border = (current_border_width * 2);
+        int32_t total_width = client->rect.width + total_border;
+        int32_t total_height = client->rect.height + total_border;
+
+        // Check if either the width or the height will not be able to fit on
+        // the monitor. If either doesn't correct the width to fit
+        if (total_width > monitor_rect.width) {
+                LOG_INFO(natwm_logger, "Width is wrong");
+                int32_t diff = total_width - monitor_rect.width;
+
+                client->rect.width = (uint16_t)(client->rect.width - diff);
+        }
+
+        if (total_height > monitor_rect.height) {
+                LOG_INFO(natwm_logger, "Height is wrong");
+                int32_t diff = total_height - monitor_rect.height;
+
+                client->rect.height = (uint16_t)(client->rect.height - diff);
+        }
 
         // Update the client
         uint16_t client_mask = XCB_CONFIG_WINDOW_WIDTH
@@ -175,11 +193,6 @@ static void update_theme(const struct natwm_state *state, struct client *client,
 
         xcb_configure_window(
                 state->xcb, client->window, client_mask, client_values);
-
-        xcb_change_window_attributes(state->xcb,
-                                     client->window,
-                                     XCB_CW_BORDER_PIXEL,
-                                     &border_color->color_value);
 
         client_update_hints(state, client, FRAME_EXTENTS);
 }
