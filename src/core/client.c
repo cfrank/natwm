@@ -169,14 +169,12 @@ static void update_theme(const struct natwm_state *state, struct client *client,
         // Check if either the width or the height will not be able to fit on
         // the monitor. If either doesn't correct the width to fit
         if (total_width > monitor_rect.width) {
-                LOG_INFO(natwm_logger, "Width is wrong");
                 int32_t diff = total_width - monitor_rect.width;
 
                 client->rect.width = (uint16_t)(client->rect.width - diff);
         }
 
         if (total_height > monitor_rect.height) {
-                LOG_INFO(natwm_logger, "Height is wrong");
                 int32_t diff = total_height - monitor_rect.height;
 
                 client->rect.height = (uint16_t)(client->rect.height - diff);
