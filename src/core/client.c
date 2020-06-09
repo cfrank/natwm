@@ -176,6 +176,10 @@ static void update_theme(const struct natwm_state *state, struct client *client,
                                      XCB_CW_BORDER_PIXEL,
                                      &border_color->color_value);
 
+        // If this is the first time the client has been themed, we need to
+        // update the clients state to remove UNTHEMED
+        client->state &= (uint8_t)~CLIENT_UNTHEMED;
+
         if (previous_border_width == current_border_width) {
                 return;
         }
@@ -266,7 +270,7 @@ struct client *client_create(xcb_window_t window, xcb_rectangle_t rect,
 
         client->is_focused = false;
         client->is_fullscreen = false;
-        client->state = CLIENT_NORMAL;
+        client->state = CLIENT_NORMAL | CLIENT_UNTHEMED;
 
         return client;
 }
@@ -800,7 +804,15 @@ void client_set_focused(struct natwm_state *state, struct client *client)
                           client->window,
                           client_focus_event.modifiers);
 
-        update_theme(state, client, theme->border_width->unfocused);
+        uint16_t previous_border_width = theme->border_width->unfocused;
+
+        // If we have not added a border to this client before than the window
+        // rect has not accounted for it
+        if (client->state & CLIENT_UNTHEMED) {
+                previous_border_width = 0;
+        }
+
+        update_theme(state, client, previous_border_width);
 }
 
 void client_set_unfocused(const struct natwm_state *state,

@@ -21,9 +21,10 @@ struct monitor;
 enum client_state {
         CLIENT_URGENT = 1U << 0U,
         CLIENT_STICKY = 1U << 1U,
-        CLIENT_HIDDEN = 1U << 2U,
-        CLIENT_OFF_SCREEN = 1U << 3U,
-        CLIENT_NORMAL = 1U << 4U,
+        CLIENT_HIDDEN = 1U << 2U, // Client is not mapped on any screen
+        CLIENT_OFF_SCREEN = 1U << 3U, // Client isn't visible on a screen
+        CLIENT_UNTHEMED = 1U << 4U, // We haven't added a border to this window
+        CLIENT_NORMAL = 1U << 5U,
 };
 
 enum client_hints {
