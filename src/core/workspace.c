@@ -348,6 +348,57 @@ void workspace_set_unfocused(const struct natwm_state *state,
         workspace->is_focused = false;
 }
 
+void workspace_reset_focus(struct natwm_state *state,
+                           struct workspace *workspace)
+{
+        if (!workspace->is_focused) {
+                return;
+        }
+
+        // If there are no more clients on this workspace then focus on the
+        // root window
+        if (list_is_empty(workspace->clients)) {
+                reset_input_focus(state);
+
+                return;
+        }
+
+        // If we already have a active client we can just reset the input focus
+        // for this client and avoid updating the theme
+        if (workspace->active_client) {
+                if (workspace->active_client->state & CLIENT_OFF_SCREEN) {
+                        client_set_focused(state, workspace->active_client);
+
+                        return;
+                }
+
+                client_set_window_input_focus(state,
+                                              workspace->active_client->window);
+
+                return;
+        }
+
+        // Focus on the next visible client
+        LIST_FOR_EACH(workspace->clients, node)
+        {
+                struct client *client = get_client_from_client_node(node);
+
+                if (client == NULL || client->state & CLIENT_HIDDEN) {
+                        continue;
+                }
+
+                focus_client(state, workspace, node, client);
+
+                return;
+        }
+
+        // If there are only hidden clients, then again focus on the root
+        // window
+        reset_input_focus(state);
+
+        return;
+}
+
 enum natwm_error workspace_focus_client(struct natwm_state *state,
                                         struct workspace *workspace,
                                         struct client *client)
@@ -398,51 +449,6 @@ enum natwm_error workspace_unfocus_client(struct natwm_state *state,
         list_move_node_to_tail(workspace->clients, client_node);
 
         natwm_state_unlock(state);
-
-        return NO_ERROR;
-}
-
-enum natwm_error workspace_reset_focus(struct natwm_state *state,
-                                       struct workspace *workspace)
-{
-        if (!workspace->is_focused) {
-                return INVALID_INPUT_ERROR;
-        }
-
-        // If there are no more clients on this workspace then focus on the
-        // root window
-        if (list_is_empty(workspace->clients)) {
-                reset_input_focus(state);
-
-                return NO_ERROR;
-        }
-
-        // If we already have a active client we can just reset the input focus
-        // for this client and avoid updating the theme
-        if (workspace->active_client) {
-                client_set_window_input_focus(state,
-                                              workspace->active_client->window);
-
-                return NO_ERROR;
-        }
-
-        // Focus on the next visible client
-        LIST_FOR_EACH(workspace->clients, node)
-        {
-                struct client *client = get_client_from_client_node(node);
-
-                if (client == NULL || client->state & CLIENT_HIDDEN) {
-                        continue;
-                }
-
-                focus_client(state, workspace, node, client);
-
-                return NO_ERROR;
-        }
-
-        // If there are only hidden clients, then again focus on the root
-        // window
-        reset_input_focus(state);
 
         return NO_ERROR;
 }

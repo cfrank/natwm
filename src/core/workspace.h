@@ -47,14 +47,14 @@ void workspace_set_focused(const struct natwm_state *state,
                            struct workspace *workspace);
 void workspace_set_unfocused(const struct natwm_state *state,
                              struct workspace *workspace);
+void workspace_reset_focus(struct natwm_state *state,
+                           struct workspace *workspace);
 enum natwm_error workspace_focus_client(struct natwm_state *state,
                                         struct workspace *workspace,
                                         struct client *client);
 enum natwm_error workspace_unfocus_client(struct natwm_state *state,
                                           struct workspace *workspace,
                                           struct client *client);
-enum natwm_error workspace_reset_focus(struct natwm_state *state,
-                                       struct workspace *workspace);
 enum natwm_error workspace_change_monitor(struct natwm_state *state,
                                           struct workspace *workspace);
 struct workspace *workspace_list_get_focused(const struct workspace_list *list);
