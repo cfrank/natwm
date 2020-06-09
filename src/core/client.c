@@ -178,7 +178,9 @@ static void update_theme(const struct natwm_state *state, struct client *client,
 
         // If this is the first time the client has been themed, we need to
         // update the clients state to remove UNTHEMED
-        client->state &= (uint8_t)~CLIENT_UNTHEMED;
+        if (client->state & CLIENT_UNTHEMED) {
+                client->state &= (uint8_t)~CLIENT_UNTHEMED;
+        }
 
         if (previous_border_width == current_border_width) {
                 return;
