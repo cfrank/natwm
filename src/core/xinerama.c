@@ -92,4 +92,3 @@ enum natwm_error xinerama_get_screens(const struct natwm_state *state,
 
         return NO_ERROR;
 }
-

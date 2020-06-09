@@ -21,9 +21,10 @@ struct monitor;
 enum client_state {
         CLIENT_URGENT = 1U << 0U,
         CLIENT_STICKY = 1U << 1U,
-        CLIENT_HIDDEN = 1U << 2U,
-        CLIENT_OFF_SCREEN = 1U << 3U,
-        CLIENT_NORMAL = 1U << 4U,
+        CLIENT_HIDDEN = 1U << 2U, // Client is not mapped on any screen
+        CLIENT_OFF_SCREEN = 1U << 3U, // Client isn't visible on a screen
+        CLIENT_UNTHEMED = 1U << 4U, // We haven't added a border to this window
+        CLIENT_NORMAL = 1U << 5U,
 };
 
 enum client_hints {
@@ -70,11 +71,8 @@ enum natwm_error client_handle_map_notify(const struct natwm_state *state,
                                           xcb_window_t window);
 enum natwm_error client_unmap_window(struct natwm_state *state,
                                      xcb_window_t window);
-enum natwm_error client_destroy_window(struct natwm_state *state,
-                                       xcb_window_t window);
-xcb_rectangle_t client_initialize_rect(const struct client *client,
-                                       const struct monitor *monitor,
-                                       uint16_t border_width);
+enum natwm_error client_handle_destroy_notify(struct natwm_state *state,
+                                              xcb_window_t window);
 uint16_t client_get_active_border_width(const struct client_theme *theme,
                                         const struct client *client);
 struct color_value *

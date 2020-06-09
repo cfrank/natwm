@@ -392,35 +392,48 @@ xcb_rectangle_t monitor_clamp_client_rect(const struct monitor *monitor,
                                           xcb_rectangle_t client_rect)
 {
         xcb_rectangle_t monitor_rect = monitor_get_offset_rect(monitor);
+
         int32_t x = client_rect.x;
         int32_t y = client_rect.y;
         int32_t width = client_rect.width;
         int32_t height = client_rect.height;
-        int32_t end_x_pos = width + x;
-        int32_t end_y_pos = height + y;
+        int32_t total_client_width
+                = client_rect.x + client_rect.width - monitor->offsets.left;
+        int32_t total_client_height
+                = client_rect.y + client_rect.height - monitor->offsets.top;
 
-        if (end_x_pos > monitor_rect.width) {
-                int32_t overflow = end_x_pos - monitor_rect.width;
-                int32_t new_x = x - overflow;
+        if (total_client_width > monitor_rect.width) {
+                int32_t overflow = total_client_width - monitor_rect.width;
+                int32_t subtract_from_width
+                        = overflow - (client_rect.x - monitor->offsets.left);
 
-                x = MAX(monitor->offsets.left, new_x);
-                width = MIN(monitor_rect.width, width);
-        } else {
-                x = MAX(monitor->offsets.left, x);
+                // If we don't have enough x offset to account for the overflow
+                // we need to mutate the width of the client to fit onto the
+                // monitor
+                if (subtract_from_width > 0) {
+                        x = monitor->offsets.left;
+                        width = client_rect.width - subtract_from_width;
+                } else {
+                        x = client_rect.x - overflow;
+                }
+        } else if (client_rect.x < monitor->offsets.left) {
+                x = monitor->offsets.left;
         }
 
-        if (end_y_pos > monitor_rect.height) {
-                int32_t overflow = end_y_pos - monitor_rect.height;
-                int32_t new_y = y - overflow;
+        if (total_client_height > monitor_rect.height) {
+                int32_t overflow = total_client_height - monitor_rect.height;
+                int32_t subtract_from_height
+                        = overflow - (client_rect.y - monitor->offsets.top);
 
-                y = MAX(monitor->offsets.top, new_y);
-                height = MIN(monitor_rect.height, height);
-        } else {
-                y = MAX(monitor->offsets.top, y);
+                if (subtract_from_height > 0) {
+                        y = monitor->offsets.top;
+                        height = client_rect.height - subtract_from_height;
+                } else {
+                        y = client_rect.y - overflow;
+                }
+        } else if (client_rect.y < monitor->offsets.top) {
+                y = monitor->offsets.top;
         }
-
-        assert(width <= UINT16_MAX);
-        assert(height <= UINT16_MAX);
 
         xcb_rectangle_t new_rect = {
                 .x = (int16_t)x,
