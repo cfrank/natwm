@@ -693,11 +693,11 @@ enum natwm_error workspace_list_send_to_workspace(struct natwm_state *state,
                 return NO_ERROR;
         }
 
-        struct workspace *current_workspace
+        struct workspace *client_workspace
                 = workspace_list_find_client_workspace(state->workspace_list,
                                                        client);
 
-        if (!current_workspace) {
+        if (!client_workspace) {
                 LOG_ERROR(natwm_logger,
                           "Failed to find current workspace when moving "
                           "client to new workspace");
@@ -709,7 +709,7 @@ enum natwm_error workspace_list_send_to_workspace(struct natwm_state *state,
 
         client_hide(state, client);
 
-        err = workspace_remove_client(state, current_workspace, client);
+        err = workspace_remove_client(state, client_workspace, client);
 
         if (err != NO_ERROR) {
                 LOG_ERROR(natwm_logger,
