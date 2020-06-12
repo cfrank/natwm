@@ -28,6 +28,11 @@ static enum natwm_error
 event_handle_client_message(struct natwm_state *state,
                             xcb_client_message_event_t *event)
 {
+        if (event->format != 32) {
+                // We currently only support format 32
+                return NO_ERROR;
+        }
+
         xcb_window_t window = event->window;
 
         if (event->type == state->ewmh->_NET_ACTIVE_WINDOW) {
@@ -37,6 +42,10 @@ event_handle_client_message(struct natwm_state *state,
 
                 return workspace_list_switch_to_workspace(state,
                                                           workspace_index);
+        } else if (event->type == state->ewmh->_NET_WM_DESKTOP) {
+                uint32_t workspace_index = event->data.data32[0];
+
+                LOG_INFO(natwm_logger, "Sending client to %u", workspace_index);
         } else if (event->type == state->ewmh->_NET_WM_STATE) {
                 xcb_atom_t state_atom = (event->data.data32[1] != NO_ERROR)
                         ? event->data.data32[1]
