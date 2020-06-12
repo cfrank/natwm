@@ -74,5 +74,8 @@ workspace_list_find_window_client(const struct workspace_list *list,
                                   xcb_window_t window);
 enum natwm_error workspace_list_switch_to_workspace(struct natwm_state *state,
                                                     size_t workspace_index);
+enum natwm_error workspace_list_send_to_workspace(struct natwm_state *state,
+                                                  struct client *client,
+                                                  size_t index);
 void workspace_list_destroy(struct workspace_list *workspace_list);
 void workspace_destroy(struct workspace *workspace);

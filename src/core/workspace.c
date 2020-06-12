@@ -129,6 +129,15 @@ create_default_named_workspace:
         return workspace_create(name, index);
 }
 
+static void client_show(const struct natwm_state *state,
+                        const struct monitor *monitor, struct client *client)
+{
+        // TODO: Update to match aspect ratio
+        client->rect = monitor_clamp_client_rect(monitor, client->rect);
+
+        client_map(state, client, monitor);
+}
+
 static void workspace_send_to_monitor(struct natwm_state *state,
                                       struct workspace *workspace,
                                       struct monitor *monitor)
@@ -142,14 +151,22 @@ static void workspace_send_to_monitor(struct natwm_state *state,
                 }
 
                 // Move client to next monitor
-                // TODO: Update to match aspect ratio
-                client->rect = monitor_clamp_client_rect(monitor, client->rect);
-
-                client_map(state, client, monitor);
+                client_show(state, monitor, client);
         }
 
         workspace->is_visible = true;
         monitor->workspace = workspace;
+}
+
+static void client_hide(const struct natwm_state *state, struct client *client)
+{
+        if (client->is_focused) {
+                client_set_unfocused(state, client);
+        }
+
+        client->state |= CLIENT_OFF_SCREEN;
+
+        xcb_unmap_window(state->xcb, client->window);
 }
 
 static void workspace_hide(const struct natwm_state *state,
@@ -170,13 +187,7 @@ static void workspace_hide(const struct natwm_state *state,
                         continue;
                 }
 
-                if (client->is_focused) {
-                        client_set_unfocused(state, client);
-                }
-
-                client->state |= CLIENT_OFF_SCREEN;
-
-                xcb_unmap_window(state->xcb, client->window);
+                client_hide(state, client);
         }
 }
 
@@ -526,8 +537,6 @@ enum natwm_error workspace_add_client(struct natwm_state *state,
 
         natwm_state_unlock(state);
 
-        client_set_focused(state, client);
-
         return NO_ERROR;
 }
 
@@ -662,6 +671,82 @@ enum natwm_error workspace_list_switch_to_workspace(struct natwm_state *state,
         }
 
         return workspace_change_monitor(state, next_workspace);
+}
+
+enum natwm_error workspace_list_send_to_workspace(struct natwm_state *state,
+                                                  struct client *client,
+                                                  size_t index)
+{
+        struct workspace *next_workspace
+                = workspace_list_get_workspace(state->workspace_list, index);
+
+        if (!next_workspace) {
+                LOG_ERROR(natwm_logger,
+                          "Attempting to move window to non-existent "
+                          "workspace %u",
+                          index);
+
+                return INVALID_INPUT_ERROR;
+        }
+
+        if (next_workspace->is_focused) {
+                return NO_ERROR;
+        }
+
+        struct workspace *current_workspace
+                = workspace_list_find_client_workspace(state->workspace_list,
+                                                       client);
+
+        if (!current_workspace) {
+                LOG_ERROR(natwm_logger,
+                          "Failed to find current workspace when moving "
+                          "client to new workspace");
+
+                return RESOLUTION_FAILURE;
+        }
+
+        enum natwm_error err = GENERIC_ERROR;
+
+        client_hide(state, client);
+
+        err = workspace_remove_client(state, current_workspace, client);
+
+        if (err != NO_ERROR) {
+                LOG_ERROR(natwm_logger,
+                          "Failed to remove client from current workspace "
+                          "while moving client to new workspace");
+
+                return err;
+        }
+
+        err = workspace_add_client(state, next_workspace, client);
+
+        if (err != NO_ERROR) {
+                LOG_ERROR(natwm_logger, "Failed to add client to workspace");
+
+                return err;
+        }
+
+        // If the next workspace is not on a visible monitor we are done
+        if (!next_workspace->is_visible) {
+                return NO_ERROR;
+        }
+
+        // Otherwise we need to map the client on the next monitor
+        struct monitor *next_monitor = monitor_list_get_workspace_monitor(
+                state->monitor_list, next_workspace);
+
+        if (!next_monitor) {
+                LOG_ERROR(natwm_logger,
+                          "Failed to find workspace monitor when sending "
+                          "client to workspace");
+
+                return RESOLUTION_FAILURE;
+        }
+
+        client_show(state, next_monitor, client);
+
+        return NO_ERROR;
 }
 
 void workspace_list_destroy(struct workspace_list *workspace_list)
