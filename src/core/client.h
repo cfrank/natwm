@@ -81,6 +81,9 @@ void client_set_unfocused(const struct natwm_state *state,
                           struct client *client);
 enum natwm_error client_focus_window(struct natwm_state *state,
                                      xcb_window_t window);
+enum natwm_error client_send_window_to_workspace(struct natwm_state *state,
+                                                 xcb_window_t window,
+                                                 size_t index);
 enum natwm_error client_update_hints(const struct natwm_state *state,
                                      const struct client *client,
                                      enum client_hints hints);

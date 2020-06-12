@@ -363,6 +363,8 @@ struct client *client_register_window(struct natwm_state *state,
                 goto handle_error;
         }
 
+        client_set_focused(state, client);
+
         client_update_hints(state, client, CLIENT_HINTS_ALL);
 
         return client;
@@ -868,6 +870,31 @@ enum natwm_error client_focus_window(struct natwm_state *state,
         }
 
         client_set_focused(state, client);
+
+        return NO_ERROR;
+}
+
+enum natwm_error client_send_window_to_workspace(struct natwm_state *state,
+                                                 xcb_window_t window,
+                                                 size_t index)
+{
+        struct client *client = workspace_list_find_window_client(
+                state->workspace_list, window);
+
+        if (!client) {
+                return NO_ERROR;
+        }
+
+        enum natwm_error err
+                = workspace_list_send_to_workspace(state, client, index);
+
+        if (err != NO_ERROR) {
+                LOG_ERROR(natwm_logger,
+                          "Failed to send client to workspace %zu",
+                          index);
+
+                return err;
+        }
 
         return NO_ERROR;
 }
