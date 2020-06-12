@@ -188,8 +188,24 @@ static void update_theme(const struct natwm_state *state, struct client *client,
 
         struct workspace *workspace = workspace_list_find_client_workspace(
                 state->workspace_list, client);
+
+        if (workspace == NULL) {
+                LOG_WARNING(natwm_logger,
+                            "Failed to find workspace during update_theme");
+
+                return;
+        }
+
         struct monitor *monitor = monitor_list_get_workspace_monitor(
                 state->monitor_list, workspace);
+
+        if (monitor == NULL) {
+                LOG_WARNING(natwm_logger,
+                            "Failed to find monitor during update_theme");
+
+                return;
+        }
+
         xcb_rectangle_t monitor_rect = monitor_get_offset_rect(monitor);
 
         int32_t total_border = (current_border_width * 2);
