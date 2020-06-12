@@ -45,7 +45,7 @@ event_handle_client_message(struct natwm_state *state,
         } else if (event->type == state->ewmh->_NET_WM_DESKTOP) {
                 uint32_t workspace_index = event->data.data32[0];
 
-                LOG_INFO(natwm_logger, "Sending client to %u", workspace_index);
+                client_send_window_to_workspace(state, window, workspace_index);
         } else if (event->type == state->ewmh->_NET_WM_STATE) {
                 xcb_atom_t state_atom = (event->data.data32[1] != NO_ERROR)
                         ? event->data.data32[1]
