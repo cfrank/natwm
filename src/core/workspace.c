@@ -530,6 +530,19 @@ enum natwm_error workspace_add_client(struct natwm_state *state,
         return NO_ERROR;
 }
 
+bool workspace_index_does_exist(const struct natwm_state *state, size_t index)
+{
+        if (index > (state->workspace_list->count - 1)) {
+                return false;
+        }
+
+        if (state->workspace_list->workspaces[index] == NULL) {
+                return false;
+        }
+
+        return true;
+}
+
 enum natwm_error workspace_remove_client(struct natwm_state *state,
                                          struct workspace *workspace,
                                          struct client *client)
@@ -624,7 +637,7 @@ workspace_list_find_window_client(const struct workspace_list *list,
 enum natwm_error workspace_list_switch_to_workspace(struct natwm_state *state,
                                                     size_t workspace_index)
 {
-        if (workspace_index >= state->workspace_list->count) {
+        if (!workspace_index_does_exist(state, workspace_index)) {
                 LOG_WARNING(natwm_logger,
                             "Attempted to switch to non-existent workspace %u",
                             workspace_index);
