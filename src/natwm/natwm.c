@@ -385,7 +385,8 @@ int main(int argc, char **argv)
         state->workspace_list->theme = theme_create(state->config);
 
         if (state->workspace_list->theme == NULL) {
-                LOG_INFO(natwm_logger, "Failed to set up theme");
+                LOG_ERROR(natwm_logger, "Failed to initialize client theme");
+
                 goto free_and_error;
         }
 
