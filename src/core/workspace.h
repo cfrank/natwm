@@ -42,7 +42,6 @@ enum natwm_error workspace_add_client(struct natwm_state *state,
 enum natwm_error workspace_remove_client(struct natwm_state *state,
                                          struct workspace *workspace,
                                          struct client *client);
-bool workspace_index_does_exist(const struct natwm_state *state, size_t index);
 struct client *workspace_find_window_client(const struct workspace *workspace,
                                             xcb_window_t window);
 void workspace_set_focused(const struct natwm_state *state,
@@ -59,7 +58,11 @@ enum natwm_error workspace_unfocus_client(struct natwm_state *state,
                                           struct client *client);
 enum natwm_error workspace_change_monitor(struct natwm_state *state,
                                           struct workspace *workspace);
+bool workspace_list_index_does_exist(const struct workspace_list *list,
+                                     size_t index);
 struct workspace *workspace_list_get_focused(const struct workspace_list *list);
+struct workspace *
+workspace_list_get_workspace(const struct workspace_list *list, size_t index);
 struct workspace *
 workspace_list_find_client_workspace(const struct workspace_list *list,
                                      const struct client *client);

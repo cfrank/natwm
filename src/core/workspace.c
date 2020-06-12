@@ -65,7 +65,8 @@ static void attach_to_monitors(struct monitor_list *monitor_list,
         LIST_FOR_EACH(monitor_list->monitors, monitor_item)
         {
                 struct monitor *monitor = (struct monitor *)monitor_item->data;
-                struct workspace *workspace = workspace_list->workspaces[index];
+                struct workspace *workspace
+                        = workspace_list_get_workspace(workspace_list, index);
 
                 if (workspace == NULL) {
                         LOG_ERROR(natwm_logger,
@@ -530,19 +531,6 @@ enum natwm_error workspace_add_client(struct natwm_state *state,
         return NO_ERROR;
 }
 
-bool workspace_index_does_exist(const struct natwm_state *state, size_t index)
-{
-        if (index > (state->workspace_list->count - 1)) {
-                return false;
-        }
-
-        if (state->workspace_list->workspaces[index] == NULL) {
-                return false;
-        }
-
-        return true;
-}
-
 enum natwm_error workspace_remove_client(struct natwm_state *state,
                                          struct workspace *workspace,
                                          struct client *client)
@@ -588,9 +576,32 @@ struct client *workspace_find_window_client(const struct workspace *workspace,
         return NULL;
 }
 
+bool workspace_index_does_exist(const struct workspace_list *list, size_t index)
+{
+        if (index > (list->count - 1)) {
+                return false;
+        }
+
+        if (list->workspaces[index] == NULL) {
+                return false;
+        }
+
+        return true;
+}
+
 struct workspace *workspace_list_get_focused(const struct workspace_list *list)
 {
         return list->workspaces[list->active_index];
+}
+
+struct workspace *
+workspace_list_get_workspace(const struct workspace_list *list, size_t index)
+{
+        if (!workspace_index_does_exist(list, index)) {
+                return NULL;
+        }
+
+        return list->workspaces[index];
 }
 
 struct workspace *
@@ -605,9 +616,7 @@ workspace_list_find_window_workspace(const struct workspace_list *list,
 
         size_t index = *(size_t *)entry->value;
 
-        assert(index < list->count);
-
-        return list->workspaces[index];
+        return workspace_list_get_workspace(list, index);
 }
 
 struct workspace *
@@ -635,26 +644,24 @@ workspace_list_find_window_client(const struct workspace_list *list,
 }
 
 enum natwm_error workspace_list_switch_to_workspace(struct natwm_state *state,
-                                                    size_t workspace_index)
+                                                    size_t index)
 {
-        if (!workspace_index_does_exist(state, workspace_index)) {
+        struct workspace *next_workspace
+                = workspace_list_get_workspace(state->workspace_list, index);
+
+        if (!next_workspace) {
                 LOG_WARNING(natwm_logger,
                             "Attempted to switch to non-existent workspace %u",
-                            workspace_index);
+                            index);
 
                 return INVALID_INPUT_ERROR;
         }
 
-        if (workspace_index == state->workspace_list->active_index) {
+        if (next_workspace->is_focused) {
                 return NO_ERROR;
         }
 
-        struct workspace *next_workspace
-                = state->workspace_list->workspaces[workspace_index];
-
         return workspace_change_monitor(state, next_workspace);
-
-        return NO_ERROR;
 }
 
 void workspace_list_destroy(struct workspace_list *workspace_list)
