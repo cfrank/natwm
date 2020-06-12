@@ -34,17 +34,6 @@ enum client_hints {
         CLIENT_HINTS_ALL = FRAME_EXTENTS | WM_ALLOWED_ACTIONS | WM_DESKTOP,
 };
 
-/**
- * This is the global theme for all clients.
- *
- * The values are user configurable and define the look and feel of the client
- * when it is rendered to the screen.
- */
-struct client_theme {
-        struct border_theme *border_width;
-        struct color_theme *color;
-};
-
 struct client {
         xcb_window_t window;
         xcb_rectangle_t rect;
@@ -73,11 +62,10 @@ enum natwm_error client_unmap_window(struct natwm_state *state,
                                      xcb_window_t window);
 enum natwm_error client_handle_destroy_notify(struct natwm_state *state,
                                               xcb_window_t window);
-uint16_t client_get_active_border_width(const struct client_theme *theme,
+uint16_t client_get_active_border_width(const struct theme *theme,
                                         const struct client *client);
-struct color_value *
-client_get_active_border_color(const struct client_theme *theme,
-                               const struct client *client);
+struct color_value *client_get_active_border_color(const struct theme *theme,
+                                                   const struct client *client);
 enum natwm_error client_unset_fullscreen(const struct natwm_state *state,
                                          struct client *client);
 enum natwm_error client_set_fullscreen(const struct natwm_state *state,
@@ -97,8 +85,4 @@ enum natwm_error client_update_hints(const struct natwm_state *state,
                                      const struct client *client,
                                      enum client_hints hints);
 
-enum natwm_error client_theme_create(const struct map *config_map,
-                                     struct client_theme **result);
-
-void client_theme_destroy(struct client_theme *theme);
 void client_destroy(struct client *client);

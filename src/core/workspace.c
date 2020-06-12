@@ -67,6 +67,13 @@ static void attach_to_monitors(struct monitor_list *monitor_list,
                 struct monitor *monitor = (struct monitor *)monitor_item->data;
                 struct workspace *workspace = workspace_list->workspaces[index];
 
+                if (workspace == NULL) {
+                        LOG_ERROR(natwm_logger,
+                                  "Failed to find workspace for monitor");
+
+                        return;
+                }
+
                 // Focus on the first monitor
                 if (index == 0) {
                         workspace_list->active_index = 0;
@@ -640,7 +647,7 @@ enum natwm_error workspace_list_switch_to_workspace(struct natwm_state *state,
 void workspace_list_destroy(struct workspace_list *workspace_list)
 {
         if (workspace_list->theme != NULL) {
-                client_theme_destroy(workspace_list->theme);
+                theme_destroy(workspace_list->theme);
         }
 
         map_destroy(workspace_list->client_map);

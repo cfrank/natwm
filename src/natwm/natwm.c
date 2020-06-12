@@ -14,6 +14,7 @@
 #include <common/constants.h>
 #include <common/logger.h>
 #include <common/map.h>
+#include <common/theme.h>
 #include <common/util.h>
 #include <core/client.h>
 #include <core/config/config.h>
@@ -381,8 +382,10 @@ int main(int argc, char **argv)
         //
         // TODO: Set defaults so we don't have a hard requirement on the user
         // settings these in their configuration
-        if (client_theme_create(state->config, &state->workspace_list->theme)
-            != NO_ERROR) {
+        state->workspace_list->theme = theme_create(state->config);
+
+        if (state->workspace_list->theme == NULL) {
+                LOG_INFO(natwm_logger, "Failed to set up theme");
                 goto free_and_error;
         }
 

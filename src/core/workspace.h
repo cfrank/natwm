@@ -10,6 +10,7 @@
 #include <common/error.h>
 #include <common/list.h>
 #include <common/map.h>
+#include <common/theme.h>
 
 #include "client.h"
 #include "state.h"
@@ -17,7 +18,7 @@
 struct workspace_list {
         size_t count;
         size_t active_index;
-        struct client_theme *theme;
+        struct theme *theme;
         struct map *client_map;
         struct workspace **workspaces;
 };
