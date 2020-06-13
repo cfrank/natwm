@@ -593,7 +593,7 @@ struct workspace *workspace_list_get_focused(const struct workspace_list *list)
 struct workspace *
 workspace_list_get_workspace(const struct workspace_list *list, size_t index)
 {
-        if (index > (list->count - 1)) {
+        if (index >= list->count) {
                 return NULL;
         }
 
