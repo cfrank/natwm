@@ -58,8 +58,6 @@ enum natwm_error workspace_unfocus_client(struct natwm_state *state,
                                           struct client *client);
 enum natwm_error workspace_change_monitor(struct natwm_state *state,
                                           struct workspace *workspace);
-bool workspace_list_index_does_exist(const struct workspace_list *list,
-                                     size_t index);
 struct workspace *workspace_list_get_focused(const struct workspace_list *list);
 struct workspace *
 workspace_list_get_workspace(const struct workspace_list *list, size_t index);

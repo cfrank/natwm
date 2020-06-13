@@ -585,19 +585,6 @@ struct client *workspace_find_window_client(const struct workspace *workspace,
         return NULL;
 }
 
-bool workspace_index_does_exist(const struct workspace_list *list, size_t index)
-{
-        if (index > (list->count - 1)) {
-                return false;
-        }
-
-        if (list->workspaces[index] == NULL) {
-                return false;
-        }
-
-        return true;
-}
-
 struct workspace *workspace_list_get_focused(const struct workspace_list *list)
 {
         return list->workspaces[list->active_index];
@@ -606,7 +593,7 @@ struct workspace *workspace_list_get_focused(const struct workspace_list *list)
 struct workspace *
 workspace_list_get_workspace(const struct workspace_list *list, size_t index)
 {
-        if (!workspace_index_does_exist(list, index)) {
+        if (index > (list->count - 1)) {
                 return NULL;
         }
 
