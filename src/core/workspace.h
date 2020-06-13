@@ -10,6 +10,7 @@
 #include <common/error.h>
 #include <common/list.h>
 #include <common/map.h>
+#include <common/theme.h>
 
 #include "client.h"
 #include "state.h"
@@ -17,7 +18,7 @@
 struct workspace_list {
         size_t count;
         size_t active_index;
-        struct client_theme *theme;
+        struct theme *theme;
         struct map *client_map;
         struct workspace **workspaces;
 };
@@ -59,6 +60,8 @@ enum natwm_error workspace_change_monitor(struct natwm_state *state,
                                           struct workspace *workspace);
 struct workspace *workspace_list_get_focused(const struct workspace_list *list);
 struct workspace *
+workspace_list_get_workspace(const struct workspace_list *list, size_t index);
+struct workspace *
 workspace_list_find_client_workspace(const struct workspace_list *list,
                                      const struct client *client);
 struct workspace *
@@ -69,5 +72,8 @@ workspace_list_find_window_client(const struct workspace_list *list,
                                   xcb_window_t window);
 enum natwm_error workspace_list_switch_to_workspace(struct natwm_state *state,
                                                     size_t workspace_index);
+enum natwm_error workspace_list_send_to_workspace(struct natwm_state *state,
+                                                  struct client *client,
+                                                  size_t index);
 void workspace_list_destroy(struct workspace_list *workspace_list);
 void workspace_destroy(struct workspace *workspace);

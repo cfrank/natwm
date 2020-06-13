@@ -52,8 +52,23 @@ struct border_theme {
         uint16_t sticky;
 };
 
+/**
+ * This is the global theme for all clients.
+ *
+ * The values are user configurable and define the look and feel of the client
+ * when it is rendered to the screen.
+ */
+struct theme {
+        struct border_theme *border_width;
+        struct color_theme *color;
+};
+
 struct border_theme *border_theme_create(void);
 struct color_theme *color_theme_create(void);
+struct theme *theme_create(const struct map *config_map);
+
+bool color_value_has_changed(struct color_value *value,
+                             const char *new_string_value);
 enum natwm_error color_value_from_string(const char *string,
                                          struct color_value **result);
 enum natwm_error border_theme_from_config(const struct map *map,
@@ -63,8 +78,8 @@ enum natwm_error color_value_from_config(const struct map *map, const char *key,
                                          struct color_value **result);
 enum natwm_error color_theme_from_config(const struct map *map, const char *key,
                                          struct color_theme **result);
-bool color_value_has_changed(struct color_value *value,
-                             const char *new_string_value);
+
 void border_theme_destroy(struct border_theme *theme);
 void color_theme_destroy(struct color_theme *theme);
 void color_value_destroy(struct color_value *value);
+void theme_destroy(struct theme *theme);

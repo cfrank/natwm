@@ -188,8 +188,24 @@ static void update_theme(const struct natwm_state *state, struct client *client,
 
         struct workspace *workspace = workspace_list_find_client_workspace(
                 state->workspace_list, client);
+
+        if (workspace == NULL) {
+                LOG_WARNING(natwm_logger,
+                            "Failed to find workspace during update_theme");
+
+                return;
+        }
+
         struct monitor *monitor = monitor_list_get_workspace_monitor(
                 state->monitor_list, workspace);
+
+        if (monitor == NULL) {
+                LOG_WARNING(natwm_logger,
+                            "Failed to find monitor during update_theme");
+
+                return;
+        }
+
         xcb_rectangle_t monitor_rect = monitor_get_offset_rect(monitor);
 
         int32_t total_border = (current_border_width * 2);
@@ -346,6 +362,8 @@ struct client *client_register_window(struct natwm_state *state,
 
                 goto handle_error;
         }
+
+        client_set_focused(state, client);
 
         client_update_hints(state, client, CLIENT_HINTS_ALL);
 
@@ -510,7 +528,7 @@ void client_map(const struct natwm_state *state, struct client *client,
                 return;
         }
 
-        struct client_theme *theme = state->workspace_list->theme;
+        struct theme *theme = state->workspace_list->theme;
         uint32_t border_width = client_get_active_border_width(theme, client);
 
         if (client->is_fullscreen) {
@@ -647,7 +665,7 @@ enum natwm_error client_handle_destroy_notify(struct natwm_state *state,
         return NO_ERROR;
 }
 
-uint16_t client_get_active_border_width(const struct client_theme *theme,
+uint16_t client_get_active_border_width(const struct theme *theme,
                                         const struct client *client)
 {
         if (client->is_fullscreen) {
@@ -673,9 +691,8 @@ uint16_t client_get_active_border_width(const struct client_theme *theme,
         return theme->border_width->unfocused;
 }
 
-struct color_value *
-client_get_active_border_color(const struct client_theme *theme,
-                               const struct client *client)
+struct color_value *client_get_active_border_color(const struct theme *theme,
+                                                   const struct client *client)
 {
         if (client->state & CLIENT_URGENT) {
                 return theme->color->urgent;
@@ -722,7 +739,7 @@ enum natwm_error client_set_fullscreen(const struct natwm_state *state,
 enum natwm_error client_unset_fullscreen(const struct natwm_state *state,
                                          struct client *client)
 {
-        struct client_theme *theme = state->workspace_list->theme;
+        struct theme *theme = state->workspace_list->theme;
         uint16_t border_width = client_get_active_border_width(theme, client);
 
         client->is_fullscreen = false;
@@ -789,7 +806,7 @@ void client_set_focused(struct natwm_state *state, struct client *client)
                 return;
         }
 
-        struct client_theme *theme = state->workspace_list->theme;
+        struct theme *theme = state->workspace_list->theme;
 
         client->is_focused = true;
 
@@ -824,7 +841,7 @@ void client_set_unfocused(const struct natwm_state *state,
                 return;
         }
 
-        struct client_theme *theme = state->workspace_list->theme;
+        struct theme *theme = state->workspace_list->theme;
 
         client->is_focused = false;
 
@@ -857,6 +874,27 @@ enum natwm_error client_focus_window(struct natwm_state *state,
         return NO_ERROR;
 }
 
+enum natwm_error client_send_window_to_workspace(struct natwm_state *state,
+                                                 xcb_window_t window,
+                                                 size_t index)
+{
+        struct client *client = workspace_list_find_window_client(
+                state->workspace_list, window);
+
+        if (!client) {
+                return NO_ERROR;
+        }
+
+        enum natwm_error err
+                = workspace_list_send_to_workspace(state, client, index);
+
+        if (err != NO_ERROR) {
+                return err;
+        }
+
+        return NO_ERROR;
+}
+
 enum natwm_error client_update_hints(const struct natwm_state *state,
                                      const struct client *client,
                                      enum client_hints hints)
@@ -866,7 +904,7 @@ enum natwm_error client_update_hints(const struct natwm_state *state,
         }
 
         if (hints & FRAME_EXTENTS) {
-                struct client_theme *theme = state->workspace_list->theme;
+                struct theme *theme = state->workspace_list->theme;
                 uint32_t border_width
                         = client_get_active_border_width(theme, client);
 
@@ -891,57 +929,6 @@ enum natwm_error client_update_hints(const struct natwm_state *state,
         }
 
         return NO_ERROR;
-}
-
-enum natwm_error client_theme_create(const struct map *config_map,
-                                     struct client_theme **result)
-{
-        struct client_theme *theme = malloc(sizeof(struct client_theme));
-
-        if (theme == NULL) {
-                return MEMORY_ALLOCATION_ERROR;
-        }
-
-        enum natwm_error err = GENERIC_ERROR;
-
-        err = border_theme_from_config(config_map,
-                                       WINDOW_BORDER_WIDTH_CONFIG_STRING,
-                                       &theme->border_width);
-
-        if (err != NO_ERROR) {
-                goto handle_error;
-        }
-
-        err = color_theme_from_config(
-                config_map, WINDOW_BORDER_COLOR_CONFIG_STRING, &theme->color);
-
-        if (err != NO_ERROR) {
-                goto handle_error;
-        }
-
-        *result = theme;
-
-        return NO_ERROR;
-
-handle_error:
-        client_theme_destroy(theme);
-
-        LOG_ERROR(natwm_logger, "Failed to create client theme");
-
-        return INVALID_INPUT_ERROR;
-}
-
-void client_theme_destroy(struct client_theme *theme)
-{
-        if (theme->border_width != NULL) {
-                border_theme_destroy(theme->border_width);
-        }
-
-        if (theme->color != NULL) {
-                color_theme_destroy(theme->color);
-        }
-
-        free(theme);
 }
 
 void client_destroy(struct client *client)

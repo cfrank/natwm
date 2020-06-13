@@ -293,6 +293,10 @@ struct monitor *
 monitor_list_get_workspace_monitor(const struct monitor_list *monitor_list,
                                    const struct workspace *workspace)
 {
+        if (workspace == NULL) {
+                return NULL;
+        }
+
         LIST_FOR_EACH(monitor_list->monitors, monitor_item)
         {
                 struct monitor *monitor = (struct monitor *)monitor_item->data;

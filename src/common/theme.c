@@ -5,10 +5,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <common/constants.h>
-#include <common/logger.h>
 #include <core/config/config.h>
 
+#include "constants.h"
+#include "logger.h"
 #include "theme.h"
 
 // TODO: This does not do bounds checking on hex codes- and accepts #ZZZZZZ for
@@ -101,6 +101,55 @@ struct color_theme *color_theme_create(void)
         theme->sticky = NULL;
 
         return theme;
+}
+
+struct theme *theme_create(const struct map *config_map)
+{
+        struct theme *theme = malloc(sizeof(struct theme));
+
+        if (theme == NULL) {
+                return NULL;
+        }
+
+        enum natwm_error err = GENERIC_ERROR;
+
+        err = border_theme_from_config(config_map,
+                                       WINDOW_BORDER_WIDTH_CONFIG_STRING,
+                                       &theme->border_width);
+
+        if (err != NO_ERROR) {
+                goto handle_error;
+        }
+
+        err = color_theme_from_config(
+                config_map, WINDOW_BORDER_COLOR_CONFIG_STRING, &theme->color);
+
+        if (err != NO_ERROR) {
+                goto handle_error;
+        }
+
+        return theme;
+
+handle_error:
+        theme_destroy(theme);
+
+        LOG_ERROR(natwm_logger, "Failed to create theme");
+
+        return NULL;
+}
+
+bool color_value_has_changed(struct color_value *value,
+                             const char *new_string_value)
+{
+        if (value == NULL || new_string_value == NULL) {
+                return true;
+        }
+
+        if (strcmp(value->string, new_string_value) == 0) {
+                return false;
+        }
+
+        return true;
 }
 
 enum natwm_error color_value_from_string(const char *string,
@@ -338,20 +387,6 @@ invalid_color_value_error:
         return INVALID_INPUT_ERROR;
 }
 
-bool color_value_has_changed(struct color_value *value,
-                             const char *new_string_value)
-{
-        if (value == NULL || new_string_value == NULL) {
-                return true;
-        }
-
-        if (strcmp(value->string, new_string_value) == 0) {
-                return false;
-        }
-
-        return true;
-}
-
 void border_theme_destroy(struct border_theme *theme)
 {
         free(theme);
@@ -378,6 +413,19 @@ void color_theme_destroy(struct color_theme *theme)
 
         if (theme->sticky != NULL) {
                 color_value_destroy(theme->sticky);
+        }
+
+        free(theme);
+}
+
+void theme_destroy(struct theme *theme)
+{
+        if (theme->border_width != NULL) {
+                border_theme_destroy(theme->border_width);
+        }
+
+        if (theme->color != NULL) {
+                color_theme_destroy(theme->color);
         }
 
         free(theme);
