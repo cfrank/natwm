@@ -681,10 +681,10 @@ enum natwm_error workspace_list_send_to_workspace(struct natwm_state *state,
                 = workspace_list_get_workspace(state->workspace_list, index);
 
         if (!next_workspace) {
-                LOG_ERROR(natwm_logger,
-                          "Attempting to move window to non-existent "
-                          "workspace %u",
-                          index);
+                LOG_WARNING(natwm_logger,
+                            "Attempting to move window to non-existent "
+                            "workspace %u",
+                            index);
 
                 return INVALID_INPUT_ERROR;
         }

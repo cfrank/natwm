@@ -889,10 +889,6 @@ enum natwm_error client_send_window_to_workspace(struct natwm_state *state,
                 = workspace_list_send_to_workspace(state, client, index);
 
         if (err != NO_ERROR) {
-                LOG_ERROR(natwm_logger,
-                          "Failed to send client to workspace %zu",
-                          index);
-
                 return err;
         }
 
