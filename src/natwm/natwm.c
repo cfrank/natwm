@@ -4,9 +4,10 @@
 
 #include <getopt.h>
 #include <pthread.h>
-#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/select.h>
+#include <sys/signal.h>
 #include <unistd.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_util.h>
@@ -24,18 +25,17 @@
 #include <core/state.h>
 #include <core/workspace.h>
 
+#define STOPPED -1
+#define RUNNING 0
+
+// Program status
+static volatile sig_atomic_t status = STOPPED;
+
 struct argument_options {
         const char *config_path;
         const char *screen;
         bool verbose;
 };
-
-enum status {
-        STOPPED = 1U << 0U,
-        RUNNING = 1U << 1U,
-};
-
-static enum status program_status = STOPPED;
 
 static void handle_connection_error(int error)
 {
@@ -102,7 +102,7 @@ static void signal_handler(int signum)
 {
         UNUSED_FUNCTION_PARAM(signum);
 
-        program_status = STOPPED;
+        status = STOPPED;
 }
 
 static int install_signal_handlers(void)
@@ -143,7 +143,7 @@ static int root_window_subscribe(const struct natwm_state *state)
 
         xcb_flush(state->xcb);
 
-        if (error != NULL) {
+        if (error != XCB_NONE) {
                 // We will fail if there is already a window manager present
                 free(error);
 
@@ -153,14 +153,35 @@ static int root_window_subscribe(const struct natwm_state *state)
         return 0;
 }
 
-static void *start_wm_events_thread(void *passed_state)
+static void *wm_event_loop(void *passed_state)
 {
         struct natwm_state *state = (struct natwm_state *)passed_state;
+        xcb_generic_event_t *event = XCB_NONE;
 
-        while (program_status & RUNNING) {
-                xcb_generic_event_t *event = xcb_wait_for_event(state->xcb);
+        if (state == NULL) {
+                LOG_ERROR(natwm_logger,
+                          "Received invalid passed state to event loop");
 
-                if (event) {
+                return (intptr_t *)-1;
+        }
+
+        fd_set fds;
+        int xcb_fd = xcb_get_file_descriptor(state->xcb);
+
+        // If there hasn't been an X event in 25 milliseconds then we timeout
+        // and check for any interuptions or errors
+        struct timespec timeout = {
+                .tv_sec = 0,
+                .tv_nsec = 25000000, // 25 Milliseconds
+        };
+
+        while (status == RUNNING) {
+                FD_ZERO(&fds);
+                FD_SET(xcb_fd, &fds);
+
+                int num = pselect(xcb_fd + 1, &fds, NULL, NULL, &timeout, NULL);
+
+                if (num > 0 && (event = xcb_poll_for_event(state->xcb))) {
                         enum natwm_error err = event_handle(state, event);
 
                         if (err == NOT_FOUND_ERROR) {
@@ -185,23 +206,22 @@ static void *start_wm_events_thread(void *passed_state)
                         free(event);
 
                         xcb_flush(state->xcb);
-
-                        continue;
                 }
 
-                if (xcb_connection_has_error(state->xcb)
-                    && program_status & RUNNING) {
+                if (xcb_connection_has_error(state->xcb) && status == RUNNING) {
                         LOG_ERROR(natwm_logger,
                                   "Connection to X server closed");
 
-                        program_status = STOPPED;
+                        status = STOPPED;
+
+                        return (intptr_t *)-1;
                 }
         }
 
         // Event loop stopped disconnect from x
         LOG_INFO(natwm_logger, "Disconnected...");
 
-        return (void *)0;
+        return (intptr_t *)0;
 }
 
 static struct argument_options *parse_arguments(int argc, char **argv)
@@ -390,13 +410,13 @@ int main(int argc, char **argv)
                 goto free_and_error;
         }
 
-        program_status = RUNNING;
+        status = RUNNING;
 
         // Start wm thread
         void *wm_events_result = NULL;
         pthread_t wm_events_thread;
 
-        pthread_create(&wm_events_thread, NULL, start_wm_events_thread, state);
+        pthread_create(&wm_events_thread, NULL, wm_event_loop, state);
         pthread_join(wm_events_thread, &wm_events_result);
 
         if ((intptr_t)wm_events_result != 0) {
