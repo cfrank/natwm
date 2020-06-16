@@ -162,7 +162,7 @@ static void *wm_event_loop(void *passed_state)
                 LOG_ERROR(natwm_logger,
                           "Received invalid passed state to event loop");
 
-                return (void *)-1;
+                return (intptr_t *)-1;
         }
 
         fd_set fds;
@@ -214,14 +214,14 @@ static void *wm_event_loop(void *passed_state)
 
                         status = STOPPED;
 
-                        break;
+                        return (intptr_t *)-1;
                 }
         }
 
         // Event loop stopped disconnect from x
         LOG_INFO(natwm_logger, "Disconnected...");
 
-        return (void *)0;
+        return (intptr_t *)0;
 }
 
 static struct argument_options *parse_arguments(int argc, char **argv)
