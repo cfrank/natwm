@@ -30,12 +30,11 @@ struct argument_options {
         bool verbose;
 };
 
-enum status {
-        STOPPED = 1U << 0U,
-        RUNNING = 1U << 1U,
-};
+#define STOPPED -1
+#define RUNNING 1
 
-static enum status program_status = STOPPED;
+// Program status
+volatile sig_atomic_t status = STOPPED;
 
 static void handle_connection_error(int error)
 {
@@ -102,7 +101,7 @@ static void signal_handler(int signum)
 {
         UNUSED_FUNCTION_PARAM(signum);
 
-        program_status = STOPPED;
+        status = STOPPED;
 }
 
 static int install_signal_handlers(void)
@@ -157,7 +156,7 @@ static void *start_wm_events_thread(void *passed_state)
 {
         struct natwm_state *state = (struct natwm_state *)passed_state;
 
-        while (program_status & RUNNING) {
+        while (status == RUNNING) {
                 xcb_generic_event_t *event = xcb_wait_for_event(state->xcb);
 
                 if (event) {
@@ -189,12 +188,11 @@ static void *start_wm_events_thread(void *passed_state)
                         continue;
                 }
 
-                if (xcb_connection_has_error(state->xcb)
-                    && program_status & RUNNING) {
+                if (xcb_connection_has_error(state->xcb) && status == RUNNING) {
                         LOG_ERROR(natwm_logger,
                                   "Connection to X server closed");
 
-                        program_status = STOPPED;
+                        status = STOPPED;
                 }
         }
 
@@ -390,7 +388,7 @@ int main(int argc, char **argv)
                 goto free_and_error;
         }
 
-        program_status = RUNNING;
+        status = RUNNING;
 
         // Start wm thread
         void *wm_events_result = NULL;
