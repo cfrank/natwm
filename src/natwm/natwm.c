@@ -169,8 +169,7 @@ static void *wm_event_loop(void *passed_state)
         int xcb_fd = xcb_get_file_descriptor(state->xcb);
 
         // If there hasn't been an X event in 25 milliseconds then we timeout
-        // this loop and check for any interuptions or errors before restarting
-        // the loop
+        // and check for any interuptions or errors
         struct timespec timeout = {
                 .tv_sec = 0,
                 .tv_nsec = 25000000, // 25 Milliseconds
