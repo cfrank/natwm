@@ -26,7 +26,7 @@
 #include <core/workspace.h>
 
 #define STOPPED -1
-#define RUNNING 1
+#define RUNNING 0
 
 // Program status
 static volatile sig_atomic_t status = STOPPED;
