@@ -143,7 +143,7 @@ static int root_window_subscribe(const struct natwm_state *state)
 
         xcb_flush(state->xcb);
 
-        if (error != NULL) {
+        if (error != XCB_NONE) {
                 // We will fail if there is already a window manager present
                 free(error);
 
