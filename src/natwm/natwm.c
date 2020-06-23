@@ -179,9 +179,27 @@ static void *wm_event_loop(void *passed_state)
                 FD_ZERO(&fds);
                 FD_SET(xcb_fd, &fds);
 
+                if (xcb_connection_has_error(state->xcb) && status == RUNNING) {
+                        LOG_ERROR(natwm_logger,
+                                  "Connection to X server closed");
+
+                        goto handle_error;
+                }
+
                 int num = pselect(xcb_fd + 1, &fds, NULL, NULL, &timeout, NULL);
 
-                if (num > 0 && (event = xcb_poll_for_event(state->xcb))) {
+                if (num == 0) {
+                        // No events to process
+                        continue;
+                }
+
+                if (num < 0) {
+                        LOG_ERROR(natwm_logger, "pselect failed");
+
+                        goto handle_error;
+                }
+
+                while ((event = xcb_poll_for_event(state->xcb))) {
                         enum natwm_error err = event_handle(state, event);
 
                         if (err == NOT_FOUND_ERROR) {
@@ -207,21 +225,17 @@ static void *wm_event_loop(void *passed_state)
 
                         xcb_flush(state->xcb);
                 }
-
-                if (xcb_connection_has_error(state->xcb) && status == RUNNING) {
-                        LOG_ERROR(natwm_logger,
-                                  "Connection to X server closed");
-
-                        status = STOPPED;
-
-                        return (intptr_t *)-1;
-                }
         }
 
         // Event loop stopped disconnect from x
         LOG_INFO(natwm_logger, "Disconnected...");
 
         return (intptr_t *)0;
+
+handle_error:
+        status = STOPPED;
+
+        return (intptr_t *)-1;
 }
 
 static struct argument_options *parse_arguments(int argc, char **argv)
