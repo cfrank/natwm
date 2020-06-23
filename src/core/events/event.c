@@ -39,6 +39,8 @@ event_handle_client_message(struct natwm_state *state,
                 return client_focus_window(state, window);
         } else if (event->type == state->ewmh->_NET_CLOSE_WINDOW) {
                 xcb_destroy_window(state->xcb, window);
+
+                return NO_ERROR;
         } else if (event->type == state->ewmh->_NET_CURRENT_DESKTOP) {
                 uint32_t workspace_index = event->data.data32[0];
 
