@@ -4,10 +4,10 @@
 
 #include <getopt.h>
 #include <pthread.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/select.h>
-#include <sys/signal.h>
 #include <unistd.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_util.h>
