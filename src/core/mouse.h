@@ -28,7 +28,7 @@ struct mouse_binding {
 static const struct mouse_binding client_focus_event = {
         .pass_event = 1,
         .mask = DEFAULT_BUTTON_MASK,
-        .pointer_mode = XCB_GRAB_MODE_ASYNC,
+        .pointer_mode = XCB_GRAB_MODE_SYNC,
         .keyboard_mode = XCB_GRAB_MODE_ASYNC,
         .cursor = XCB_NONE,
         .button = XCB_BUTTON_INDEX_1,
