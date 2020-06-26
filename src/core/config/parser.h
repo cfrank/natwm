@@ -1,4 +1,4 @@
-// Copyright 2019 Chris Frank
+// Copyright 2020 Chris Frank
 // Licensed under BSD-3-Clause
 // Refer to the license.txt file included in the root of the project
 
@@ -36,13 +36,10 @@ enum parser_token char_to_token(char c);
 
 struct parser *parser_create(const char *buffer, size_t buffer_size);
 enum natwm_error parser_create_variable(struct parser *parser);
-const struct config_value *parser_find_variable(const struct parser *parser,
-                                                const char *key);
+const struct config_value *parser_find_variable(const struct parser *parser, const char *key);
 struct config_value *parser_parse_value(struct parser *parser, char *value);
-enum natwm_error parser_read_key(struct parser *parser, char **result,
-                                 size_t *length);
-enum natwm_error parser_read_value(struct parser *parser, char **result,
-                                   size_t *length);
+enum natwm_error parser_read_key(struct parser *parser, char **result, size_t *length);
+enum natwm_error parser_read_value(struct parser *parser, char **result, size_t *length);
 enum natwm_error parser_read_item(struct parser *parser, char **key_result,
                                   struct config_value **value_result);
 void parser_increment(struct parser *parser);

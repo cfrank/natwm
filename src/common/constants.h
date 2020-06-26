@@ -1,4 +1,4 @@
-// Copyright 2019 Chris Frank
+// Copyright 2020 Chris Frank
 // Licensed under BSD-3-Clause
 // Refer to the license.txt file included in the root of the project
 
@@ -18,9 +18,9 @@
 
 #define UNUSED_FUNCTION_PARAM(param) (void)(param)
 
-#define SET_IF_NON_NULL(dest, value)                                           \
-        if ((dest) != NULL) {                                                  \
-                (*dest) = value;                                               \
+#define SET_IF_NON_NULL(dest, value)                                                               \
+        if ((dest) != NULL) {                                                                      \
+                (*dest) = value;                                                                   \
         }
 
 // Copied from https://github.com/openbsd/src/blob/master/sys/sys/param.h

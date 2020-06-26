@@ -1,4 +1,4 @@
-// Copyright 2019 Chris Frank
+// Copyright 2020 Chris Frank
 // Licensed under BSD-3-Clause
 // Refer to the license.txt file included in the root of the project
 
@@ -74,8 +74,7 @@ static void test_list_insert_after_single_node(void **state)
         assert_memory_equal(existing_node, list->head, sizeof(struct node *));
 
         // Expect the new node to be after the existing node
-        assert_memory_equal(
-                new_node, existing_node->next, sizeof(struct node *));
+        assert_memory_equal(new_node, existing_node->next, sizeof(struct node *));
 
         // Expect tail to be the newly created data
         assert_memory_equal(new_node, list->tail, sizeof(struct node *));
@@ -100,8 +99,7 @@ static void test_list_insert_after_middle_node(void **state)
         assert_memory_equal(head_node, list->head, sizeof(struct node *));
 
         // Created node should be after middle node
-        assert_memory_equal(
-                middle_node, created_node->next, sizeof(struct node *));
+        assert_memory_equal(middle_node, created_node->next, sizeof(struct node *));
 }
 
 static void test_list_insert_before_single_node(void **state)
@@ -119,8 +117,7 @@ static void test_list_insert_before_single_node(void **state)
         assert_memory_equal(existing_node, list->tail, sizeof(struct node *));
 
         // Expect the new node to be before the existing node
-        assert_memory_equal(
-                new_node, existing_node->previous, sizeof(struct node *));
+        assert_memory_equal(new_node, existing_node->previous, sizeof(struct node *));
 
         // Expect the list head to be the new node
         assert_memory_equal(new_node, list->head, sizeof(struct node *));
@@ -146,12 +143,10 @@ static void test_list_insert_before_middle_node(void **state)
         assert_memory_equal(tail_node, list->tail, sizeof(struct node *));
 
         // Expect the created node to come before the middle node
-        assert_memory_equal(
-                created_node, middle_node->previous, sizeof(struct node *));
+        assert_memory_equal(created_node, middle_node->previous, sizeof(struct node *));
 
         // Expect the middle node to come after the created node
-        assert_memory_equal(
-                middle_node, created_node->next, sizeof(struct node *));
+        assert_memory_equal(middle_node, created_node->next, sizeof(struct node *));
 }
 
 static void test_list_insert_empty_list(void **state)
@@ -221,8 +216,7 @@ static void test_list_insert_end_occupied_list(void **state)
         // after it. The head of the list should stay the same
         assert_int_equal(3, list->size);
         assert_memory_equal(new_node, list->tail, sizeof(struct node *));
-        assert_memory_equal(
-                old_tail_node, list->tail->previous, sizeof(struct node *));
+        assert_memory_equal(old_tail_node, list->tail->previous, sizeof(struct node *));
         assert_memory_equal(head_node, list->head, sizeof(struct node *));
 }
 
@@ -243,27 +237,23 @@ static void test_list_move_node_to_head(void **state)
         assert_non_null(list_insert(list, NULL));
         assert_non_null(list_insert(list, NULL));
 
-        struct node *expected_node_next
-                = list_insert(list, &expected_data_next);
+        struct node *expected_node_next = list_insert(list, &expected_data_next);
 
         assert_false(list_is_empty(list));
         assert_int_equal(6, list->size);
 
         assert_int_equal(expected_data, *(size_t *)list->tail->data);
 
-        assert_non_null(
-                list_insert_node_after(list, list->tail, node_create(NULL)));
+        assert_non_null(list_insert_node_after(list, list->tail, node_create(NULL)));
 
-        assert_memory_not_equal(
-                expected_node, list->tail, sizeof(struct node *));
+        assert_memory_not_equal(expected_node, list->tail, sizeof(struct node *));
 
         assert_int_equal(expected_data_next, *(size_t *)list->head->data);
 
         list_move_node_to_head(list, expected_node);
 
         assert_memory_equal(expected_node, list->head, sizeof(struct node *));
-        assert_memory_equal(
-                expected_node_next, expected_node->next, sizeof(struct node *));
+        assert_memory_equal(expected_node_next, expected_node->next, sizeof(struct node *));
         assert_int_equal(expected_data, *(size_t *)list->head->data);
 }
 
@@ -274,8 +264,7 @@ static void test_list_move_node_to_tail(void **state)
         size_t expected_data = 14;
         size_t expected_previous = 28;
         // Create what will become the "old" tail
-        struct node *expected_previous_node
-                = list_insert(list, &expected_previous);
+        struct node *expected_previous_node = list_insert(list, &expected_previous);
 
         // Add some additional nodes
         assert_non_null(list_insert(list, NULL));
@@ -285,8 +274,7 @@ static void test_list_move_node_to_tail(void **state)
 
         // Asserts to make sure the expected "old" tail is currently the tail
         assert_non_null(expected_previous_node);
-        assert_memory_equal(
-                expected_previous_node, list->tail, sizeof(struct node *));
+        assert_memory_equal(expected_previous_node, list->tail, sizeof(struct node *));
         assert_int_equal(expected_previous, *(size_t *)list->tail->data);
 
         // Add what will become to the "new" tail
@@ -303,11 +291,8 @@ static void test_list_move_node_to_tail(void **state)
         // Asserts to make sure the "new" tail is moved from head to tail
         assert_memory_equal(expected_node, list->tail, sizeof(struct node *));
         assert_int_equal(expected_data, *(size_t *)list->tail->data);
-        assert_memory_equal(expected_previous_node,
-                            list->tail->previous,
-                            sizeof(struct node *));
-        assert_memory_not_equal(
-                expected_node, list->head, sizeof(struct node *));
+        assert_memory_equal(expected_previous_node, list->tail->previous, sizeof(struct node *));
+        assert_memory_not_equal(expected_node, list->head, sizeof(struct node *));
 }
 
 static void test_list_remove_head_node(void **state)
@@ -359,8 +344,7 @@ static void test_list_remove_middle_node(void **state)
         struct node *head_node = list_insert(list, NULL);
 
         assert_int_equal(3, list->size);
-        assert_memory_equal(
-                middle_node, list->head->next, sizeof(struct node *));
+        assert_memory_equal(middle_node, list->head->next, sizeof(struct node *));
 
         list_remove(list, middle_node);
         node_destroy(middle_node);
@@ -415,33 +399,21 @@ int main(void)
                 cmocka_unit_test_setup_teardown(
                         test_list_creation_succeeds, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(
-                        test_list_insert_after_single_node,
-                        test_setup,
-                        test_teardown),
+                        test_list_insert_after_single_node, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(
-                        test_list_insert_after_middle_node,
-                        test_setup,
-                        test_teardown),
+                        test_list_insert_after_middle_node, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(
-                        test_list_insert_before_single_node,
-                        test_setup,
-                        test_teardown),
+                        test_list_insert_before_single_node, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(
-                        test_list_insert_before_middle_node,
-                        test_setup,
-                        test_teardown),
+                        test_list_insert_before_middle_node, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(
                         test_list_insert_empty_list, test_setup, test_teardown),
-                cmocka_unit_test_setup_teardown(test_list_insert_occupied_list,
-                                                test_setup,
-                                                test_teardown),
-                cmocka_unit_test_setup_teardown(test_list_insert_end_empty_list,
-                                                test_setup,
-                                                test_teardown),
                 cmocka_unit_test_setup_teardown(
-                        test_list_insert_end_occupied_list,
-                        test_setup,
-                        test_teardown),
+                        test_list_insert_occupied_list, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(
+                        test_list_insert_end_empty_list, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(
+                        test_list_insert_end_occupied_list, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(
                         test_list_move_node_to_head, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(
@@ -450,9 +422,8 @@ int main(void)
                         test_list_remove_head_node, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(
                         test_list_remove_tail_node, test_setup, test_teardown),
-                cmocka_unit_test_setup_teardown(test_list_remove_middle_node,
-                                                test_setup,
-                                                test_teardown),
+                cmocka_unit_test_setup_teardown(
+                        test_list_remove_middle_node, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(
                         test_list_is_empty_succeeds, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(

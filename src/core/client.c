@@ -69,17 +69,14 @@ static void handle_configure_request(xcb_connection_t *connection,
                 return;
         }
 
-        xcb_configure_window(
-                connection, event->window, mask, (uint32_t *)&values);
+        xcb_configure_window(connection, event->window, mask, (uint32_t *)&values);
 }
 
-static enum natwm_error get_window_rect(xcb_connection_t *connection,
-                                        xcb_window_t window,
+static enum natwm_error get_window_rect(xcb_connection_t *connection, xcb_window_t window,
                                         xcb_rectangle_t *result)
 {
         xcb_get_geometry_cookie_t cookie = xcb_get_geometry(connection, window);
-        xcb_get_geometry_reply_t *reply
-                = xcb_get_geometry_reply(connection, cookie, NULL);
+        xcb_get_geometry_reply_t *reply = xcb_get_geometry_reply(connection, cookie, NULL);
 
         if (reply == NULL) {
                 return RESOLUTION_FAILURE;
@@ -99,8 +96,7 @@ static enum natwm_error get_window_rect(xcb_connection_t *connection,
         return NO_ERROR;
 }
 
-static enum natwm_error get_size_hints(xcb_connection_t *connection,
-                                       xcb_window_t window,
+static enum natwm_error get_size_hints(xcb_connection_t *connection, xcb_window_t window,
                                        xcb_size_hints_t **result)
 {
         xcb_size_hints_t *hints = malloc(sizeof(xcb_size_hints_t));
@@ -111,8 +107,7 @@ static enum natwm_error get_size_hints(xcb_connection_t *connection,
 
         xcb_get_property_cookie_t cookie
                 = xcb_icccm_get_wm_normal_hints_unchecked(connection, window);
-        uint8_t reply = xcb_icccm_get_wm_normal_hints_reply(
-                connection, cookie, hints, NULL);
+        uint8_t reply = xcb_icccm_get_wm_normal_hints_reply(connection, cookie, hints, NULL);
 
         if (reply != 1) {
                 return RESOLUTION_FAILURE;
@@ -123,11 +118,10 @@ static enum natwm_error get_size_hints(xcb_connection_t *connection,
         return NO_ERROR;
 }
 
-static xcb_get_window_attributes_reply_t *
-get_window_attributes(xcb_connection_t *connection, xcb_window_t window)
+static xcb_get_window_attributes_reply_t *get_window_attributes(xcb_connection_t *connection,
+                                                                xcb_window_t window)
 {
-        xcb_get_window_attributes_cookie_t cookie
-                = xcb_get_window_attributes(connection, window);
+        xcb_get_window_attributes_cookie_t cookie = xcb_get_window_attributes(connection, window);
         xcb_get_window_attributes_reply_t *reply
                 = xcb_get_window_attributes_reply(connection, cookie, NULL);
 
@@ -166,15 +160,13 @@ static void update_theme(const struct natwm_state *state, struct client *client,
                 return;
         }
 
-        uint16_t current_border_width = client_get_active_border_width(
-                state->workspace_list->theme, client);
-        const struct color_value *border_color = client_get_active_border_color(
-                state->workspace_list->theme, client);
+        uint16_t current_border_width
+                = client_get_active_border_width(state->workspace_list->theme, client);
+        const struct color_value *border_color
+                = client_get_active_border_color(state->workspace_list->theme, client);
 
-        xcb_change_window_attributes(state->xcb,
-                                     client->window,
-                                     XCB_CW_BORDER_PIXEL,
-                                     &border_color->color_value);
+        xcb_change_window_attributes(
+                state->xcb, client->window, XCB_CW_BORDER_PIXEL, &border_color->color_value);
 
         // If this is the first time the client has been themed, we need to
         // update the clients state to remove UNTHEMED
@@ -186,22 +178,20 @@ static void update_theme(const struct natwm_state *state, struct client *client,
                 return;
         }
 
-        struct workspace *workspace = workspace_list_find_client_workspace(
-                state->workspace_list, client);
+        struct workspace *workspace
+                = workspace_list_find_client_workspace(state->workspace_list, client);
 
         if (workspace == NULL) {
-                LOG_WARNING(natwm_logger,
-                            "Failed to find workspace during update_theme");
+                LOG_WARNING(natwm_logger, "Failed to find workspace during update_theme");
 
                 return;
         }
 
-        struct monitor *monitor = monitor_list_get_workspace_monitor(
-                state->monitor_list, workspace);
+        struct monitor *monitor
+                = monitor_list_get_workspace_monitor(state->monitor_list, workspace);
 
         if (monitor == NULL) {
-                LOG_WARNING(natwm_logger,
-                            "Failed to find monitor during update_theme");
+                LOG_WARNING(natwm_logger, "Failed to find monitor during update_theme");
 
                 return;
         }
@@ -210,15 +200,11 @@ static void update_theme(const struct natwm_state *state, struct client *client,
 
         int32_t total_border = (current_border_width * 2);
 
-        int32_t total_client_width
-                = (client->rect.width + client->rect.x + total_border);
-        int32_t total_monitor_width
-                = (monitor_rect.width + monitor->offsets.left);
+        int32_t total_client_width = (client->rect.width + client->rect.x + total_border);
+        int32_t total_monitor_width = (monitor_rect.width + monitor->offsets.left);
 
-        int32_t total_client_height
-                = (client->rect.height + client->rect.y + total_border);
-        int32_t total_monitor_height
-                = (monitor_rect.height + monitor->offsets.top);
+        int32_t total_client_height = (client->rect.height + client->rect.y + total_border);
+        int32_t total_monitor_height = (monitor_rect.height + monitor->offsets.top);
 
         // Check if either the width or the height will not be able to fit on
         // the monitor. If either doesn't correct the width to fit
@@ -235,35 +221,32 @@ static void update_theme(const struct natwm_state *state, struct client *client,
         }
 
         // Update the client
-        uint16_t client_mask = XCB_CONFIG_WINDOW_WIDTH
-                | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH;
+        uint16_t client_mask = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT
+                | XCB_CONFIG_WINDOW_BORDER_WIDTH;
         uint32_t client_values[] = {
                 client->rect.width,
                 client->rect.height,
                 current_border_width,
         };
 
-        xcb_configure_window(
-                state->xcb, client->window, client_mask, client_values);
+        xcb_configure_window(state->xcb, client->window, client_mask, client_values);
 
         client_update_hints(state, client, FRAME_EXTENTS);
 }
 
-static void update_stack_mode(const struct natwm_state *state,
-                              xcb_window_t window, xcb_stack_mode_t stack_mode)
+static void update_stack_mode(const struct natwm_state *state, xcb_window_t window,
+                              xcb_stack_mode_t stack_mode)
 {
         uint32_t values[] = {
                 stack_mode,
         };
 
-        xcb_configure_window(
-                state->xcb, window, XCB_CONFIG_WINDOW_STACK_MODE, values);
+        xcb_configure_window(state->xcb, window, XCB_CONFIG_WINDOW_STACK_MODE, values);
 
         xcb_flush(state->xcb);
 }
 
-struct client *client_create(xcb_window_t window, xcb_rectangle_t rect,
-                             xcb_size_hints_t *hints)
+struct client *client_create(xcb_window_t window, xcb_rectangle_t rect, xcb_size_hints_t *hints)
 {
         struct client *client = malloc(sizeof(struct client));
 
@@ -293,12 +276,10 @@ struct client *client_create(xcb_window_t window, xcb_rectangle_t rect,
         return client;
 }
 
-struct client *client_register_window(struct natwm_state *state,
-                                      xcb_window_t window)
+struct client *client_register_window(struct natwm_state *state, xcb_window_t window)
 {
         // Get window attributes
-        xcb_get_window_attributes_reply_t *attributes
-                = get_window_attributes(state->xcb, window);
+        xcb_get_window_attributes_reply_t *attributes = get_window_attributes(state->xcb, window);
 
         if (attributes == NULL) {
                 goto handle_no_register;
@@ -310,10 +291,9 @@ struct client *client_register_window(struct natwm_state *state,
 
         free(attributes);
 
-        struct workspace *focused_workspace
-                = workspace_list_get_focused(state->workspace_list);
-        struct monitor *workspace_monitor = monitor_list_get_workspace_monitor(
-                state->monitor_list, focused_workspace);
+        struct workspace *focused_workspace = workspace_list_get_focused(state->workspace_list);
+        struct monitor *workspace_monitor
+                = monitor_list_get_workspace_monitor(state->monitor_list, focused_workspace);
         enum natwm_error err = GENERIC_ERROR;
 
         if (focused_workspace == NULL || workspace_monitor == NULL) {
@@ -386,16 +366,15 @@ handle_error:
 enum natwm_error client_handle_button_press(struct natwm_state *state,
                                             xcb_button_press_event_t *event)
 {
-        struct workspace *workspace = workspace_list_find_window_workspace(
-                state->workspace_list, event->event);
+        struct workspace *workspace
+                = workspace_list_find_window_workspace(state->workspace_list, event->event);
 
         if (workspace == NULL) {
                 // Not registered with us - just pass it along
                 return NO_ERROR;
         }
 
-        struct client *client
-                = workspace_find_window_client(workspace, event->event);
+        struct client *client = workspace_find_window_client(workspace, event->event);
 
         if (client == NULL) {
                 return RESOLUTION_FAILURE;
@@ -404,8 +383,7 @@ enum natwm_error client_handle_button_press(struct natwm_state *state,
         // TODO: This will need some refactoring once we start handling more
         // button press events
         if (event->state == XCB_NONE) {
-                enum natwm_error err
-                        = workspace_focus_client(state, workspace, client);
+                enum natwm_error err = workspace_focus_client(state, workspace, client);
 
                 if (err != NO_ERROR) {
                         return err;
@@ -415,8 +393,7 @@ enum natwm_error client_handle_button_press(struct natwm_state *state,
                 // focused both the workspace (if needed) and the client we
                 // release the queued event and the client receives the event
                 // like normal
-                xcb_allow_events(
-                        state->xcb, XCB_ALLOW_REPLAY_POINTER, XCB_CURRENT_TIME);
+                xcb_allow_events(state->xcb, XCB_ALLOW_REPLAY_POINTER, XCB_CURRENT_TIME);
 
                 return NO_ERROR;
         }
@@ -427,18 +404,17 @@ enum natwm_error client_handle_button_press(struct natwm_state *state,
 enum natwm_error client_configure_window(struct natwm_state *state,
                                          xcb_configure_request_event_t *event)
 {
-        struct workspace *workspace = workspace_list_find_window_workspace(
-                state->workspace_list, event->window);
+        struct workspace *workspace
+                = workspace_list_find_window_workspace(state->workspace_list, event->window);
 
         if (workspace == NULL) {
                 // window is not registered with us - just pass it along
                 goto handle_not_registered;
         }
 
-        struct client *client
-                = workspace_find_window_client(workspace, event->window);
-        struct monitor *monitor = monitor_list_get_workspace_monitor(
-                state->monitor_list, workspace);
+        struct client *client = workspace_find_window_client(workspace, event->window);
+        struct monitor *monitor
+                = monitor_list_get_workspace_monitor(state->monitor_list, workspace);
 
         if (client == NULL || monitor == NULL) {
                 return RESOLUTION_FAILURE;
@@ -457,11 +433,9 @@ enum natwm_error client_configure_window(struct natwm_state *state,
 
         if (event->value_mask & XCB_CONFIG_WINDOW_WIDTH) {
                 if (event->width < client->size_hints->min_width) {
-                        new_rect.width
-                                = (uint16_t)client->size_hints->min_width;
+                        new_rect.width = (uint16_t)client->size_hints->min_width;
                 } else if (event->width > client->size_hints->max_width) {
-                        new_rect.width
-                                = (uint16_t)client->size_hints->max_width;
+                        new_rect.width = (uint16_t)client->size_hints->max_width;
                 } else {
                         new_rect.width = event->width;
                 }
@@ -469,11 +443,9 @@ enum natwm_error client_configure_window(struct natwm_state *state,
 
         if (event->value_mask & XCB_CONFIG_WINDOW_HEIGHT) {
                 if (event->height < client->size_hints->min_height) {
-                        new_rect.height
-                                = (uint16_t)client->size_hints->min_height;
+                        new_rect.height = (uint16_t)client->size_hints->min_height;
                 } else if (event->height > client->size_hints->max_height) {
-                        new_rect.height
-                                = (uint16_t)client->size_hints->max_height;
+                        new_rect.height = (uint16_t)client->size_hints->max_height;
                 } else {
                         new_rect.height = event->height;
                 }
@@ -516,13 +488,11 @@ handle_not_registered:
         return NO_ERROR;
 }
 
-void client_configure_window_rect(xcb_connection_t *connection,
-                                  xcb_window_t window, xcb_rectangle_t rect,
-                                  uint32_t border_width)
+void client_configure_window_rect(xcb_connection_t *connection, xcb_window_t window,
+                                  xcb_rectangle_t rect, uint32_t border_width)
 {
-        uint16_t mask = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y
-                | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT
-                | XCB_CONFIG_WINDOW_BORDER_WIDTH;
+        uint16_t mask = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH
+                | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH;
         uint32_t values[] = {
                 (uint16_t)rect.x,
                 (uint16_t)rect.y,
@@ -548,10 +518,8 @@ void client_map(const struct natwm_state *state, struct client *client,
         uint32_t border_width = client_get_active_border_width(theme, client);
 
         if (client->is_fullscreen) {
-                client_configure_window_rect(state->xcb,
-                                             client->window,
-                                             monitor->rect,
-                                             border_width);
+                client_configure_window_rect(
+                        state->xcb, client->window, monitor->rect, border_width);
         } else {
                 xcb_rectangle_t new_rect = {
                         (int16_t)(client->rect.x + monitor->rect.x),
@@ -560,8 +528,7 @@ void client_map(const struct natwm_state *state, struct client *client,
                         client->rect.height,
                 };
 
-                client_configure_window_rect(
-                        state->xcb, client->window, new_rect, border_width);
+                client_configure_window_rect(state->xcb, client->window, new_rect, border_width);
         }
 
         if (client->state & CLIENT_HIDDEN) {
@@ -571,11 +538,10 @@ void client_map(const struct natwm_state *state, struct client *client,
         xcb_map_window(state->xcb, client->window);
 }
 
-enum natwm_error client_handle_map_notify(const struct natwm_state *state,
-                                          xcb_window_t window)
+enum natwm_error client_handle_map_notify(const struct natwm_state *state, xcb_window_t window)
 {
-        struct workspace *workspace = workspace_list_find_window_workspace(
-                state->workspace_list, window);
+        struct workspace *workspace
+                = workspace_list_find_window_workspace(state->workspace_list, window);
 
         if (workspace == NULL) {
                 // We do not have this window in our registry
@@ -595,8 +561,8 @@ enum natwm_error client_handle_map_notify(const struct natwm_state *state,
         if (client->is_focused && workspace->is_focused) {
                 // We need to get the previous border_width before removing
                 // CLIENT_OFF_SCREEN
-                uint16_t border_width = client_get_active_border_width(
-                        state->workspace_list->theme, client);
+                uint16_t border_width
+                        = client_get_active_border_width(state->workspace_list->theme, client);
 
                 client->state &= (uint8_t)~CLIENT_OFF_SCREEN;
 
@@ -608,11 +574,10 @@ enum natwm_error client_handle_map_notify(const struct natwm_state *state,
         return NO_ERROR;
 }
 
-enum natwm_error client_unmap_window(struct natwm_state *state,
-                                     xcb_window_t window)
+enum natwm_error client_unmap_window(struct natwm_state *state, xcb_window_t window)
 {
-        struct workspace *workspace = workspace_list_find_window_workspace(
-                state->workspace_list, window);
+        struct workspace *workspace
+                = workspace_list_find_window_workspace(state->workspace_list, window);
 
         if (workspace == NULL) {
                 // We do not have this window in our registry
@@ -622,8 +587,7 @@ enum natwm_error client_unmap_window(struct natwm_state *state,
         struct client *client = workspace_find_window_client(workspace, window);
 
         if (client == NULL) {
-                LOG_ERROR(natwm_logger,
-                          "Failed to find registered client during unmap");
+                LOG_ERROR(natwm_logger, "Failed to find registered client during unmap");
 
                 return NOT_FOUND_ERROR;
         }
@@ -639,11 +603,10 @@ enum natwm_error client_unmap_window(struct natwm_state *state,
         return NO_ERROR;
 }
 
-enum natwm_error client_handle_destroy_notify(struct natwm_state *state,
-                                              xcb_window_t window)
+enum natwm_error client_handle_destroy_notify(struct natwm_state *state, xcb_window_t window)
 {
-        struct workspace *workspace = workspace_list_find_window_workspace(
-                state->workspace_list, window);
+        struct workspace *workspace
+                = workspace_list_find_window_workspace(state->workspace_list, window);
 
         if (workspace == NULL) {
                 // This window is not registered with us
@@ -658,18 +621,15 @@ enum natwm_error client_handle_destroy_notify(struct natwm_state *state,
         struct client *client = workspace_find_window_client(workspace, window);
 
         if (client == NULL) {
-                LOG_WARNING(natwm_logger,
-                            "Failed to find client during destroy");
+                LOG_WARNING(natwm_logger, "Failed to find client during destroy");
 
                 return NOT_FOUND_ERROR;
         }
 
-        enum natwm_error err
-                = workspace_remove_client(state, workspace, client);
+        enum natwm_error err = workspace_remove_client(state, workspace, client);
 
         if (err != NO_ERROR) {
-                LOG_WARNING(natwm_logger,
-                            "Failed to remove client from workspace");
+                LOG_WARNING(natwm_logger, "Failed to remove client from workspace");
 
                 return err;
         }
@@ -681,8 +641,7 @@ enum natwm_error client_handle_destroy_notify(struct natwm_state *state,
         return NO_ERROR;
 }
 
-uint16_t client_get_active_border_width(const struct theme *theme,
-                                        const struct client *client)
+uint16_t client_get_active_border_width(const struct theme *theme, const struct client *client)
 {
         if (client->is_fullscreen) {
                 return 0;
@@ -729,13 +688,12 @@ struct color_value *client_get_active_border_color(const struct theme *theme,
         return theme->color->unfocused;
 }
 
-enum natwm_error client_set_fullscreen(const struct natwm_state *state,
-                                       struct client *client)
+enum natwm_error client_set_fullscreen(const struct natwm_state *state, struct client *client)
 {
-        struct workspace *workspace = workspace_list_find_client_workspace(
-                state->workspace_list, client);
-        struct monitor *monitor = monitor_list_get_workspace_monitor(
-                state->monitor_list, workspace);
+        struct workspace *workspace
+                = workspace_list_find_client_workspace(state->workspace_list, client);
+        struct monitor *monitor
+                = monitor_list_get_workspace_monitor(state->monitor_list, workspace);
 
         if (monitor == NULL) {
                 return RESOLUTION_FAILURE;
@@ -743,17 +701,14 @@ enum natwm_error client_set_fullscreen(const struct natwm_state *state,
 
         client->is_fullscreen = true;
 
-        ewmh_add_window_state(
-                state, client->window, state->ewmh->_NET_WM_STATE_FULLSCREEN);
+        ewmh_add_window_state(state, client->window, state->ewmh->_NET_WM_STATE_FULLSCREEN);
 
-        client_configure_window_rect(
-                state->xcb, client->window, monitor->rect, 0);
+        client_configure_window_rect(state->xcb, client->window, monitor->rect, 0);
 
         return NO_ERROR;
 }
 
-enum natwm_error client_unset_fullscreen(const struct natwm_state *state,
-                                         struct client *client)
+enum natwm_error client_unset_fullscreen(const struct natwm_state *state, struct client *client)
 {
         struct theme *theme = state->workspace_list->theme;
         uint16_t border_width = client_get_active_border_width(theme, client);
@@ -762,21 +717,18 @@ enum natwm_error client_unset_fullscreen(const struct natwm_state *state,
 
         ewmh_remove_window_state(state, client->window);
 
-        client_configure_window_rect(
-                state->xcb, client->window, client->rect, border_width);
+        client_configure_window_rect(state->xcb, client->window, client->rect, border_width);
 
         update_theme(state, client, border_width);
 
         return NO_ERROR;
 }
 
-enum natwm_error
-client_handle_fullscreen_window(struct natwm_state *state,
-                                xcb_ewmh_wm_state_action_t action,
-                                xcb_window_t window)
+enum natwm_error client_handle_fullscreen_window(struct natwm_state *state,
+                                                 xcb_ewmh_wm_state_action_t action,
+                                                 xcb_window_t window)
 {
-        struct client *client = workspace_list_find_window_client(
-                state->workspace_list, window);
+        struct client *client = workspace_list_find_window_client(state->workspace_list, window);
 
         if (client == NULL) {
                 return NOT_FOUND_ERROR;
@@ -788,23 +740,19 @@ client_handle_fullscreen_window(struct natwm_state *state,
         case XCB_EWMH_WM_STATE_REMOVE:
                 return client_unset_fullscreen(state, client);
         case XCB_EWMH_WM_STATE_TOGGLE:
-                return (client->is_fullscreen)
-                        ? client_unset_fullscreen(state, client)
-                        : client_set_fullscreen(state, client);
+                return (client->is_fullscreen) ? client_unset_fullscreen(state, client)
+                                               : client_set_fullscreen(state, client);
         }
 
         return GENERIC_ERROR;
 }
 
-void client_set_window_input_focus(const struct natwm_state *state,
-                                   xcb_window_t window)
+void client_set_window_input_focus(const struct natwm_state *state, xcb_window_t window)
 {
         ewmh_update_active_window(state, window);
 
-        xcb_set_input_focus(state->xcb,
-                            XCB_INPUT_FOCUS_POINTER_ROOT,
-                            window,
-                            XCB_TIME_CURRENT_TIME);
+        xcb_set_input_focus(
+                state->xcb, XCB_INPUT_FOCUS_POINTER_ROOT, window, XCB_TIME_CURRENT_TIME);
 
         update_stack_mode(state, window, XCB_STACK_MODE_ABOVE);
 }
@@ -815,8 +763,8 @@ void client_set_focused(struct natwm_state *state, struct client *client)
                 return;
         }
 
-        struct workspace *workspace = workspace_list_find_client_workspace(
-                state->workspace_list, client);
+        struct workspace *workspace
+                = workspace_list_find_client_workspace(state->workspace_list, client);
 
         if (workspace == NULL) {
                 return;
@@ -850,8 +798,7 @@ void client_set_focused(struct natwm_state *state, struct client *client)
         update_theme(state, client, previous_border_width);
 }
 
-void client_set_unfocused(const struct natwm_state *state,
-                          struct client *client)
+void client_set_unfocused(const struct natwm_state *state, struct client *client)
 {
         if (client == NULL || client->state & CLIENT_HIDDEN) {
                 return;
@@ -863,17 +810,14 @@ void client_set_unfocused(const struct natwm_state *state,
 
         // When a client is unfocused we need to grab the mouse button required
         // for "click to focus"
-        mouse_event_grab_button(
-                state->xcb, client->window, &client_focus_event);
+        mouse_event_grab_button(state->xcb, client->window, &client_focus_event);
 
         update_theme(state, client, theme->border_width->focused);
 }
 
-enum natwm_error client_focus_window(struct natwm_state *state,
-                                     xcb_window_t window)
+enum natwm_error client_focus_window(struct natwm_state *state, xcb_window_t window)
 {
-        struct client *client = workspace_list_find_window_client(
-                state->workspace_list, window);
+        struct client *client = workspace_list_find_window_client(state->workspace_list, window);
 
         if (client == NULL) {
                 client_set_window_input_focus(state, window);
@@ -890,19 +834,16 @@ enum natwm_error client_focus_window(struct natwm_state *state,
         return NO_ERROR;
 }
 
-enum natwm_error client_send_window_to_workspace(struct natwm_state *state,
-                                                 xcb_window_t window,
+enum natwm_error client_send_window_to_workspace(struct natwm_state *state, xcb_window_t window,
                                                  size_t index)
 {
-        struct client *client = workspace_list_find_window_client(
-                state->workspace_list, window);
+        struct client *client = workspace_list_find_window_client(state->workspace_list, window);
 
         if (!client) {
                 return NO_ERROR;
         }
 
-        enum natwm_error err
-                = workspace_list_send_to_workspace(state, client, index);
+        enum natwm_error err = workspace_list_send_to_workspace(state, client, index);
 
         if (err != NO_ERROR) {
                 return err;
@@ -911,8 +852,7 @@ enum natwm_error client_send_window_to_workspace(struct natwm_state *state,
         return NO_ERROR;
 }
 
-enum natwm_error client_update_hints(const struct natwm_state *state,
-                                     const struct client *client,
+enum natwm_error client_update_hints(const struct natwm_state *state, const struct client *client,
                                      enum client_hints hints)
 {
         if (!client) {
@@ -921,27 +861,22 @@ enum natwm_error client_update_hints(const struct natwm_state *state,
 
         if (hints & FRAME_EXTENTS) {
                 struct theme *theme = state->workspace_list->theme;
-                uint32_t border_width
-                        = client_get_active_border_width(theme, client);
+                uint32_t border_width = client_get_active_border_width(theme, client);
 
-                ewmh_update_window_frame_extents(
-                        state, client->window, border_width);
+                ewmh_update_window_frame_extents(state, client->window, border_width);
         }
 
         if (hints & WM_DESKTOP) {
                 struct workspace *workspace
-                        = workspace_list_find_client_workspace(
-                                state->workspace_list, client);
+                        = workspace_list_find_client_workspace(state->workspace_list, client);
 
                 if (workspace == NULL) {
-                        LOG_INFO(natwm_logger,
-                                 "Failed to find current desktop");
+                        LOG_INFO(natwm_logger, "Failed to find current desktop");
 
                         return RESOLUTION_FAILURE;
                 }
 
-                ewmh_update_window_desktop(
-                        state, client->window, workspace->index);
+                ewmh_update_window_desktop(state, client->window, workspace->index);
         }
 
         return NO_ERROR;

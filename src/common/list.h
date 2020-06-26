@@ -1,4 +1,4 @@
-// Copyright 2019 Chris Frank
+// Copyright 2020 Chris Frank
 // Licensed under BSD-3-Clause
 // Refer to the license.txt file included in the root of the project
 
@@ -19,21 +19,16 @@ struct list {
         size_t size;
 };
 
-#define LIST_FOR_EACH(list, item)                                              \
-        for (struct node * (item) = (list)->head; (item) != NULL;              \
-             (item) = (item)->next)
+#define LIST_FOR_EACH(list, item)                                                                  \
+        for (struct node * (item) = (list)->head; (item) != NULL; (item) = (item)->next)
 
 struct node *node_create(const void *data);
 struct list *list_create(void);
 
-struct node *list_insert_node_after(struct list *list, struct node *existing,
-                                    struct node *new);
-struct node *list_insert_after(struct list *list, struct node *node,
-                               const void *data);
-struct node *list_insert_node_before(struct list *list, struct node *existing,
-                                     struct node *new);
-struct node *list_insert_before(struct list *list, struct node *node,
-                                const void *data);
+struct node *list_insert_node_after(struct list *list, struct node *existing, struct node *new);
+struct node *list_insert_after(struct list *list, struct node *node, const void *data);
+struct node *list_insert_node_before(struct list *list, struct node *existing, struct node *new);
+struct node *list_insert_before(struct list *list, struct node *node, const void *data);
 struct node *list_insert_node(struct list *list, struct node *node);
 struct node *list_insert(struct list *list, const void *data);
 struct node *list_insert_end(struct list *list, const void *data);

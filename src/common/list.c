@@ -1,4 +1,4 @@
-// Copyright 2019 Chris Frank
+// Copyright 2020 Chris Frank
 // Licensed under BSD-3-Clause
 // Refer to the license.txt file included in the root of the project
 
@@ -55,8 +55,7 @@ struct list *list_create(void)
         return list;
 }
 
-struct node *list_insert_node_after(struct list *list, struct node *existing,
-                                    struct node *new)
+struct node *list_insert_node_after(struct list *list, struct node *existing, struct node *new)
 {
         if (list == NULL || existing == NULL || new == NULL) {
                 return NULL;
@@ -78,14 +77,12 @@ struct node *list_insert_node_after(struct list *list, struct node *existing,
         return new;
 }
 
-struct node *list_insert_after(struct list *list, struct node *node,
-                               const void *data)
+struct node *list_insert_after(struct list *list, struct node *node, const void *data)
 {
         return list_insert_node_after(list, node, node_create(data));
 }
 
-struct node *list_insert_node_before(struct list *list, struct node *existing,
-                                     struct node *new)
+struct node *list_insert_node_before(struct list *list, struct node *existing, struct node *new)
 {
         if (list == NULL || existing == NULL || new == NULL) {
                 return NULL;
@@ -109,8 +106,7 @@ struct node *list_insert_node_before(struct list *list, struct node *existing,
         return new;
 }
 
-struct node *list_insert_before(struct list *list, struct node *node,
-                                const void *data)
+struct node *list_insert_before(struct list *list, struct node *node, const void *data)
 {
         return list_insert_node_before(list, node, node_create(data));
 }

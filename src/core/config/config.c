@@ -1,4 +1,4 @@
-// Copyright 2019 Chris Frank
+// Copyright 2020 Chris Frank
 // Licensed under BSD-3-Clause
 // Refer to the license.txt file included in the root of the project
 
@@ -37,8 +37,7 @@ static void hashmap_free_callback(void *data)
  * be updated to point to the '\n' at the end of the current line, which will
  * allow for the next line to be consumed
  */
-static enum natwm_error config_item_create(struct parser *parser,
-                                           struct map *config_map)
+static enum natwm_error config_item_create(struct parser *parser, struct map *config_map)
 {
         enum natwm_error err = GENERIC_ERROR;
         char *key = NULL;
@@ -117,9 +116,7 @@ static FILE *open_config_file(const char *path)
                 file = fopen(path, "r");
 
                 if (file == NULL) {
-                        LOG_ERROR(natwm_logger,
-                                  "Failed to find configuration file at %s",
-                                  path);
+                        LOG_ERROR(natwm_logger, "Failed to find configuration file at %s", path);
 
                         return NULL;
                 }
@@ -139,9 +136,7 @@ static FILE *open_config_file(const char *path)
 
         // Check if the file exists
         if (!path_exists(config_path)) {
-                LOG_ERROR(natwm_logger,
-                          "Failed to find configuration file at %s",
-                          config_path);
+                LOG_ERROR(natwm_logger, "Failed to find configuration file at %s", config_path);
 
                 goto release_config_path_and_error;
         }
@@ -201,8 +196,7 @@ static struct map *config_parse(struct parser *parser)
         struct map *map = map_init();
 
         if (map == NULL) {
-                LOG_ERROR(natwm_logger,
-                          "Failed initializing configuration map");
+                LOG_ERROR(natwm_logger, "Failed initializing configuration map");
 
                 return NULL;
         }
@@ -329,8 +323,7 @@ struct config_value *config_find(const struct map *config_map, const char *key)
         return (struct config_value *)entry->value;
 }
 
-enum natwm_error config_find_array(const struct map *config_map,
-                                   const char *key,
+enum natwm_error config_find_array(const struct map *config_map, const char *key,
                                    const struct config_array **result)
 {
         struct config_value *value = config_find(config_map, key);
@@ -348,8 +341,7 @@ enum natwm_error config_find_array(const struct map *config_map,
         return NO_ERROR;
 }
 
-enum natwm_error config_find_number(const struct map *config_map,
-                                    const char *key, intmax_t *result)
+enum natwm_error config_find_number(const struct map *config_map, const char *key, intmax_t *result)
 {
         struct config_value *value = config_find(config_map, key);
 
@@ -366,8 +358,8 @@ enum natwm_error config_find_number(const struct map *config_map,
         return NO_ERROR;
 }
 
-intmax_t config_find_number_fallback(const struct map *config_map,
-                                     const char *key, intmax_t fallback)
+intmax_t config_find_number_fallback(const struct map *config_map, const char *key,
+                                     intmax_t fallback)
 {
         intmax_t value = 0;
 
@@ -378,8 +370,8 @@ intmax_t config_find_number_fallback(const struct map *config_map,
         return value;
 }
 
-enum natwm_error config_find_string(const struct map *config_map,
-                                    const char *key, const char **result)
+enum natwm_error config_find_string(const struct map *config_map, const char *key,
+                                    const char **result)
 {
         struct config_value *value = config_find(config_map, key);
 
@@ -396,8 +388,8 @@ enum natwm_error config_find_string(const struct map *config_map,
         return NO_ERROR;
 }
 
-const char *config_find_string_fallback(const struct map *config_map,
-                                        const char *key, const char *fallback)
+const char *config_find_string_fallback(const struct map *config_map, const char *key,
+                                        const char *fallback)
 {
         const char *string = NULL;
 

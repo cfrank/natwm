@@ -1,4 +1,4 @@
-// Copyright 2019 Chris Frank
+// Copyright 2020 Chris Frank
 // Licensed under BSD-3-Clause
 // Refer to the license.txt file included in the root of the project
 
@@ -16,7 +16,6 @@ struct randr_monitor {
         xcb_rectangle_t rect;
 };
 
-enum natwm_error randr_get_screens(const struct natwm_state *state,
-                                   struct randr_monitor ***result,
+enum natwm_error randr_get_screens(const struct natwm_state *state, struct randr_monitor ***result,
                                    size_t *length);
 void randr_monitor_destroy(struct randr_monitor *monitor);

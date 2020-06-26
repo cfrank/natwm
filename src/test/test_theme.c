@@ -1,4 +1,4 @@
-// Copyright 2019 Chris Frank
+// Copyright 2020 Chris Frank
 // Licensed under BSD-3-Clause
 // Refer to the license.txt file included in the root of the project
 
@@ -71,8 +71,7 @@ static void test_color_value_from_string_missing_hash(void **state)
         const char *string = "ffffff";
         struct color_value *result = NULL;
 
-        assert_int_equal(INVALID_INPUT_ERROR,
-                         color_value_from_string(string, &result));
+        assert_int_equal(INVALID_INPUT_ERROR, color_value_from_string(string, &result));
         assert_null(result);
 }
 
@@ -84,8 +83,7 @@ static void test_color_value_from_string_invalid_length(void **state)
         const char *string = "fff";
         struct color_value *result = NULL;
 
-        assert_int_equal(INVALID_INPUT_ERROR,
-                         color_value_from_string(string, &result));
+        assert_int_equal(INVALID_INPUT_ERROR, color_value_from_string(string, &result));
         assert_null(result);
 }
 
@@ -114,8 +112,7 @@ static void test_border_theme_from_config(void **state)
                                     "\t2,\n"
                                     "\t3,\n"
                                     "]\n";
-        struct map *config_map
-                = config_read_string(config_string, strlen(config_string));
+        struct map *config_map = config_read_string(config_string, strlen(config_string));
 
         map_set_entry_free_function(config_map, config_map_free_callback);
 
@@ -123,9 +120,7 @@ static void test_border_theme_from_config(void **state)
 
         struct border_theme *theme = NULL;
 
-        assert_int_equal(
-                NO_ERROR,
-                border_theme_from_config(config_map, "config", &theme));
+        assert_int_equal(NO_ERROR, border_theme_from_config(config_map, "config", &theme));
         assert_non_null(theme);
         assert_int_equal(expected_values[0], theme->unfocused);
         assert_int_equal(expected_values[1], theme->focused);
@@ -165,8 +160,7 @@ static void test_border_theme_from_config_ignore_invalid_item(void **state)
                                     "\t[\"Invalid string type\"],\n"
                                     "]\n";
         size_t config_length = strlen(config_string);
-        struct map *config_map
-                = config_read_string(config_string, config_length);
+        struct map *config_map = config_read_string(config_string, config_length);
 
         assert_non_null(config_map);
 
@@ -174,9 +168,7 @@ static void test_border_theme_from_config_ignore_invalid_item(void **state)
 
         struct border_theme *theme = NULL;
 
-        assert_int_equal(
-                NO_ERROR,
-                border_theme_from_config(config_map, "config", &theme));
+        assert_int_equal(NO_ERROR, border_theme_from_config(config_map, "config", &theme));
         assert_non_null(theme);
         assert_int_equal(expected_values[0], theme->unfocused);
         assert_int_equal(expected_values[1], theme->focused);
@@ -193,8 +185,7 @@ static void test_border_theme_from_config_invalid_length(void **state)
 
         const char *config_string = "config = []\n";
         size_t config_length = strlen(config_string);
-        struct map *config_map
-                = config_read_string(config_string, config_length);
+        struct map *config_map = config_read_string(config_string, config_length);
 
         assert_non_null(config_map);
 
@@ -202,9 +193,8 @@ static void test_border_theme_from_config_invalid_length(void **state)
 
         struct border_theme *theme = NULL;
 
-        assert_int_equal(
-                INVALID_INPUT_ERROR,
-                border_theme_from_config(config_map, "config", &theme));
+        assert_int_equal(INVALID_INPUT_ERROR,
+                         border_theme_from_config(config_map, "config", &theme));
         assert_null(theme);
 
         config_destroy(config_map);
@@ -216,8 +206,7 @@ static void test_border_theme_from_config_invalid_type(void **state)
 
         const char *config_string = "config = \"Invalid Type\"\n";
         size_t config_length = strlen(config_string);
-        struct map *config_map
-                = config_read_string(config_string, config_length);
+        struct map *config_map = config_read_string(config_string, config_length);
 
         assert_non_null(config_map);
 
@@ -225,9 +214,8 @@ static void test_border_theme_from_config_invalid_type(void **state)
 
         struct border_theme *theme = NULL;
 
-        assert_int_equal(
-                INVALID_INPUT_ERROR,
-                border_theme_from_config(config_map, "config", &theme));
+        assert_int_equal(INVALID_INPUT_ERROR,
+                         border_theme_from_config(config_map, "config", &theme));
         assert_null(theme);
 
         config_destroy(config_map);
@@ -239,8 +227,7 @@ static void test_border_theme_from_config_missing_config_item(void **state)
 
         const char *config_string = "invalid = \"Not found\"\n";
         size_t config_length = strlen(config_string);
-        struct map *config_map
-                = config_read_string(config_string, config_length);
+        struct map *config_map = config_read_string(config_string, config_length);
 
         assert_non_null(config_map);
 
@@ -248,9 +235,7 @@ static void test_border_theme_from_config_missing_config_item(void **state)
 
         struct border_theme *theme = NULL;
 
-        assert_int_equal(
-                NOT_FOUND_ERROR,
-                border_theme_from_config(config_map, "config", &theme));
+        assert_int_equal(NOT_FOUND_ERROR, border_theme_from_config(config_map, "config", &theme));
         assert_null(theme);
 
         config_destroy(config_map);
@@ -263,22 +248,18 @@ static void test_color_value_from_config(void **state)
         const char *expected_string = "#cc0000";
         struct color_value *expected_value = NULL;
 
-        assert_int_equal(
-                NO_ERROR,
-                color_value_from_string(expected_string, &expected_value));
+        assert_int_equal(NO_ERROR, color_value_from_string(expected_string, &expected_value));
         assert_non_null(expected_value);
 
         const char *config_string = "config = \"#cc0000\"\n";
         size_t config_length = strlen(config_string);
-        struct map *config_map
-                = config_read_string(config_string, config_length);
+        struct map *config_map = config_read_string(config_string, config_length);
 
         assert_non_null(config_map);
 
         struct color_value *value = NULL;
 
-        assert_int_equal(NO_ERROR,
-                         color_value_from_config(config_map, "config", &value));
+        assert_int_equal(NO_ERROR, color_value_from_config(config_map, "config", &value));
         assert_non_null(value);
         assert_string_equal(expected_string, value->string);
         assert_int_equal(expected_value->color_value, value->color_value);
@@ -294,8 +275,7 @@ static void test_color_value_from_config_no_hashtag(void **state)
 
         const char *config_string = "config = \"000000\"\n";
         size_t config_length = strlen(config_string);
-        struct map *config_map
-                = config_read_string(config_string, config_length);
+        struct map *config_map = config_read_string(config_string, config_length);
 
         assert_non_null(config_map);
 
@@ -317,8 +297,7 @@ static void test_color_value_from_config_invalid_length(void **state)
 
         const char *config_string = "config = \"#00000\"\n";
         size_t config_length = strlen(config_string);
-        struct map *config_map
-                = config_read_string(config_string, config_length);
+        struct map *config_map = config_read_string(config_string, config_length);
 
         assert_non_null(config_map);
 
@@ -340,8 +319,7 @@ static void test_color_value_from_config_invalid_type(void **state)
 
         const char *config_string = "config = [\"Invalid array type\"]\n";
         size_t config_length = strlen(config_string);
-        struct map *config_map
-                = config_read_string(config_string, config_length);
+        struct map *config_map = config_read_string(config_string, config_length);
 
         assert_non_null(config_map);
 
@@ -363,8 +341,7 @@ static void test_color_value_from_config_missing_config_item(void **state)
 
         const char *config_string = "invalid = \"You can't find me\"\n";
         size_t config_length = strlen(config_string);
-        struct map *config_map
-                = config_read_string(config_string, config_length);
+        struct map *config_map = config_read_string(config_string, config_length);
 
         assert_non_null(config_map);
 
@@ -372,8 +349,7 @@ static void test_color_value_from_config_missing_config_item(void **state)
 
         struct color_value *value = NULL;
 
-        assert_int_equal(NOT_FOUND_ERROR,
-                         color_value_from_config(config_map, "config", &value));
+        assert_int_equal(NOT_FOUND_ERROR, color_value_from_config(config_map, "config", &value));
         assert_null(value);
 
         color_value_destroy(value);
@@ -396,17 +372,13 @@ static void test_color_theme_from_config(void **state)
         struct color_value *expected_sticky_value = NULL;
 
         assert_int_equal(NO_ERROR,
-                         color_value_from_string(expected_values[0],
-                                                 &expected_unfocused_value));
+                         color_value_from_string(expected_values[0], &expected_unfocused_value));
         assert_int_equal(NO_ERROR,
-                         color_value_from_string(expected_values[1],
-                                                 &expected_focused_value));
+                         color_value_from_string(expected_values[1], &expected_focused_value));
         assert_int_equal(NO_ERROR,
-                         color_value_from_string(expected_values[2],
-                                                 &expected_urgent_value));
+                         color_value_from_string(expected_values[2], &expected_urgent_value));
         assert_int_equal(NO_ERROR,
-                         color_value_from_string(expected_values[3],
-                                                 &expected_sticky_value));
+                         color_value_from_string(expected_values[3], &expected_sticky_value));
         /**
          * config = [
          *     "#ffffff",
@@ -422,8 +394,7 @@ static void test_color_theme_from_config(void **state)
                                     "\t\"#cccccc\","
                                     "]\n";
         size_t config_length = strlen(config_string);
-        struct map *config_map
-                = config_read_string(config_string, config_length);
+        struct map *config_map = config_read_string(config_string, config_length);
 
         map_set_entry_free_function(config_map, config_map_free_callback);
 
@@ -431,26 +402,16 @@ static void test_color_theme_from_config(void **state)
 
         struct color_theme *result = NULL;
 
-        assert_int_equal(
-                NO_ERROR,
-                color_theme_from_config(config_map, "config", &result));
+        assert_int_equal(NO_ERROR, color_theme_from_config(config_map, "config", &result));
         assert_non_null(result);
-        assert_string_equal(expected_unfocused_value->string,
-                            result->unfocused->string);
-        assert_int_equal(expected_unfocused_value->color_value,
-                         result->unfocused->color_value);
-        assert_string_equal(expected_focused_value->string,
-                            result->focused->string);
-        assert_int_equal(expected_focused_value->color_value,
-                         result->focused->color_value);
-        assert_string_equal(expected_urgent_value->string,
-                            result->urgent->string);
-        assert_int_equal(expected_urgent_value->color_value,
-                         result->urgent->color_value);
-        assert_string_equal(expected_sticky_value->string,
-                            result->sticky->string);
-        assert_int_equal(expected_sticky_value->color_value,
-                         result->sticky->color_value);
+        assert_string_equal(expected_unfocused_value->string, result->unfocused->string);
+        assert_int_equal(expected_unfocused_value->color_value, result->unfocused->color_value);
+        assert_string_equal(expected_focused_value->string, result->focused->string);
+        assert_int_equal(expected_focused_value->color_value, result->focused->color_value);
+        assert_string_equal(expected_urgent_value->string, result->urgent->string);
+        assert_int_equal(expected_urgent_value->color_value, result->urgent->color_value);
+        assert_string_equal(expected_sticky_value->string, result->sticky->string);
+        assert_int_equal(expected_sticky_value->color_value, result->sticky->color_value);
 
         color_value_destroy(expected_unfocused_value);
         color_value_destroy(expected_focused_value);
@@ -468,8 +429,7 @@ static void test_color_theme_from_config_invalid_length(void **state)
 
         const char *config_string = "config = []\n";
         size_t config_length = strlen(config_string);
-        struct map *config_map
-                = config_read_string(config_string, config_length);
+        struct map *config_map = config_read_string(config_string, config_length);
 
         assert_non_null(config_map);
 
@@ -488,8 +448,7 @@ static void test_color_theme_from_config_invalid_type(void **state)
 
         const char *config_string = "config = \"Hello world\"\n";
         size_t config_length = strlen(config_string);
-        struct map *config_map
-                = config_read_string(config_string, config_length);
+        struct map *config_map = config_read_string(config_string, config_length);
 
         assert_non_null(config_map);
 
@@ -508,15 +467,13 @@ static void test_color_theme_from_config_missing_config_item(void **state)
 
         const char *config_string = "not_found = \"Invalid\"\n";
         size_t config_length = strlen(config_string);
-        struct map *config_map
-                = config_read_string(config_string, config_length);
+        struct map *config_map = config_read_string(config_string, config_length);
 
         assert_non_null(config_map);
 
         struct color_theme *theme = NULL;
 
-        assert_int_equal(NOT_FOUND_ERROR,
-                         color_theme_from_config(config_map, "config", &theme));
+        assert_int_equal(NOT_FOUND_ERROR, color_theme_from_config(config_map, "config", &theme));
         assert_null(theme);
 
         map_destroy(config_map);
@@ -531,8 +488,7 @@ static void test_color_value_has_changed(void **state)
 
         struct color_value *value = NULL;
 
-        assert_int_equal(NO_ERROR,
-                         color_value_from_string(first_string, &value));
+        assert_int_equal(NO_ERROR, color_value_from_string(first_string, &value));
         assert_non_null(value);
         assert_true(color_value_has_changed(value, second_string));
 
@@ -548,8 +504,7 @@ static void test_color_value_has_changed_not_changed(void **state)
 
         struct color_value *value = NULL;
 
-        assert_int_equal(NO_ERROR,
-                         color_value_from_string(first_string, &value));
+        assert_int_equal(NO_ERROR, color_value_from_string(first_string, &value));
         assert_non_null(value);
         assert_false(color_value_has_changed(value, second_string));
 
@@ -587,29 +542,24 @@ int main(void)
                 cmocka_unit_test(test_color_value_from_string_missing_hash),
                 cmocka_unit_test(test_color_value_from_string_invalid_length),
                 cmocka_unit_test(test_border_theme_from_config),
-                cmocka_unit_test(
-                        test_border_theme_from_config_ignore_invalid_item),
+                cmocka_unit_test(test_border_theme_from_config_ignore_invalid_item),
                 cmocka_unit_test(test_border_theme_from_config_invalid_length),
                 cmocka_unit_test(test_border_theme_from_config_invalid_type),
-                cmocka_unit_test(
-                        test_border_theme_from_config_missing_config_item),
+                cmocka_unit_test(test_border_theme_from_config_missing_config_item),
                 cmocka_unit_test(test_color_value_from_config),
                 cmocka_unit_test(test_color_value_from_config_no_hashtag),
                 cmocka_unit_test(test_color_value_from_config_invalid_length),
                 cmocka_unit_test(test_color_value_from_config_invalid_type),
-                cmocka_unit_test(
-                        test_color_value_from_config_missing_config_item),
+                cmocka_unit_test(test_color_value_from_config_missing_config_item),
                 cmocka_unit_test(test_color_theme_from_config),
                 cmocka_unit_test(test_color_theme_from_config_invalid_length),
                 cmocka_unit_test(test_color_theme_from_config_invalid_type),
-                cmocka_unit_test(
-                        test_color_theme_from_config_missing_config_item),
+                cmocka_unit_test(test_color_theme_from_config_missing_config_item),
                 cmocka_unit_test(test_color_value_has_changed),
                 cmocka_unit_test(test_color_value_has_changed_not_changed),
                 cmocka_unit_test(test_color_value_has_changed_null_value),
                 cmocka_unit_test(test_color_value_has_changed_null_string),
         };
 
-        return cmocka_run_group_tests(
-                tests, global_test_setup, global_test_teardown);
+        return cmocka_run_group_tests(tests, global_test_setup, global_test_teardown);
 }

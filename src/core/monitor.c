@@ -1,4 +1,4 @@
-// Copyright 2019 Chris Frank
+// Copyright 2020 Chris Frank
 // Licensed under BSD-3-Clause
 // Refer to the license.txt file included in the root of the project
 
@@ -60,21 +60,18 @@ static void monitor_list_set_offsets(const struct natwm_state *state,
                         .left = 0,
                 };
 
-                const struct config_value *offset_array_value
-                        = offset_array->values[index];
+                const struct config_value *offset_array_value = offset_array->values[index];
 
                 if (offset_array_value->type != ARRAY) {
-                        LOG_WARNING(natwm_logger,
-                                    "Skipping invalid monitor offset value");
+                        LOG_WARNING(natwm_logger, "Skipping invalid monitor offset value");
                         continue;
                 }
 
-                enum natwm_error err = config_array_to_box_sizes(
-                        offset_array_value->data.array, &offsets);
+                enum natwm_error err
+                        = config_array_to_box_sizes(offset_array_value->data.array, &offsets);
 
                 if (err != NO_ERROR) {
-                        LOG_WARNING(natwm_logger,
-                                    "Skipping invalid monitor offset value");
+                        LOG_WARNING(natwm_logger, "Skipping invalid monitor offset value");
                         break;
                 }
 
@@ -84,8 +81,7 @@ static void monitor_list_set_offsets(const struct natwm_state *state,
         }
 }
 
-static enum natwm_error monitors_from_randr(const struct natwm_state *state,
-                                            struct list **result)
+static enum natwm_error monitors_from_randr(const struct natwm_state *state, struct list **result)
 {
         struct list *monitor_list = list_create();
 
@@ -95,8 +91,7 @@ static enum natwm_error monitors_from_randr(const struct natwm_state *state,
 
         struct randr_monitor **monitors = NULL;
         size_t monitor_length = 0;
-        enum natwm_error err
-                = randr_get_screens(state, &monitors, &monitor_length);
+        enum natwm_error err = randr_get_screens(state, &monitors, &monitor_length);
 
         if (err != NO_ERROR) {
                 list_destroy(monitor_list);
@@ -114,8 +109,8 @@ static enum natwm_error monitors_from_randr(const struct natwm_state *state,
                         continue;
                 }
 
-                struct monitor *monitor = monitor_create(
-                        randr_monitor->id, randr_monitor->rect, NULL);
+                struct monitor *monitor
+                        = monitor_create(randr_monitor->id, randr_monitor->rect, NULL);
 
                 if (monitor == NULL) {
                         monitors_destroy(monitor_list);
@@ -147,8 +142,7 @@ static enum natwm_error monitors_from_xinerama(const struct natwm_state *state,
 
         xcb_rectangle_t *rects = NULL;
         size_t monitor_length = 0;
-        enum natwm_error err
-                = xinerama_get_screens(state, &rects, &monitor_length);
+        enum natwm_error err = xinerama_get_screens(state, &rects, &monitor_length);
 
         if (err != NO_ERROR) {
                 list_destroy(monitor_list);
@@ -157,8 +151,7 @@ static enum natwm_error monitors_from_xinerama(const struct natwm_state *state,
         }
 
         for (size_t i = 0; i < monitor_length; ++i) {
-                struct monitor *monitor
-                        = monitor_create((uint32_t)i, rects[i], NULL);
+                struct monitor *monitor = monitor_create((uint32_t)i, rects[i], NULL);
 
                 if (monitor == NULL) {
                         monitors_destroy(monitor_list);
@@ -178,8 +171,7 @@ static enum natwm_error monitors_from_xinerama(const struct natwm_state *state,
         return NO_ERROR;
 }
 
-static enum natwm_error monitor_from_x(const struct natwm_state *state,
-                                       struct list **result)
+static enum natwm_error monitor_from_x(const struct natwm_state *state, struct list **result)
 {
         struct list *monitor_list = list_create();
 
@@ -211,8 +203,7 @@ static enum natwm_error monitor_from_x(const struct natwm_state *state,
 
 struct server_extension *server_extension_detect(xcb_connection_t *connection)
 {
-        struct server_extension *extension
-                = malloc(sizeof(struct server_extension));
+        struct server_extension *extension = malloc(sizeof(struct server_extension));
 
         if (extension == NULL) {
                 return NULL;
@@ -258,8 +249,7 @@ const char *server_extension_to_string(enum server_extension_type extension)
         }
 }
 
-struct monitor_list *monitor_list_create(struct server_extension *extension,
-                                         struct list *monitors)
+struct monitor_list *monitor_list_create(struct server_extension *extension, struct list *monitors)
 {
         struct monitor_list *list = malloc(sizeof(struct monitor_list));
 
@@ -273,15 +263,13 @@ struct monitor_list *monitor_list_create(struct server_extension *extension,
         return list;
 }
 
-struct monitor *
-monitor_list_get_active_monitor(const struct monitor_list *monitor_list)
+struct monitor *monitor_list_get_active_monitor(const struct monitor_list *monitor_list)
 {
         LIST_FOR_EACH(monitor_list->monitors, monitor_item)
         {
                 struct monitor *monitor = (struct monitor *)monitor_item->data;
 
-                if (monitor->workspace != NULL
-                    && monitor->workspace->is_focused) {
+                if (monitor->workspace != NULL && monitor->workspace->is_focused) {
                         return monitor;
                 }
         }
@@ -289,9 +277,8 @@ monitor_list_get_active_monitor(const struct monitor_list *monitor_list)
         return NULL;
 }
 
-struct monitor *
-monitor_list_get_workspace_monitor(const struct monitor_list *monitor_list,
-                                   const struct workspace *workspace)
+struct monitor *monitor_list_get_workspace_monitor(const struct monitor_list *monitor_list,
+                                                   const struct workspace *workspace)
 {
         if (workspace == NULL) {
                 return NULL;
@@ -313,8 +300,7 @@ monitor_list_get_workspace_monitor(const struct monitor_list *monitor_list,
         return NULL;
 }
 
-struct monitor *monitor_create(uint32_t id, xcb_rectangle_t rect,
-                               struct workspace *workspace)
+struct monitor *monitor_create(uint32_t id, xcb_rectangle_t rect, struct workspace *workspace)
 {
         struct monitor *monitor = malloc(sizeof(struct monitor));
 
@@ -329,11 +315,9 @@ struct monitor *monitor_create(uint32_t id, xcb_rectangle_t rect,
         return monitor;
 }
 
-enum natwm_error monitor_setup(const struct natwm_state *state,
-                               struct monitor_list **result)
+enum natwm_error monitor_setup(const struct natwm_state *state, struct monitor_list **result)
 {
-        struct server_extension *extension
-                = server_extension_detect(state->xcb);
+        struct server_extension *extension = server_extension_detect(state->xcb);
 
         if (extension == NULL) {
                 return MEMORY_ALLOCATION_ERROR;
@@ -372,8 +356,7 @@ enum natwm_error monitor_setup(const struct natwm_state *state,
                 return INVALID_INPUT_ERROR;
         }
 
-        struct monitor_list *monitor_list
-                = monitor_list_create(extension, monitors);
+        struct monitor_list *monitor_list = monitor_list_create(extension, monitors);
 
         if (monitor_list == NULL) {
                 free(extension);
@@ -401,15 +384,12 @@ xcb_rectangle_t monitor_clamp_client_rect(const struct monitor *monitor,
         int32_t y = client_rect.y;
         int32_t width = client_rect.width;
         int32_t height = client_rect.height;
-        int32_t total_client_width
-                = client_rect.x + client_rect.width - monitor->offsets.left;
-        int32_t total_client_height
-                = client_rect.y + client_rect.height - monitor->offsets.top;
+        int32_t total_client_width = client_rect.x + client_rect.width - monitor->offsets.left;
+        int32_t total_client_height = client_rect.y + client_rect.height - monitor->offsets.top;
 
         if (total_client_width > monitor_rect.width) {
                 int32_t overflow = total_client_width - monitor_rect.width;
-                int32_t subtract_from_width
-                        = overflow - (client_rect.x - monitor->offsets.left);
+                int32_t subtract_from_width = overflow - (client_rect.x - monitor->offsets.left);
 
                 // If we don't have enough x offset to account for the overflow
                 // we need to mutate the width of the client to fit onto the
@@ -426,8 +406,7 @@ xcb_rectangle_t monitor_clamp_client_rect(const struct monitor *monitor,
 
         if (total_client_height > monitor_rect.height) {
                 int32_t overflow = total_client_height - monitor_rect.height;
-                int32_t subtract_from_height
-                        = overflow - (client_rect.y - monitor->offsets.top);
+                int32_t subtract_from_height = overflow - (client_rect.y - monitor->offsets.top);
 
                 if (subtract_from_height > 0) {
                         y = monitor->offsets.top;
@@ -466,10 +445,8 @@ xcb_rectangle_t monitor_get_offset_rect(const struct monitor *monitor)
 
         rect.x = (int16_t)(monitor->rect.x + offsets.left);
         rect.y = (int16_t)(monitor->rect.y + offsets.top);
-        rect.width = (uint16_t)(monitor->rect.width
-                                - (offsets.left + offsets.right));
-        rect.height = (uint16_t)(monitor->rect.height
-                                 - (offsets.top + offsets.bottom));
+        rect.width = (uint16_t)(monitor->rect.width - (offsets.left + offsets.right));
+        rect.height = (uint16_t)(monitor->rect.height - (offsets.top + offsets.bottom));
 
         return rect;
 }

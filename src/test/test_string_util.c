@@ -1,4 +1,4 @@
-// Copyright 2019 Chris Frank
+// Copyright 2020 Chris Frank
 // Licensed under BSD-3-Clause
 // Refer to the license.txt file included in the root of the project
 
@@ -156,8 +156,7 @@ static void test_string_find_char_null_string(void **state)
 
         const char *string = NULL;
 
-        assert_int_equal(INVALID_INPUT_ERROR,
-                         string_find_char(string, '!', NULL));
+        assert_int_equal(INVALID_INPUT_ERROR, string_find_char(string, '!', NULL));
 }
 
 static void test_string_find_first_nonspace(void **state)
@@ -179,8 +178,7 @@ static void test_string_find_first_nonspace_not_found(void **state)
         const char *string = "   ";
         size_t index = 0;
 
-        assert_int_equal(NOT_FOUND_ERROR,
-                         string_find_first_nonspace(string, &index));
+        assert_int_equal(NOT_FOUND_ERROR, string_find_first_nonspace(string, &index));
 }
 
 static void test_string_find_first_nonspace_single_char(void **state)
@@ -200,8 +198,7 @@ static void test_string_find_first_nonspace_null_string(void **state)
         UNUSED_FUNCTION_PARAM(state);
 
         size_t index = 0;
-        assert_int_equal(INVALID_INPUT_ERROR,
-                         string_find_first_nonspace(NULL, &index));
+        assert_int_equal(INVALID_INPUT_ERROR, string_find_first_nonspace(NULL, &index));
 }
 
 static void test_string_find_last_nonspace(void **state)
@@ -223,8 +220,7 @@ static void test_string_find_last_nonspace_not_found(void **state)
         const char *string = "    ";
         size_t index = 0;
 
-        assert_int_equal(NOT_FOUND_ERROR,
-                         string_find_last_nonspace(string, &index));
+        assert_int_equal(NOT_FOUND_ERROR, string_find_last_nonspace(string, &index));
 }
 
 static void test_string_find_last_nonspace_single_char(void **state)
@@ -243,8 +239,7 @@ static void test_string_find_last_nonspace_null_string(void **state)
 {
         UNUSED_FUNCTION_PARAM(state);
 
-        assert_int_equal(INVALID_INPUT_ERROR,
-                         string_find_last_nonspace(NULL, NULL));
+        assert_int_equal(INVALID_INPUT_ERROR, string_find_last_nonspace(NULL, NULL));
 }
 
 static void test_string_get_delimiter(void **state)
@@ -257,9 +252,7 @@ static void test_string_get_delimiter(void **state)
         size_t expected_length = strlen(expected_string);
         size_t length = 0;
 
-        assert_int_equal(
-                NO_ERROR,
-                string_get_delimiter(input, '!', &destination, &length, true));
+        assert_int_equal(NO_ERROR, string_get_delimiter(input, '!', &destination, &length, true));
 
         assert_int_equal(expected_length, length);
         assert_string_equal(expected_string, destination);
@@ -274,9 +267,8 @@ static void test_string_get_delimiter_not_found(void **state)
         const char *input = "Hello world!";
         char *destination = NULL;
 
-        assert_int_equal(
-                NOT_FOUND_ERROR,
-                string_get_delimiter(input, '$', &destination, NULL, true));
+        assert_int_equal(NOT_FOUND_ERROR,
+                         string_get_delimiter(input, '$', &destination, NULL, true));
 }
 
 static void test_string_get_delimiter_first_char(void **state)
@@ -289,9 +281,7 @@ static void test_string_get_delimiter_first_char(void **state)
         size_t expected_length = 1;
         size_t length = 0;
 
-        assert_int_equal(
-                NO_ERROR,
-                string_get_delimiter(input, 'H', &destination, &length, true));
+        assert_int_equal(NO_ERROR, string_get_delimiter(input, 'H', &destination, &length, true));
 
         assert_int_equal(expected_length, length);
         assert_string_equal(expected_string, destination);
@@ -307,9 +297,8 @@ static void test_string_get_delimiter_empty_string(void **state)
         const char *input = "";
         char *destination = NULL;
 
-        assert_int_equal(
-                NOT_FOUND_ERROR,
-                string_get_delimiter(input, '!', &destination, NULL, true));
+        assert_int_equal(NOT_FOUND_ERROR,
+                         string_get_delimiter(input, '!', &destination, NULL, true));
 }
 
 static void test_string_no_case_compare(void **state)
@@ -385,9 +374,7 @@ static void test_string_splice(void **state)
         size_t expected_length = strlen(expected_string);
         size_t length = 0;
 
-        assert_int_equal(
-                NO_ERROR,
-                string_splice(input, 6, strlen(input), &destination, &length));
+        assert_int_equal(NO_ERROR, string_splice(input, 6, strlen(input), &destination, &length));
 
         assert_int_equal(expected_length, length);
         assert_string_equal(expected_string, destination);
@@ -402,8 +389,7 @@ static void test_string_splice_null_string(void **state)
 
         char *destination = NULL;
 
-        assert_int_equal(INVALID_INPUT_ERROR,
-                         string_splice(NULL, 0, 0, &destination, NULL));
+        assert_int_equal(INVALID_INPUT_ERROR, string_splice(NULL, 0, 0, &destination, NULL));
 }
 
 static void test_string_splice_large_start(void **state)
@@ -413,8 +399,7 @@ static void test_string_splice_large_start(void **state)
         const char *input = "Test";
         char *destination = NULL;
 
-        assert_int_equal(INVALID_INPUT_ERROR,
-                         string_splice(input, 5, 10, &destination, NULL));
+        assert_int_equal(INVALID_INPUT_ERROR, string_splice(input, 5, 10, &destination, NULL));
 }
 
 static void test_string_splice_large_end(void **state)
@@ -424,8 +409,7 @@ static void test_string_splice_large_end(void **state)
         const char *input = "Test";
         char *destination = NULL;
 
-        assert_int_equal(INVALID_INPUT_ERROR,
-                         string_splice(input, 0, 5, &destination, NULL));
+        assert_int_equal(INVALID_INPUT_ERROR, string_splice(input, 0, 5, &destination, NULL));
 }
 
 static void test_string_splice_mismatch_start_end(void **state)
@@ -435,8 +419,7 @@ static void test_string_splice_mismatch_start_end(void **state)
         const char *input = "Test";
         char *destination = NULL;
 
-        assert_int_equal(INVALID_INPUT_ERROR,
-                         string_splice(input, 4, 1, &destination, NULL));
+        assert_int_equal(INVALID_INPUT_ERROR, string_splice(input, 4, 1, &destination, NULL));
 }
 
 static void test_string_splice_single_char(void **state)
@@ -448,8 +431,7 @@ static void test_string_splice_single_char(void **state)
         size_t expected_length = 1;
         size_t length = 0;
 
-        assert_int_equal(NO_ERROR,
-                         string_splice(input, 0, 1, &destination, &length));
+        assert_int_equal(NO_ERROR, string_splice(input, 0, 1, &destination, &length));
 
         assert_int_equal(expected_length, length);
         assert_string_equal(input, destination);
@@ -467,8 +449,7 @@ static void test_string_splice_zero_start_end(void **state)
         size_t expected_length = 0;
         size_t length = 0;
 
-        assert_int_equal(NO_ERROR,
-                         string_splice(input, 0, 0, &destination, &length));
+        assert_int_equal(NO_ERROR, string_splice(input, 0, 0, &destination, &length));
 
         assert_int_equal(expected_length, length);
         assert_string_equal(expected_string, destination);
@@ -575,8 +556,7 @@ static void test_string_split_null(void **state)
         char **strings = NULL;
         size_t count = 0;
 
-        assert_int_equal(INVALID_INPUT_ERROR,
-                         string_split(NULL, ',', &strings, &count));
+        assert_int_equal(INVALID_INPUT_ERROR, string_split(NULL, ',', &strings, &count));
         assert_null(strings);
         assert_int_equal(0, count);
 }
@@ -614,9 +594,7 @@ static void test_string_strip_surrounding_spaces(void **state)
         size_t expected_length = strlen(expected_string);
         size_t length = 0;
 
-        assert_int_equal(
-                NO_ERROR,
-                string_strip_surrounding_spaces(input, &destination, &length));
+        assert_int_equal(NO_ERROR, string_strip_surrounding_spaces(input, &destination, &length));
 
         assert_int_equal(expected_length, length);
         assert_string_equal(expected_string, destination);
@@ -634,9 +612,7 @@ static void test_string_strip_surrounding_spaces_tabs(void **state)
         size_t expected_length = strlen(expected_string);
         size_t length = 0;
 
-        assert_int_equal(
-                NO_ERROR,
-                string_strip_surrounding_spaces(input, &destination, &length));
+        assert_int_equal(NO_ERROR, string_strip_surrounding_spaces(input, &destination, &length));
 
         assert_int_equal(expected_length, length);
         assert_string_equal(expected_string, destination);
@@ -653,9 +629,7 @@ static void test_string_strip_surrounding_spaces_no_spaces(void **state)
         size_t expected_length = strlen(input);
         size_t length = 0;
 
-        assert_int_equal(
-                NO_ERROR,
-                string_strip_surrounding_spaces(input, &destination, &length));
+        assert_int_equal(NO_ERROR, string_strip_surrounding_spaces(input, &destination, &length));
 
         assert_int_equal(expected_length, length);
         assert_string_equal(input, destination);
@@ -673,9 +647,7 @@ static void test_string_strip_surrounding_spaces_single_char(void **state)
         size_t length = 0;
         size_t expected_length = 1;
 
-        assert_int_equal(
-                NO_ERROR,
-                string_strip_surrounding_spaces(input, &destination, &length));
+        assert_int_equal(NO_ERROR, string_strip_surrounding_spaces(input, &destination, &length));
 
         assert_int_equal(expected_length, length);
         assert_string_equal(expected_string, destination);
@@ -690,9 +662,8 @@ static void test_string_strip_surrounding_spaces_all_spaces(void **state)
         const char *input = " ";
         char *destination = NULL;
 
-        assert_int_equal(
-                NOT_FOUND_ERROR,
-                string_strip_surrounding_spaces(input, &destination, NULL));
+        assert_int_equal(NOT_FOUND_ERROR,
+                         string_strip_surrounding_spaces(input, &destination, NULL));
 }
 
 static void test_string_strip_surrounding_spaces_null_string(void **state)
@@ -702,9 +673,8 @@ static void test_string_strip_surrounding_spaces_null_string(void **state)
         const char *input = NULL;
         char *destination = NULL;
 
-        assert_int_equal(
-                INVALID_INPUT_ERROR,
-                string_strip_surrounding_spaces(input, &destination, NULL));
+        assert_int_equal(INVALID_INPUT_ERROR,
+                         string_strip_surrounding_spaces(input, &destination, NULL));
 }
 
 static void test_string_to_boolean(void **state)
@@ -747,8 +717,7 @@ static void test_string_to_boolean_invalid(void **state)
         const char *input = "yes";
         bool result = false;
 
-        assert_int_equal(INVALID_INPUT_ERROR,
-                         string_to_boolean(input, &result));
+        assert_int_equal(INVALID_INPUT_ERROR, string_to_boolean(input, &result));
         assert_false(result);
 }
 
@@ -759,8 +728,7 @@ static void test_string_to_boolean_empty(void **state)
         const char *input = "";
         bool result = false;
 
-        assert_int_equal(INVALID_INPUT_ERROR,
-                         string_to_boolean(input, &result));
+        assert_int_equal(INVALID_INPUT_ERROR, string_to_boolean(input, &result));
         assert_false(result);
 }
 
@@ -771,8 +739,7 @@ static void test_string_to_boolean_null(void **state)
         const char *input = NULL;
         bool result = false;
 
-        assert_int_equal(INVALID_INPUT_ERROR,
-                         string_to_boolean(input, &result));
+        assert_int_equal(INVALID_INPUT_ERROR, string_to_boolean(input, &result));
         assert_false(result);
 }
 
@@ -807,8 +774,7 @@ static void test_string_to_number_invalid_char(void **state)
         const char *input = "123abc";
         intmax_t destination = 0;
 
-        assert_int_equal(INVALID_INPUT_ERROR,
-                         string_to_number(input, &destination));
+        assert_int_equal(INVALID_INPUT_ERROR, string_to_number(input, &destination));
         assert_int_equal(0, destination);
 }
 
@@ -819,8 +785,7 @@ static void test_string_to_number_empty(void **state)
         const char *input = "";
         intmax_t destination = 0;
 
-        assert_int_equal(INVALID_INPUT_ERROR,
-                         string_to_number(input, &destination));
+        assert_int_equal(INVALID_INPUT_ERROR, string_to_number(input, &destination));
         assert_int_equal(0, destination);
 }
 
@@ -844,8 +809,7 @@ static void test_string_to_number_single_char(void **state)
         const char *input = "e";
         intmax_t destination = 0;
 
-        assert_int_equal(INVALID_INPUT_ERROR,
-                         string_to_number(input, &destination));
+        assert_int_equal(INVALID_INPUT_ERROR, string_to_number(input, &destination));
 }
 
 static void test_string_to_number_double(void **state)
@@ -855,8 +819,7 @@ static void test_string_to_number_double(void **state)
         const char *input = "55.5";
         intmax_t destination = 0;
 
-        assert_int_equal(INVALID_INPUT_ERROR,
-                         string_to_number(input, &destination));
+        assert_int_equal(INVALID_INPUT_ERROR, string_to_number(input, &destination));
 }
 
 int main(void)
@@ -886,8 +849,7 @@ int main(void)
                 cmocka_unit_test(test_string_no_case_compare_not_equal),
                 cmocka_unit_test(test_string_no_case_compare_single_character),
                 cmocka_unit_test(test_string_no_case_compare_empty_strings),
-                cmocka_unit_test(
-                        test_string_no_case_compare_single_inequal_character),
+                cmocka_unit_test(test_string_no_case_compare_single_inequal_character),
                 cmocka_unit_test(test_string_no_case_compare_single_empty),
                 cmocka_unit_test(test_string_no_case_compare_nulls),
                 cmocka_unit_test(test_string_no_case_compare_single_null),
@@ -910,14 +872,10 @@ int main(void)
                 cmocka_unit_test(test_string_splice_zero_start_end),
                 cmocka_unit_test(test_string_strip_surrounding_spaces),
                 cmocka_unit_test(test_string_strip_surrounding_spaces_tabs),
-                cmocka_unit_test(
-                        test_string_strip_surrounding_spaces_no_spaces),
-                cmocka_unit_test(
-                        test_string_strip_surrounding_spaces_single_char),
-                cmocka_unit_test(
-                        test_string_strip_surrounding_spaces_all_spaces),
-                cmocka_unit_test(
-                        test_string_strip_surrounding_spaces_null_string),
+                cmocka_unit_test(test_string_strip_surrounding_spaces_no_spaces),
+                cmocka_unit_test(test_string_strip_surrounding_spaces_single_char),
+                cmocka_unit_test(test_string_strip_surrounding_spaces_all_spaces),
+                cmocka_unit_test(test_string_strip_surrounding_spaces_null_string),
                 cmocka_unit_test(test_string_to_boolean),
                 cmocka_unit_test(test_string_to_boolean_false),
                 cmocka_unit_test(test_string_to_boolean_uppercase),

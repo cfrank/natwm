@@ -32,7 +32,7 @@ BreakBeforeBinaryOperators: All
 BreakBeforeBraces: WebKit
 BreakBeforeTernaryOperators: true
 BreakConstructorInitializersBeforeComma: true
-ColumnLimit:     80
+ColumnLimit:     100
 CommentPragmas:  '^ IWYU pragma:'
 ContinuationIndentWidth: 8
 DerivePointerAlignment: false

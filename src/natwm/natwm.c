@@ -1,4 +1,4 @@
-// Copyright 2019 Chris Frank
+// Copyright 2020 Chris Frank
 // Licensed under BSD-3-Clause
 // Refer to the license.txt file included in the root of the project
 
@@ -83,8 +83,7 @@ static xcb_connection_t *make_connection(const char *screen, int *screen_num)
         return connection;
 }
 
-static xcb_screen_t *find_default_screen(xcb_connection_t *connection,
-                                         int screen_num)
+static xcb_screen_t *find_default_screen(xcb_connection_t *connection, int screen_num)
 {
         const xcb_setup_t *setup = xcb_get_setup(connection);
         xcb_screen_iterator_t itr = xcb_setup_roots_iterator(setup);
@@ -120,8 +119,7 @@ static int install_signal_handlers(void)
         action.sa_flags = SA_RESTART;
 
         // Handle the following actions
-        if (sigaction(SIGTERM, &action, NULL) == -1
-            || sigaction(SIGINT, &action, NULL) == -1
+        if (sigaction(SIGTERM, &action, NULL) == -1 || sigaction(SIGINT, &action, NULL) == -1
             || sigaction(SIGHUP, &action, NULL) == -1) {
                 return -1;
         }
@@ -135,8 +133,8 @@ static int install_signal_handlers(void)
 // occur on our child windows
 static int root_window_subscribe(const struct natwm_state *state)
 {
-        xcb_event_mask_t root_mask = XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY
-                | XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT;
+        xcb_event_mask_t root_mask
+                = XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY | XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT;
         xcb_void_cookie_t cookie = xcb_change_window_attributes_checked(
                 state->xcb, state->screen->root, XCB_CW_EVENT_MASK, &root_mask);
         xcb_generic_error_t *error = xcb_request_check(state->xcb, cookie);
@@ -159,8 +157,7 @@ static void *wm_event_loop(void *passed_state)
         xcb_generic_event_t *event = XCB_NONE;
 
         if (state == NULL) {
-                LOG_ERROR(natwm_logger,
-                          "Received invalid passed state to event loop");
+                LOG_ERROR(natwm_logger, "Received invalid passed state to event loop");
 
                 return (intptr_t *)-1;
         }
@@ -180,8 +177,7 @@ static void *wm_event_loop(void *passed_state)
                 FD_SET(xcb_fd, &fds);
 
                 if (xcb_connection_has_error(state->xcb) && status == RUNNING) {
-                        LOG_ERROR(natwm_logger,
-                                  "Connection to X server closed");
+                        LOG_ERROR(natwm_logger, "Connection to X server closed");
 
                         goto handle_error;
                 }
@@ -241,8 +237,7 @@ handle_error:
 static struct argument_options *parse_arguments(int argc, char **argv)
 {
         int opt = 0;
-        struct argument_options *arg_options
-                = malloc(sizeof(struct argument_options));
+        struct argument_options *arg_options = malloc(sizeof(struct argument_options));
 
         if (arg_options == NULL) {
                 return NULL;
@@ -275,7 +270,7 @@ static struct argument_options *parse_arguments(int argc, char **argv)
                         break;
                 case 'v':
                         printf("%s\n", NATWM_VERSION_STRING);
-                        printf("Copywrite (c) 2019 Chris Frank\n");
+                        printf("Copywrite (c) 2020 Chris Frank\n");
                         printf("Released under the Revised BSD License\n");
 
                         goto exit_success;
@@ -284,9 +279,7 @@ static struct argument_options *parse_arguments(int argc, char **argv)
                         break;
                 default:
                         // Handle invalid opt
-                        fprintf(stderr,
-                                "Recieved invalid command line argument '%c'\n",
-                                optopt);
+                        fprintf(stderr, "Received invalid command line argument '%c'\n", optopt);
 
                         free(arg_options);
 
@@ -320,8 +313,7 @@ int main(int argc, char **argv)
         struct natwm_state *state = natwm_state_create();
 
         if (state == NULL) {
-                LOG_CRITICAL(natwm_logger,
-                             "Failed to initialize applicaiton state");
+                LOG_CRITICAL(natwm_logger, "Failed to initialize applicaiton state");
 
                 exit(EXIT_FAILURE);
         }
@@ -343,14 +335,11 @@ int main(int argc, char **argv)
 
         // Catch and handle signals
         if (install_signal_handlers() != 0) {
-                LOG_ERROR(
-                        natwm_logger,
-                        "Failed to handle signals - This may cause problems!");
+                LOG_ERROR(natwm_logger, "Failed to handle signals - This may cause problems!");
         }
 
         // Initialize x
-        xcb_connection_t *xcb
-                = make_connection(arg_options->screen, &screen_num);
+        xcb_connection_t *xcb = make_connection(arg_options->screen, &screen_num);
 
         if (xcb == NULL) {
                 goto free_and_error;
@@ -361,8 +350,7 @@ int main(int argc, char **argv)
         LOG_INFO(natwm_logger, "Successfully connected to X server");
 
         // Find the default screen
-        xcb_screen_t *default_screen
-                = find_default_screen(state->xcb, screen_num);
+        xcb_screen_t *default_screen = find_default_screen(state->xcb, screen_num);
 
         if (default_screen == NULL) {
                 LOG_ERROR(natwm_logger, "Failed to find default screen");

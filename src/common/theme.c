@@ -1,4 +1,4 @@
-// Copyright 2019 Chris Frank
+// Copyright 2020 Chris Frank
 // Licensed under BSD-3-Clause
 // Refer to the license.txt file included in the root of the project
 
@@ -19,16 +19,13 @@
 static enum natwm_error string_to_rgb(const char *hex_string, uint32_t *result)
 {
         if (hex_string[0] != '#') {
-                LOG_ERROR(natwm_logger,
-                          "Missing '#' in color value '%s'",
-                          hex_string);
+                LOG_ERROR(natwm_logger, "Missing '#' in color value '%s'", hex_string);
 
                 return INVALID_INPUT_ERROR;
         }
 
         if (strlen(hex_string) != 7) {
-                LOG_ERROR(natwm_logger,
-                          "Found a color value with an invalid length");
+                LOG_ERROR(natwm_logger, "Found a color value with an invalid length");
 
                 return INVALID_INPUT_ERROR;
         }
@@ -38,9 +35,7 @@ static enum natwm_error string_to_rgb(const char *hex_string, uint32_t *result)
         uint32_t rgb = (uint32_t)strtoul(hex_string + 1, &endptr, 16);
 
         if (endptr == NULL) {
-                LOG_ERROR(natwm_logger,
-                          "Found an invalid color value: '%s'",
-                          hex_string);
+                LOG_ERROR(natwm_logger, "Found an invalid color value: '%s'", hex_string);
 
                 return INVALID_INPUT_ERROR;
         }
@@ -50,17 +45,15 @@ static enum natwm_error string_to_rgb(const char *hex_string, uint32_t *result)
         return NO_ERROR;
 }
 
-static enum natwm_error
-color_value_from_config_value(const struct config_value *config_value,
-                              struct color_value **result)
+static enum natwm_error color_value_from_config_value(const struct config_value *config_value,
+                                                      struct color_value **result)
 {
         if (config_value == NULL || config_value->type != STRING) {
                 return INVALID_INPUT_ERROR;
         }
 
         struct color_value *value = NULL;
-        enum natwm_error err
-                = color_value_from_string(config_value->data.string, &value);
+        enum natwm_error err = color_value_from_string(config_value->data.string, &value);
 
         if (err != NO_ERROR) {
                 return err;
@@ -113,16 +106,14 @@ struct theme *theme_create(const struct map *config_map)
 
         enum natwm_error err = GENERIC_ERROR;
 
-        err = border_theme_from_config(config_map,
-                                       WINDOW_BORDER_WIDTH_CONFIG_STRING,
-                                       &theme->border_width);
+        err = border_theme_from_config(
+                config_map, WINDOW_BORDER_WIDTH_CONFIG_STRING, &theme->border_width);
 
         if (err != NO_ERROR) {
                 goto handle_error;
         }
 
-        err = color_theme_from_config(
-                config_map, WINDOW_BORDER_COLOR_CONFIG_STRING, &theme->color);
+        err = color_theme_from_config(config_map, WINDOW_BORDER_COLOR_CONFIG_STRING, &theme->color);
 
         if (err != NO_ERROR) {
                 goto handle_error;
@@ -138,8 +129,7 @@ handle_error:
         return NULL;
 }
 
-bool color_value_has_changed(struct color_value *value,
-                             const char *new_string_value)
+bool color_value_has_changed(struct color_value *value, const char *new_string_value)
 {
         if (value == NULL || new_string_value == NULL) {
                 return true;
@@ -152,8 +142,7 @@ bool color_value_has_changed(struct color_value *value,
         return true;
 }
 
-enum natwm_error color_value_from_string(const char *string,
-                                         struct color_value **result)
+enum natwm_error color_value_from_string(const char *string, struct color_value **result)
 {
         struct color_value *value = malloc(sizeof(struct color_value));
 
@@ -183,9 +172,7 @@ enum natwm_error color_value_from_config(const struct map *map, const char *key,
 
         if (err != NO_ERROR) {
                 if (err == NOT_FOUND_ERROR) {
-                        LOG_ERROR(natwm_logger,
-                                  "Failed to find config item for '%s'",
-                                  key);
+                        LOG_ERROR(natwm_logger, "Failed to find config item for '%s'", key);
                 } else {
                         LOG_ERROR(natwm_logger,
                                   "Failed to find valid color value for config "
@@ -201,9 +188,7 @@ enum natwm_error color_value_from_config(const struct map *map, const char *key,
         err = color_value_from_string(string, &value);
 
         if (err != NO_ERROR) {
-                LOG_ERROR(natwm_logger,
-                          "Failed to retrieve color value from '%s'",
-                          key);
+                LOG_ERROR(natwm_logger, "Failed to retrieve color value from '%s'", key);
 
                 return err;
         }
@@ -213,8 +198,7 @@ enum natwm_error color_value_from_config(const struct map *map, const char *key,
         return NO_ERROR;
 }
 
-enum natwm_error border_theme_from_config(const struct map *map,
-                                          const char *key,
+enum natwm_error border_theme_from_config(const struct map *map, const char *key,
                                           struct border_theme **result)
 {
         const struct config_array *config_value = NULL;
@@ -222,9 +206,7 @@ enum natwm_error border_theme_from_config(const struct map *map,
 
         if (err != NO_ERROR) {
                 if (err == NOT_FOUND_ERROR) {
-                        LOG_ERROR(natwm_logger,
-                                  "Failed to find config item for '%s'",
-                                  key);
+                        LOG_ERROR(natwm_logger, "Failed to find config item for '%s'", key);
                 } else {
                         LOG_ERROR(natwm_logger,
                                   "Failed to find border widths for config "
@@ -251,9 +233,7 @@ enum natwm_error border_theme_from_config(const struct map *map,
 
         if (unfocused_value->type != NUMBER) {
                 LOG_WARNING(
-                        natwm_logger,
-                        "Ignoring invalid unfocused config item inside '%s'",
-                        key);
+                        natwm_logger, "Ignoring invalid unfocused config item inside '%s'", key);
         } else {
                 theme->unfocused = (uint16_t)unfocused_value->data.number;
         }
@@ -261,9 +241,7 @@ enum natwm_error border_theme_from_config(const struct map *map,
         const struct config_value *focused_value = config_value->values[1];
 
         if (focused_value->type != NUMBER) {
-                LOG_WARNING(natwm_logger,
-                            "Ignoring invalid focused config item inside '%s'",
-                            key);
+                LOG_WARNING(natwm_logger, "Ignoring invalid focused config item inside '%s'", key);
         } else {
                 theme->focused = (uint16_t)focused_value->data.number;
         }
@@ -271,9 +249,7 @@ enum natwm_error border_theme_from_config(const struct map *map,
         const struct config_value *urgent_value = config_value->values[2];
 
         if (urgent_value->type != NUMBER) {
-                LOG_WARNING(natwm_logger,
-                            "Ignoring invalid urgent config item inside '%s'",
-                            key);
+                LOG_WARNING(natwm_logger, "Ignoring invalid urgent config item inside '%s'", key);
         } else {
                 theme->urgent = (uint16_t)urgent_value->data.number;
         }
@@ -281,9 +257,7 @@ enum natwm_error border_theme_from_config(const struct map *map,
         const struct config_value *sticky_value = config_value->values[3];
 
         if (sticky_value->type != NUMBER) {
-                LOG_WARNING(natwm_logger,
-                            "Ignoring invalid sticky config item inside '%s'",
-                            key);
+                LOG_WARNING(natwm_logger, "Ignoring invalid sticky config item inside '%s'", key);
         } else {
                 theme->sticky = (uint16_t)sticky_value->data.number;
         }
@@ -301,13 +275,9 @@ enum natwm_error color_theme_from_config(const struct map *map, const char *key,
 
         if (err != NO_ERROR) {
                 if (NOT_FOUND_ERROR) {
-                        LOG_ERROR(natwm_logger,
-                                  "Failed to find config item for '%s'",
-                                  key);
+                        LOG_ERROR(natwm_logger, "Failed to find config item for '%s'", key);
                 } else {
-                        LOG_ERROR(natwm_logger,
-                                  "Invalid color values for config item '%s'",
-                                  key);
+                        LOG_ERROR(natwm_logger, "Invalid color values for config item '%s'", key);
                 }
 
                 return err;
@@ -333,46 +303,34 @@ enum natwm_error color_theme_from_config(const struct map *map, const char *key,
                 return MEMORY_ALLOCATION_ERROR;
         }
 
-        err = color_value_from_config_value(config_value->values[0],
-                                            &theme->unfocused);
+        err = color_value_from_config_value(config_value->values[0], &theme->unfocused);
 
         if (err != NO_ERROR) {
-                LOG_ERROR(natwm_logger,
-                          "Invalid unfocused color value found in '%s'",
-                          key);
+                LOG_ERROR(natwm_logger, "Invalid unfocused color value found in '%s'", key);
 
                 goto invalid_color_value_error;
         }
 
-        err = color_value_from_config_value(config_value->values[1],
-                                            &theme->focused);
+        err = color_value_from_config_value(config_value->values[1], &theme->focused);
 
         if (err != NO_ERROR) {
-                LOG_ERROR(natwm_logger,
-                          "Invalid focused color value found in '%s'",
-                          key);
+                LOG_ERROR(natwm_logger, "Invalid focused color value found in '%s'", key);
 
                 goto invalid_color_value_error;
         }
 
-        err = color_value_from_config_value(config_value->values[2],
-                                            &theme->urgent);
+        err = color_value_from_config_value(config_value->values[2], &theme->urgent);
 
         if (err != NO_ERROR) {
-                LOG_ERROR(natwm_logger,
-                          "Invalid urgent color value found in '%s'",
-                          key);
+                LOG_ERROR(natwm_logger, "Invalid urgent color value found in '%s'", key);
 
                 goto invalid_color_value_error;
         }
 
-        err = color_value_from_config_value(config_value->values[3],
-                                            &theme->sticky);
+        err = color_value_from_config_value(config_value->values[3], &theme->sticky);
 
         if (err != NO_ERROR) {
-                LOG_ERROR(natwm_logger,
-                          "Invalid sticky color value found in '%s'",
-                          key);
+                LOG_ERROR(natwm_logger, "Invalid sticky color value found in '%s'", key);
 
                 goto invalid_color_value_error;
         }

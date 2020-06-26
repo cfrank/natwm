@@ -1,4 +1,4 @@
-// Copyright 2019 Chris Frank
+// Copyright 2020 Chris Frank
 // Licensed under BSD-3-Clause
 // Refer to the license.txt file included in the root of the project
 
@@ -35,9 +35,8 @@ static void hashmap_free_callback(void *data)
  * we would not want to find the first ',' in the first nested array, but the
  * first ',' splitting the arrays
  */
-static enum natwm_error
-array_context_get_delimiter(const char *string, char delimiter, char **result,
-                            size_t *length, bool consume)
+static enum natwm_error array_context_get_delimiter(const char *string, char delimiter,
+                                                    char **result, size_t *length, bool consume)
 {
         enum natwm_error err = GENERIC_ERROR;
         struct stack *stack = stack_create();
@@ -96,8 +95,7 @@ array_context_get_delimiter(const char *string, char delimiter, char **result,
         char *resulting_string = NULL;
         size_t string_length = 0;
 
-        err = string_splice(
-                string, 0, index - 1, &resulting_string, &string_length);
+        err = string_splice(string, 0, index - 1, &resulting_string, &string_length);
 
         if (err != NO_ERROR) {
                 stack_destroy(stack);
@@ -127,15 +125,13 @@ array_context_get_delimiter(const char *string, char delimiter, char **result,
  *  We will return the array string and index position of the closing
  *  ARRAY_END char
  */
-static enum natwm_error get_array_string(const char *string, char **result,
-                                         size_t *index_pos)
+static enum natwm_error get_array_string(const char *string, char **result, size_t *index_pos)
 {
         enum natwm_error err = GENERIC_ERROR;
         char *raw_array_string = NULL;
         size_t raw_string_length = 0;
 
-        err = array_context_get_delimiter(
-                string, ']', &raw_array_string, &raw_string_length, true);
+        err = array_context_get_delimiter(string, ']', &raw_array_string, &raw_string_length, true);
 
         if (err != NO_ERROR) {
                 return err;
@@ -175,8 +171,7 @@ static enum natwm_error get_array_string(const char *string, char **result,
  * The provided char array is populated with the result, and the provided
  * length pointer is populated with the number of value items we found
  */
-static enum natwm_error array_split_value_items_string(const char *string,
-                                                       char ***result,
+static enum natwm_error array_split_value_items_string(const char *string, char ***result,
                                                        size_t *length)
 {
         struct list *list = list_create();
@@ -262,10 +257,8 @@ free_and_error:
  *
  * The parser position is kept up to date in the case of a multiline value
  */
-static enum natwm_error array_find_value_items_string(struct parser *parser,
-                                                      char *string,
-                                                      char **result,
-                                                      size_t *length)
+static enum natwm_error array_find_value_items_string(struct parser *parser, char *string,
+                                                      char **result, size_t *length)
 {
         // An array value string in the format
         // [<value>,<value>]
@@ -275,8 +268,7 @@ static enum natwm_error array_find_value_items_string(struct parser *parser,
                 size_t end_pos = 0;
                 const char *line = parser->buffer + parser->pos;
 
-                enum natwm_error err
-                        = get_array_string(line, &array_value_string, &end_pos);
+                enum natwm_error err = get_array_string(line, &array_value_string, &end_pos);
 
                 if (err != NO_ERROR) {
                         LOG_ERROR(natwm_logger,
@@ -327,12 +319,10 @@ static enum natwm_error array_find_value_items_string(struct parser *parser,
  * We just take the value item and complete the same process as if we had found
  * a top level value string starting with "parser_parse_value"
  */
-static struct config_value *
-parser_resolve_array_values(struct parser *parser, char **value_items,
-                            size_t value_items_length)
+static struct config_value *parser_resolve_array_values(struct parser *parser, char **value_items,
+                                                        size_t value_items_length)
 {
-        struct config_value *config_value
-                = config_value_create_array(value_items_length);
+        struct config_value *config_value = config_value_create_array(value_items_length);
 
         if (config_value == NULL) {
                 return NULL;
@@ -340,8 +330,7 @@ parser_resolve_array_values(struct parser *parser, char **value_items,
 
         // Resolve and insert config_values into the array
         for (size_t i = 0; i < value_items_length; ++i) {
-                struct config_value *item
-                        = parser_parse_value(parser, value_items[i]);
+                struct config_value *item = parser_parse_value(parser, value_items[i]);
 
                 if (item == NULL) {
                         for (size_t j = i; j < value_items_length; ++j) {
@@ -381,17 +370,14 @@ parser_resolve_array_values(struct parser *parser, char **value_items,
  *
  * Both of which should be treated the same and return the same result.
  */
-static struct config_value *parser_parse_array(struct parser *parser,
-                                               char *string)
+static struct config_value *parser_parse_array(struct parser *parser, char *string)
 {
         char *value_items_string = NULL;
         size_t value_items_string_length = 0;
         enum natwm_error err = GENERIC_ERROR;
 
-        err = array_find_value_items_string(parser,
-                                            string,
-                                            &value_items_string,
-                                            &value_items_string_length);
+        err = array_find_value_items_string(
+                parser, string, &value_items_string, &value_items_string_length);
 
         if (err != NO_ERROR) {
                 return NULL;
@@ -404,8 +390,7 @@ static struct config_value *parser_parse_array(struct parser *parser,
         char **value_items = NULL;
         size_t value_items_length = 0;
 
-        err = array_split_value_items_string(
-                value_items_string, &value_items, &value_items_length);
+        err = array_split_value_items_string(value_items_string, &value_items, &value_items_length);
 
         if (err != NO_ERROR) {
                 LOG_ERROR(natwm_logger,
@@ -420,8 +405,7 @@ static struct config_value *parser_parse_array(struct parser *parser,
         // Remove spaces around the items
         for (size_t i = 0; i < value_items_length; ++i) {
                 char *value_item = NULL;
-                err = string_strip_surrounding_spaces(
-                        value_items[i], &value_item, NULL);
+                err = string_strip_surrounding_spaces(value_items[i], &value_item, NULL);
 
                 // If we encounter an '' (empty string) as the last item in the
                 // array we have two senarios:
@@ -456,8 +440,8 @@ static struct config_value *parser_parse_array(struct parser *parser,
 
         // Now we should have an array of stripped items
         // Last step is to parse them into a new config_value
-        struct config_value *config_value = parser_resolve_array_values(
-                parser, value_items, value_items_length);
+        struct config_value *config_value
+                = parser_resolve_array_values(parser, value_items, value_items_length);
 
         if (config_value == NULL) {
                 free(value_items_string);
@@ -493,8 +477,7 @@ free_and_error:
 static struct config_value *parser_resolve_variable(const struct parser *parser,
                                                     const char *variable_key)
 {
-        const struct config_value *variable
-                = parser_find_variable(parser, variable_key);
+        const struct config_value *variable = parser_find_variable(parser, variable_key);
 
         if (variable == NULL) {
                 LOG_ERROR(natwm_logger,
@@ -529,8 +512,7 @@ static struct config_value *parser_resolve_variable(const struct parser *parser,
  *
  * No other "falsey" values will be parsed as boolean.
  */
-static struct config_value *parser_parse_boolean(const struct parser *parser,
-                                                 char *value)
+static struct config_value *parser_parse_boolean(const struct parser *parser, char *value)
 {
         bool boolean = false;
         enum natwm_error err = string_to_boolean(value, &boolean);
@@ -544,8 +526,7 @@ static struct config_value *parser_parse_boolean(const struct parser *parser,
                 return NULL;
         }
 
-        struct config_value *config_value
-                = config_value_create_boolean(boolean);
+        struct config_value *config_value = config_value_create_boolean(boolean);
 
         if (config_value == NULL) {
                 return NULL;
@@ -559,8 +540,7 @@ static struct config_value *parser_parse_boolean(const struct parser *parser,
 /**
  * Here we will handle the create of a simple numeric value
  */
-static struct config_value *parser_parse_number(const struct parser *parser,
-                                                char *value)
+static struct config_value *parser_parse_number(const struct parser *parser, char *value)
 {
         intmax_t number = 0;
         enum natwm_error err = string_to_number(value, &number);
@@ -589,14 +569,12 @@ static struct config_value *parser_parse_number(const struct parser *parser,
 /**
  * Here we will handle the parsing and creation of a variable value
  */
-static struct config_value *parser_parse_variable(const struct parser *parser,
-                                                  char *value)
+static struct config_value *parser_parse_variable(const struct parser *parser, char *value)
 {
         // we need to take the value (minus VARIABLE_START) and look it up
         // in the variable map. If it's found we need to duplicate it and store
         // it in a config item with the key passed in
-        struct config_value *config_value
-                = parser_resolve_variable(parser, value + 1);
+        struct config_value *config_value = parser_resolve_variable(parser, value + 1);
 
         if (config_value == NULL) {
                 return NULL;
@@ -612,15 +590,13 @@ static struct config_value *parser_parse_variable(const struct parser *parser,
 /**
  * Here we will handle the creation of a simple string value
  */
-static struct config_value *parser_parse_string(const struct parser *parser,
-                                                char *string)
+static struct config_value *parser_parse_string(const struct parser *parser, char *string)
 {
         // We first need to strip off the surrounding quotes from the string
         size_t string_len = strlen(string);
         char *stripped_string = NULL;
 
-        if (string_splice(string, 1, string_len - 1, &stripped_string, NULL)
-            != NO_ERROR) {
+        if (string_splice(string, 1, string_len - 1, &stripped_string, NULL) != NO_ERROR) {
                 LOG_ERROR(natwm_logger,
                           "Invalid string '%s' found - Line %zu",
                           string,
@@ -629,8 +605,7 @@ static struct config_value *parser_parse_string(const struct parser *parser,
                 return NULL;
         }
 
-        struct config_value *config_value
-                = config_value_create_string(stripped_string);
+        struct config_value *config_value = config_value_create_string(stripped_string);
 
         if (config_value == NULL) {
                 free(stripped_string);
@@ -752,8 +727,7 @@ enum natwm_error parser_create_variable(struct parser *parser)
 /**
  * Return a config value from the parser variable map
  */
-const struct config_value *parser_find_variable(const struct parser *parser,
-                                                const char *key)
+const struct config_value *parser_find_variable(const struct parser *parser, const char *key)
 {
         struct map_entry *entry = map_get(parser->variables, key);
 
@@ -797,8 +771,7 @@ struct config_value *parser_parse_value(struct parser *parser, char *value)
  *
  * We must pull out the key and then point the buffer to the EQUAL_CHAR
  */
-enum natwm_error parser_read_key(struct parser *parser, char **result,
-                                 size_t *length)
+enum natwm_error parser_read_key(struct parser *parser, char **result, size_t *length)
 {
         enum natwm_error err = GENERIC_ERROR;
         const char *line = parser->buffer + parser->pos;
@@ -821,9 +794,7 @@ enum natwm_error parser_read_key(struct parser *parser, char **result,
         err = string_get_delimiter(line, '=', &key, &equal_pos, false);
 
         if (err != NO_ERROR) {
-                LOG_ERROR(natwm_logger,
-                          "Missing '=' - Line: %zu",
-                          parser->line_num);
+                LOG_ERROR(natwm_logger, "Missing '=' - Line: %zu", parser->line_num);
 
                 return INVALID_INPUT_ERROR;
         }
@@ -833,13 +804,10 @@ enum natwm_error parser_read_key(struct parser *parser, char **result,
         char *stripped_key = NULL;
         size_t stripped_key_length = 0;
 
-        err = string_strip_surrounding_spaces(
-                key, &stripped_key, &stripped_key_length);
+        err = string_strip_surrounding_spaces(key, &stripped_key, &stripped_key_length);
 
         if (err != NO_ERROR) {
-                LOG_ERROR(natwm_logger,
-                          "Invalid config value - Line %zu",
-                          parser->line_num);
+                LOG_ERROR(natwm_logger, "Invalid config value - Line %zu", parser->line_num);
 
                 free(key);
                 free(stripped_key);
@@ -873,8 +841,7 @@ enum natwm_error parser_read_key(struct parser *parser, char **result,
  * value. We will then return the string back to the caller who can deal with
  * turning it into a config_value
  */
-enum natwm_error parser_read_value(struct parser *parser, char **result,
-                                   size_t *length)
+enum natwm_error parser_read_value(struct parser *parser, char **result, size_t *length)
 {
         enum natwm_error err = GENERIC_ERROR;
         // We need to ignore the EQUAL_CHAR
@@ -899,8 +866,7 @@ enum natwm_error parser_read_value(struct parser *parser, char **result,
         char *value_stripped = NULL;
         size_t value_stripped_length = 0;
 
-        err = string_strip_surrounding_spaces(
-                value, &value_stripped, &value_stripped_length);
+        err = string_strip_surrounding_spaces(value, &value_stripped, &value_stripped_length);
 
         if (err != NO_ERROR) {
                 LOG_ERROR(natwm_logger,
@@ -974,10 +940,7 @@ enum natwm_error parser_read_item(struct parser *parser, char **key_result,
         struct config_value *config_value = parser_parse_value(parser, value);
 
         if (config_value == NULL) {
-                LOG_ERROR(natwm_logger,
-                          "Failed to save '%s' - Line %zu",
-                          key,
-                          parser->line_num);
+                LOG_ERROR(natwm_logger, "Failed to save '%s' - Line %zu", key, parser->line_num);
 
                 free(key);
                 free(value);
