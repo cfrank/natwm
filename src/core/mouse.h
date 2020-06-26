@@ -7,8 +7,11 @@
 #include <stdint.h>
 #include <xcb/xproto.h>
 
+#include <common/constants.h>
+
 #include "client.h"
 #include "state.h"
+#include "workspace.h"
 
 #define MOUSE_EVENTS_NUM 1
 
@@ -36,7 +39,7 @@ static const struct mouse_binding client_focus_event = {
 
 static const struct mouse_binding mouse_events[MOUSE_EVENTS_NUM] = {
         {
-                .pass_event = 0,
+                .pass_event = 1,
                 .mask = DEFAULT_BUTTON_MASK,
                 .pointer_mode = XCB_GRAB_MODE_ASYNC,
                 .keyboard_mode = XCB_GRAB_MODE_ASYNC,
@@ -51,3 +54,6 @@ void mouse_event_grab_button(xcb_connection_t *connection, xcb_window_t window,
 
 void mouse_initialize_client_listeners(const struct natwm_state *state,
                                        const struct client *client);
+
+enum natwm_error mouse_handle_focus(struct natwm_state *state, struct workspace *workspace,
+                                    struct client *client);

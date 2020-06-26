@@ -380,25 +380,12 @@ enum natwm_error client_handle_button_press(struct natwm_state *state,
                 return RESOLUTION_FAILURE;
         }
 
-        // TODO: This will need some refactoring once we start handling more
-        // button press events
-        if (event->state == XCB_NONE) {
-                enum natwm_error err = workspace_focus_client(state, workspace, client);
-
-                if (err != NO_ERROR) {
-                        return err;
-                }
-
-                // For the focus event we queue the event, and once we have
-                // focused both the workspace (if needed) and the client we
-                // release the queued event and the client receives the event
-                // like normal
-                xcb_allow_events(state->xcb, XCB_ALLOW_REPLAY_POINTER, XCB_CURRENT_TIME);
-
+        switch (event->state) {
+        case XCB_NONE:
+                return mouse_handle_focus(state, workspace, client);
+        default:
                 return NO_ERROR;
         }
-
-        return NO_ERROR;
 }
 
 enum natwm_error client_configure_window(struct natwm_state *state,

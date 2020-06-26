@@ -35,3 +35,21 @@ void mouse_initialize_client_listeners(const struct natwm_state *state, const st
 
         xcb_flush(state->xcb);
 }
+
+enum natwm_error mouse_handle_focus(struct natwm_state *state, struct workspace *workspace,
+                                    struct client *client)
+{
+        enum natwm_error err = workspace_focus_client(state, workspace, client);
+
+        if (err != NO_ERROR) {
+                return err;
+        }
+
+        // For the focus event we queue the event, and once we have
+        // focused both the workspace (if needed) and the client we
+        // release the queued event and the client receives the event
+        // like normal
+        xcb_allow_events(state->xcb, XCB_ALLOW_REPLAY_POINTER, XCB_CURRENT_TIME);
+
+        return NO_ERROR;
+}
