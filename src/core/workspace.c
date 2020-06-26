@@ -52,7 +52,7 @@ static struct client *get_client_from_client_node(struct node *client_node)
 
 /**
  * On first load we should give each monitor a workspace. The ordering of the
- * monitors is based on the order we recieve information about them in the
+ * monitors is based on the order we receive information about them in the
  * initial monitor setup routine.
  *
  * TODO: In the future we should determine a better ordering of the monitors

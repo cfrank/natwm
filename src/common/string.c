@@ -247,7 +247,7 @@ bool string_no_case_compare(const char *one, const char *two)
 
 /**
  * Extract a portion of a string into a destination buffer using the supplied
- * start and end indicies.
+ * start and end indices.
  *
  * If something is found, space is allocated for the resulting string and a null
  * terminator is added. The caller must free the result.

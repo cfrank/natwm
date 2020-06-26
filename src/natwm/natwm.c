@@ -270,7 +270,7 @@ static struct argument_options *parse_arguments(int argc, char **argv)
                         break;
                 case 'v':
                         printf("%s\n", NATWM_VERSION_STRING);
-                        printf("Copywrite (c) 2019 Chris Frank\n");
+                        printf("Copywrite (c) 2020 Chris Frank\n");
                         printf("Released under the Revised BSD License\n");
 
                         goto exit_success;
@@ -279,7 +279,7 @@ static struct argument_options *parse_arguments(int argc, char **argv)
                         break;
                 default:
                         // Handle invalid opt
-                        fprintf(stderr, "Recieved invalid command line argument '%c'\n", optopt);
+                        fprintf(stderr, "Received invalid command line argument '%c'\n", optopt);
 
                         free(arg_options);
 
