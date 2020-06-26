@@ -7,7 +7,7 @@
 #include <stdint.h>
 #include <xcb/xproto.h>
 
-#include <common/constants.h>
+#include <common/error.h>
 
 #include "client.h"
 #include "state.h"
