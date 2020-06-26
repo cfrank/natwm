@@ -383,6 +383,10 @@ enum natwm_error client_handle_button_press(struct natwm_state *state,
         switch (event->state) {
         case XCB_NONE:
                 return mouse_handle_focus(state, workspace, client);
+        case XCB_BUTTON_MASK_1:
+                natwm_state_set_moving_window(state, client->window);
+
+                return NO_ERROR;
         default:
                 return NO_ERROR;
         }
