@@ -20,6 +20,7 @@ struct natwm_state *natwm_state_create(void)
         state->xcb = NULL;
         state->ewmh = NULL;
         state->screen = NULL;
+        state->actively_moving_window = XCB_NONE;
         state->monitor_list = NULL;
         state->workspace_list = NULL;
         state->config = NULL;
@@ -48,6 +49,15 @@ void natwm_state_update_config(struct natwm_state *state, const struct map *new_
         natwm_state_lock(state);
 
         state->config = new_config;
+
+        natwm_state_unlock(state);
+}
+
+void natwm_state_set_moving_window(struct natwm_state *state, xcb_window_t window)
+{
+        natwm_state_lock(state);
+
+        state->actively_moving_window = window;
 
         natwm_state_unlock(state);
 }

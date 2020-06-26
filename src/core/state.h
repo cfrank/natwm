@@ -20,6 +20,7 @@ struct natwm_state {
         xcb_connection_t *xcb;
         xcb_ewmh_connection_t *ewmh;
         xcb_screen_t *screen;
+        xcb_window_t actively_moving_window;
         struct monitor_list *monitor_list;
         struct workspace_list *workspace_list;
         const struct map *config;
@@ -31,4 +32,5 @@ struct natwm_state *natwm_state_create(void);
 void natwm_state_lock(struct natwm_state *state);
 void natwm_state_unlock(struct natwm_state *state);
 void natwm_state_update_config(struct natwm_state *state, const struct map *new_config);
+void natwm_state_set_moving_window(struct natwm_state *state, xcb_window_t window);
 void natwm_state_destroy(struct natwm_state *state);
