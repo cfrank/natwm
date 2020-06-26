@@ -163,8 +163,7 @@ void stack_item_destroy(struct stack_item *item)
         free(item);
 }
 
-void stack_item_destroy_callback(struct stack_item *item,
-                                 stack_data_free_function free_function)
+void stack_item_destroy_callback(struct stack_item *item, stack_data_free_function free_function)
 {
         if (free_function == NULL) {
                 stack_item_destroy(item);
@@ -188,8 +187,7 @@ void stack_destroy(struct stack *stack)
         free(stack);
 }
 
-void stack_destroy_callback(struct stack *stack,
-                            stack_data_free_function free_function)
+void stack_destroy_callback(struct stack *stack, stack_data_free_function free_function)
 {
         if (free_function == NULL) {
                 stack_destroy(stack);

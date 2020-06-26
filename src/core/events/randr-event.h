@@ -10,5 +10,4 @@
 #include <core/state.h>
 
 enum natwm_error handle_randr_event(const struct natwm_state *state,
-                                    const xcb_generic_event_t *event,
-                                    uint8_t event_type);
+                                    const xcb_generic_event_t *event, uint8_t event_type);

@@ -12,8 +12,7 @@
 
 #define MOUSE_EVENTS_NUM 1
 
-#define DEFAULT_BUTTON_MASK                                                    \
-        XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE
+#define DEFAULT_BUTTON_MASK XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE
 
 struct mouse_binding {
         uint8_t pass_event;

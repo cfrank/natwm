@@ -21,9 +21,8 @@ struct stack {
         struct stack_item *head;
 };
 
-#define STACK_FOR_EACH(stack, item)                                            \
-        for (struct stack_item * (item) = (stack)->head; (item) != NULL;       \
-             (item) = (item)->next)
+#define STACK_FOR_EACH(stack, item)                                                                \
+        for (struct stack_item * (item) = (stack)->head; (item) != NULL; (item) = (item)->next)
 
 struct stack *stack_create(void);
 struct stack_item *stack_item_create(void *data);
@@ -41,8 +40,6 @@ const struct stack_item *stack_peek_n(const struct stack *stack, size_t index);
 struct stack_item *stack_dequeue(struct stack *state);
 
 void stack_item_destroy(struct stack_item *item);
-void stack_item_destroy_callback(struct stack_item *item,
-                                 stack_data_free_function free_function);
+void stack_item_destroy_callback(struct stack_item *item, stack_data_free_function free_function);
 void stack_destroy(struct stack *state);
-void stack_destroy_callback(struct stack *stack,
-                            stack_data_free_function free_function);
+void stack_destroy_callback(struct stack *stack, stack_data_free_function free_function);

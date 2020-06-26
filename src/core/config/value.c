@@ -30,8 +30,7 @@ static struct config_array *config_array_create(size_t length)
         return array;
 }
 
-static struct config_array *
-config_array_duplicate(const struct config_array *array)
+static struct config_array *config_array_duplicate(const struct config_array *array)
 {
         struct config_array *new_array = config_array_create(array->length);
 
@@ -40,8 +39,7 @@ config_array_duplicate(const struct config_array *array)
         }
 
         for (size_t i = 0; i < new_array->length; ++i) {
-                struct config_value *duplicated_value
-                        = config_value_duplicate(array->values[i]);
+                struct config_value *duplicated_value = config_value_duplicate(array->values[i]);
 
                 if (duplicated_value == NULL) {
                         goto free_and_error;
@@ -147,8 +145,7 @@ struct config_value *config_value_duplicate(const struct config_value *value)
 
         switch (value->type) {
         case ARRAY:
-                new_value->data.array
-                        = config_array_duplicate(value->data.array);
+                new_value->data.array = config_array_duplicate(value->data.array);
 
                 if (new_value->data.array == NULL) {
                         goto free_and_error;

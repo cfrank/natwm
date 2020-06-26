@@ -40,8 +40,7 @@ typedef uint32_t (*map_hash_function_t)(const void *key, size_t size);
 typedef size_t (*map_key_size_function_t)(const void *key);
 
 // Function for comparing keys
-typedef bool (*map_key_compare_function_t)(const void *one, const void *two,
-                                           size_t key_size);
+typedef bool (*map_key_compare_function_t)(const void *one, const void *two, size_t key_size);
 
 // Function which takes data and frees the memory allocated for it
 typedef void (*map_entry_free_function_t)(void *data);
@@ -92,8 +91,7 @@ struct map {
         enum map_events event_flags;
 };
 
-enum natwm_error entry_init(uint32_t hash, const void *key, void *value,
-                            struct map_entry **dest);
+enum natwm_error entry_init(uint32_t hash, const void *key, void *value, struct map_entry **dest);
 void map_entry_destroy(const struct map *map, struct map_entry *entry);
 
 struct map *map_init(void);
@@ -103,14 +101,10 @@ struct map_entry *map_get(const struct map *map, const void *key);
 enum natwm_error map_delete(struct map *map, const void *key);
 
 int map_set_hash_function(struct map *map, map_hash_function_t function);
-int map_set_key_size_function(struct map *map,
-                              map_key_size_function_t function);
-int map_set_key_compare_function(struct map *map,
-                                 map_key_compare_function_t function);
-void map_set_entry_free_function(struct map *map,
-                                 map_entry_free_function_t function);
+int map_set_key_size_function(struct map *map, map_key_size_function_t function);
+int map_set_key_compare_function(struct map *map, map_key_compare_function_t function);
+void map_set_entry_free_function(struct map *map, map_entry_free_function_t function);
 void map_set_setting_flag(struct map *map, enum map_settings flag);
 void map_remove_setting_flag(struct map *map, enum map_settings flag);
 
-uint32_t map_get_uint32(const struct map *map, const void *key,
-                        enum natwm_error *error);
+uint32_t map_get_uint32(const struct map *map, const void *key, enum natwm_error *error);

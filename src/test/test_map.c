@@ -30,8 +30,7 @@ static size_t determine_number_key_size(const void *key)
         return sizeof(size_t *);
 }
 
-static bool non_trivial_key_compare_function(const void *one, const void *two,
-                                             size_t key_size)
+static bool non_trivial_key_compare_function(const void *one, const void *two, size_t key_size)
 {
         UNUSED_FUNCTION_PARAM(key_size);
 
@@ -157,9 +156,7 @@ static void test_map_insert_non_string_key(void **state)
         size_t expected_key = 12345;
         const char *expected_value = "value";
 
-        assert_int_equal(
-                NO_ERROR,
-                map_insert(map, &expected_key, (char *)expected_value));
+        assert_int_equal(NO_ERROR, map_insert(map, &expected_key, (char *)expected_value));
 
         struct map_entry *entry = map_get(map, &expected_key);
 
@@ -187,13 +184,9 @@ static void test_map_insert_multiple_non_string_key(void **state)
         size_t expected_bucket_count = 2;
 
         assert_int_equal(NO_ERROR,
-                         map_insert(map,
-                                    &expected_key_first,
-                                    (char *)expected_value_first));
+                         map_insert(map, &expected_key_first, (char *)expected_value_first));
         assert_int_equal(NO_ERROR,
-                         map_insert(map,
-                                    &expected_key_second,
-                                    (char *)expected_value_second));
+                         map_insert(map, &expected_key_second, (char *)expected_value_second));
 
         assert_int_equal(expected_bucket_count, map->bucket_count);
 
@@ -202,11 +195,9 @@ static void test_map_insert_multiple_non_string_key(void **state)
 
         assert_non_null(first_entry);
         assert_non_null(second_entry);
-        assert_string_equal(expected_value_first,
-                            (const char *)first_entry->value);
+        assert_string_equal(expected_value_first, (const char *)first_entry->value);
         assert_int_equal(expected_key_first, *(size_t *)first_entry->key);
-        assert_string_equal(expected_value_second,
-                            (const char *)second_entry->value);
+        assert_string_equal(expected_value_second, (const char *)second_entry->value);
         assert_int_equal(expected_key_second, *(size_t *)second_entry->key);
 
         map_destroy(map);
@@ -227,27 +218,21 @@ static void test_map_insert_duplicate_non_string_key(void **state)
         const char *expected_value_second = "second value";
         size_t expected_bucket_count = 1;
 
-        assert_int_equal(
-                NO_ERROR,
-                map_insert(map, &expected_key, (char *)expected_value_first));
+        assert_int_equal(NO_ERROR, map_insert(map, &expected_key, (char *)expected_value_first));
         assert_int_equal(expected_bucket_count, map->bucket_count);
 
         struct map_entry *entry_first = map_get(map, &expected_key);
 
         assert_non_null(entry_first);
-        assert_string_equal(expected_value_first,
-                            (const char *)entry_first->value);
+        assert_string_equal(expected_value_first, (const char *)entry_first->value);
         assert_int_equal(expected_key, *(size_t *)entry_first->key);
-        assert_int_equal(
-                NO_ERROR,
-                map_insert(map, &expected_key, (char *)expected_value_second));
+        assert_int_equal(NO_ERROR, map_insert(map, &expected_key, (char *)expected_value_second));
         assert_int_equal(expected_bucket_count, map->bucket_count);
 
         struct map_entry *entry_second = map_get(map, &expected_key);
 
         assert_non_null(entry_second);
-        assert_string_equal(expected_value_second,
-                            (const char *)entry_second->value);
+        assert_string_equal(expected_value_second, (const char *)entry_second->value);
         assert_int_equal(expected_key, *(size_t *)entry_second->key);
 
         map_destroy(map);
@@ -271,9 +256,7 @@ static void test_map_complex_key_compare(void **state)
         size_t passed_key = 1234;
         const char *expected_value = "value";
 
-        assert_int_equal(
-                NO_ERROR,
-                map_insert(map, &expected_key, (char *)expected_value));
+        assert_int_equal(NO_ERROR, map_insert(map, &expected_key, (char *)expected_value));
         assert_int_equal(1, map->bucket_count);
 
         struct map_entry *entry = map_get(map, &passed_key);
@@ -304,30 +287,24 @@ static void test_map_complex_key_compare_insert_duplicate(void **state)
         const char *expected_value_first = "first value";
         const char *expected_value_second = "second value";
 
-        assert_int_equal(
-                NO_ERROR,
-                map_insert(map, &expected_key, (char *)expected_value_first));
+        assert_int_equal(NO_ERROR, map_insert(map, &expected_key, (char *)expected_value_first));
         assert_int_equal(1, map->bucket_count);
 
         struct map_entry *entry_first = map_get(map, &expected_key);
 
         assert_non_null(entry_first);
         assert_int_equal(expected_key, *(size_t *)entry_first->key);
-        assert_string_equal(expected_value_first,
-                            (const char *)entry_first->value);
+        assert_string_equal(expected_value_first, (const char *)entry_first->value);
 
         assert_int_equal(NO_ERROR,
-                         map_insert(map,
-                                    &expected_key_duplicate,
-                                    (char *)expected_value_second));
+                         map_insert(map, &expected_key_duplicate, (char *)expected_value_second));
         assert_int_equal(1, map->bucket_count);
 
         struct map_entry *entry_second = map_get(map, &expected_key);
 
         assert_non_null(entry_second);
         assert_int_equal(expected_key, *(size_t *)entry_second->key);
-        assert_string_equal(expected_value_second,
-                            (const char *)entry_second->value);
+        assert_string_equal(expected_value_second, (const char *)entry_second->value);
 
         map_destroy(map);
 }
@@ -585,10 +562,8 @@ static void test_map_destroy_free_func(void **state)
 int main(void)
 {
         const struct CMUnitTest tests[] = {
-                cmocka_unit_test_setup_teardown(
-                        test_map_init, test_setup, test_teardown),
-                cmocka_unit_test_setup_teardown(
-                        test_map_insert, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(test_map_init, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(test_map_insert, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(
                         test_map_insert_null_value, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(
@@ -599,33 +574,22 @@ int main(void)
                 cmocka_unit_test(test_map_complex_key_compare),
                 cmocka_unit_test(test_map_complex_key_compare_insert_duplicate),
                 cmocka_unit_test_setup_teardown(
-                        test_map_insert_load_factor_disabled,
-                        test_setup,
-                        test_teardown),
+                        test_map_insert_load_factor_disabled, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(
                         test_map_insert_load_factor, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(
                         test_map_insert_duplicate, test_setup, test_teardown),
-                cmocka_unit_test_setup_teardown(
-                        test_map_get, test_setup, test_teardown),
-                cmocka_unit_test_setup_teardown(
-                        test_map_get_empty, test_setup, test_teardown),
-                cmocka_unit_test_setup_teardown(
-                        test_map_get_null, test_setup, test_teardown),
-                cmocka_unit_test_setup_teardown(
-                        test_map_get_duplicate, test_setup, test_teardown),
-                cmocka_unit_test_setup_teardown(
-                        test_map_delete, test_setup, test_teardown),
-                cmocka_unit_test_setup_teardown(
-                        test_map_delete_null, test_setup, test_teardown),
-                cmocka_unit_test_setup_teardown(
-                        test_map_delete_unknown, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(test_map_get, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(test_map_get_empty, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(test_map_get_null, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(test_map_get_duplicate, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(test_map_delete, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(test_map_delete_null, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(test_map_delete_unknown, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(
                         test_map_delete_duplicate, test_setup, test_teardown),
-                cmocka_unit_test_setup_teardown(
-                        test_map_get_and_delete, test_setup, test_teardown),
-                cmocka_unit_test_setup_teardown(
-                        test_map_destroy_null, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(test_map_get_and_delete, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(test_map_destroy_null, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(
                         test_map_destroy_use_free, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(

@@ -18,9 +18,9 @@
 
 #define UNUSED_FUNCTION_PARAM(param) (void)(param)
 
-#define SET_IF_NON_NULL(dest, value)                                           \
-        if ((dest) != NULL) {                                                  \
-                (*dest) = value;                                               \
+#define SET_IF_NON_NULL(dest, value)                                                               \
+        if ((dest) != NULL) {                                                                      \
+                (*dest) = value;                                                                   \
         }
 
 // Copied from https://github.com/openbsd/src/blob/master/sys/sys/param.h

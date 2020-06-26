@@ -36,15 +36,13 @@ static xcb_window_t create_supporting_window(const struct natwm_state *state)
 
 xcb_ewmh_connection_t *ewmh_create(xcb_connection_t *xcb_connection)
 {
-        xcb_ewmh_connection_t *ewmh_connection
-                = malloc(sizeof(xcb_ewmh_connection_t));
+        xcb_ewmh_connection_t *ewmh_connection = malloc(sizeof(xcb_ewmh_connection_t));
 
         if (ewmh_connection == NULL) {
                 return NULL;
         }
 
-        xcb_intern_atom_cookie_t *cookie
-                = xcb_ewmh_init_atoms(xcb_connection, ewmh_connection);
+        xcb_intern_atom_cookie_t *cookie = xcb_ewmh_init_atoms(xcb_connection, ewmh_connection);
 
         if (xcb_ewmh_init_atoms_replies(ewmh_connection, cookie, NULL) == 0) {
                 // Failed to init ewmh
@@ -92,40 +90,30 @@ void ewmh_init(const struct natwm_state *state)
 
         size_t len = (sizeof(net_atoms) / sizeof(xcb_atom_t));
 
-        xcb_ewmh_set_supported(
-                state->ewmh, state->screen_num, (uint32_t)len, net_atoms);
+        xcb_ewmh_set_supported(state->ewmh, state->screen_num, (uint32_t)len, net_atoms);
 
         xcb_ewmh_set_wm_pid(state->ewmh, state->screen->root, (uint32_t)pid);
-        xcb_ewmh_set_wm_name(state->ewmh,
-                             state->screen->root,
-                             (uint32_t)wm_name_len,
-                             NATWM_VERSION_STRING);
+        xcb_ewmh_set_wm_name(
+                state->ewmh, state->screen->root, (uint32_t)wm_name_len, NATWM_VERSION_STRING);
 
         xcb_window_t supporting_win = create_supporting_window(state);
 
-        xcb_ewmh_set_supporting_wm_check(
-                state->ewmh, state->screen->root, supporting_win);
-        xcb_ewmh_set_supporting_wm_check(
-                state->ewmh, supporting_win, supporting_win);
+        xcb_ewmh_set_supporting_wm_check(state->ewmh, state->screen->root, supporting_win);
+        xcb_ewmh_set_supporting_wm_check(state->ewmh, supporting_win, supporting_win);
 
         // Set the WM name on the supporting win
-        xcb_ewmh_set_wm_name(state->ewmh,
-                             supporting_win,
-                             (uint32_t)wm_name_len,
-                             NATWM_VERSION_STRING);
+        xcb_ewmh_set_wm_name(
+                state->ewmh, supporting_win, (uint32_t)wm_name_len, NATWM_VERSION_STRING);
 
-        xcb_ewmh_set_number_of_desktops(state->ewmh,
-                                        state->screen_num,
-                                        (uint32_t)NATWM_WORKSPACE_COUNT);
+        xcb_ewmh_set_number_of_desktops(
+                state->ewmh, state->screen_num, (uint32_t)NATWM_WORKSPACE_COUNT);
 }
 
 bool ewmh_is_normal_window(const struct natwm_state *state, xcb_window_t window)
 {
-        xcb_get_property_cookie_t cookie
-                = xcb_ewmh_get_wm_window_type(state->ewmh, window);
+        xcb_get_property_cookie_t cookie = xcb_ewmh_get_wm_window_type(state->ewmh, window);
         xcb_ewmh_get_atoms_reply_t result;
-        uint8_t reply = xcb_ewmh_get_wm_window_type_reply(
-                state->ewmh, cookie, &result, NULL);
+        uint8_t reply = xcb_ewmh_get_wm_window_type_reply(state->ewmh, cookie, &result, NULL);
 
         if (reply != 1) {
                 // Treat as a normal window
@@ -148,8 +136,7 @@ bool ewmh_is_normal_window(const struct natwm_state *state, xcb_window_t window)
         return true;
 }
 
-void ewmh_add_window_state(const struct natwm_state *state, xcb_window_t window,
-                           xcb_atom_t atom)
+void ewmh_add_window_state(const struct natwm_state *state, xcb_window_t window, xcb_atom_t atom)
 {
         xcb_change_property(state->xcb,
                             XCB_PROP_MODE_REPLACE,
@@ -161,8 +148,7 @@ void ewmh_add_window_state(const struct natwm_state *state, xcb_window_t window,
                             &atom);
 }
 
-void ewmh_remove_window_state(const struct natwm_state *state,
-                              xcb_window_t window)
+void ewmh_remove_window_state(const struct natwm_state *state, xcb_window_t window)
 {
         xcb_change_property(state->xcb,
                             XCB_PROP_MODE_REPLACE,
@@ -174,14 +160,12 @@ void ewmh_remove_window_state(const struct natwm_state *state,
                             NULL);
 }
 
-void ewmh_update_active_window(const struct natwm_state *state,
-                               xcb_window_t window)
+void ewmh_update_active_window(const struct natwm_state *state, xcb_window_t window)
 {
         xcb_ewmh_set_active_window(state->ewmh, state->screen_num, window);
 }
 
-void ewmh_update_desktop_viewport(const struct natwm_state *state,
-                                  const struct monitor_list *list)
+void ewmh_update_desktop_viewport(const struct natwm_state *state, const struct monitor_list *list)
 {
         size_t num_monitors = list->monitors->size;
         xcb_ewmh_coordinates_t viewports[num_monitors];
@@ -198,19 +182,15 @@ void ewmh_update_desktop_viewport(const struct natwm_state *state,
                 ++index;
         }
 
-        xcb_ewmh_set_desktop_viewport(state->ewmh,
-                                      state->screen_num,
-                                      (uint32_t)num_monitors,
-                                      viewports);
+        xcb_ewmh_set_desktop_viewport(
+                state->ewmh, state->screen_num, (uint32_t)num_monitors, viewports);
 }
 
-void ewmh_update_desktop_names(const struct natwm_state *state,
-                               const struct workspace_list *list)
+void ewmh_update_desktop_names(const struct natwm_state *state, const struct workspace_list *list)
 {
         // Should never happen
         if (list->count < 1) {
-                xcb_ewmh_set_desktop_names(
-                        state->ewmh, state->screen_num, 0, NULL);
+                xcb_ewmh_set_desktop_names(state->ewmh, state->screen_num, 0, NULL);
 
                 return;
         }
@@ -229,33 +209,24 @@ void ewmh_update_desktop_names(const struct natwm_state *state,
                 pos += (name_length + 1);
         }
 
-        xcb_ewmh_set_desktop_names(
-                state->ewmh, state->screen_num, (uint32_t)(pos - 1), names);
+        xcb_ewmh_set_desktop_names(state->ewmh, state->screen_num, (uint32_t)(pos - 1), names);
 }
 
-void ewmh_update_current_desktop(const struct natwm_state *state,
-                                 size_t current_index)
+void ewmh_update_current_desktop(const struct natwm_state *state, size_t current_index)
 {
         assert(current_index < NATWM_WORKSPACE_COUNT);
 
-        xcb_ewmh_set_current_desktop(
-                state->ewmh, state->screen_num, (uint32_t)current_index);
+        xcb_ewmh_set_current_desktop(state->ewmh, state->screen_num, (uint32_t)current_index);
 }
 
-void ewmh_update_window_frame_extents(const struct natwm_state *state,
-                                      xcb_window_t window,
+void ewmh_update_window_frame_extents(const struct natwm_state *state, xcb_window_t window,
                                       uint32_t border_width)
 {
-        xcb_ewmh_set_frame_extents(state->ewmh,
-                                   window,
-                                   border_width,
-                                   border_width,
-                                   border_width,
-                                   border_width);
+        xcb_ewmh_set_frame_extents(
+                state->ewmh, window, border_width, border_width, border_width, border_width);
 }
 
-void ewmh_update_window_desktop(const struct natwm_state *state,
-                                xcb_window_t window, size_t index)
+void ewmh_update_window_desktop(const struct natwm_state *state, xcb_window_t window, size_t index)
 {
         xcb_ewmh_set_wm_desktop(state->ewmh, window, (uint32_t)index);
 }

@@ -12,9 +12,8 @@
 
 #include "randr-event.h"
 
-static enum natwm_error
-handle_randr_notify_event(const struct natwm_state *state,
-                          const xcb_randr_notify_event_t *event)
+static enum natwm_error handle_randr_notify_event(const struct natwm_state *state,
+                                                  const xcb_randr_notify_event_t *event)
 {
         UNUSED_FUNCTION_PARAM(state);
         UNUSED_FUNCTION_PARAM(event);
@@ -24,9 +23,9 @@ handle_randr_notify_event(const struct natwm_state *state,
         return NO_ERROR;
 }
 
-static enum natwm_error handle_randr_screen_change_event(
-        const struct natwm_state *state,
-        const xcb_randr_screen_change_notify_event_t *event)
+static enum natwm_error
+handle_randr_screen_change_event(const struct natwm_state *state,
+                                 const xcb_randr_screen_change_notify_event_t *event)
 {
         UNUSED_FUNCTION_PARAM(state);
         UNUSED_FUNCTION_PARAM(event);
@@ -37,22 +36,17 @@ static enum natwm_error handle_randr_screen_change_event(
 }
 
 enum natwm_error handle_randr_event(const struct natwm_state *state,
-                                    const xcb_generic_event_t *event,
-                                    uint8_t event_type)
+                                    const xcb_generic_event_t *event, uint8_t event_type)
 {
-        const xcb_query_extension_reply_t *cache
-                = state->monitor_list->extension->data_cache;
+        const xcb_query_extension_reply_t *cache = state->monitor_list->extension->data_cache;
 
         if (event_type == (cache->first_event + XCB_RANDR_NOTIFY)) {
-                return handle_randr_notify_event(
-                        state, (const xcb_randr_notify_event_t *)event);
+                return handle_randr_notify_event(state, (const xcb_randr_notify_event_t *)event);
         }
 
-        if (event_type
-            == (cache->first_event + XCB_RANDR_SCREEN_CHANGE_NOTIFY)) {
+        if (event_type == (cache->first_event + XCB_RANDR_SCREEN_CHANGE_NOTIFY)) {
                 return handle_randr_screen_change_event(
-                        state,
-                        (const xcb_randr_screen_change_notify_event_t *)event);
+                        state, (const xcb_randr_screen_change_notify_event_t *)event);
         }
 
         return NO_ERROR;

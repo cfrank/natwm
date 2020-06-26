@@ -65,12 +65,10 @@ static void attach_to_monitors(struct monitor_list *monitor_list,
         LIST_FOR_EACH(monitor_list->monitors, monitor_item)
         {
                 struct monitor *monitor = (struct monitor *)monitor_item->data;
-                struct workspace *workspace
-                        = workspace_list_get_workspace(workspace_list, index);
+                struct workspace *workspace = workspace_list_get_workspace(workspace_list, index);
 
                 if (workspace == NULL) {
-                        LOG_ERROR(natwm_logger,
-                                  "Failed to find workspace for monitor");
+                        LOG_ERROR(natwm_logger, "Failed to find workspace for monitor");
 
                         return;
                 }
@@ -93,8 +91,7 @@ static void attach_to_monitors(struct monitor_list *monitor_list,
  * name and initialize a new workspace with that name. If there is no name, or
  * it is invalid then create a new workspace with the default name
  */
-static struct workspace *
-workspace_init(const struct config_array *workspace_names, size_t index)
+static struct workspace *workspace_init(const struct config_array *workspace_names, size_t index)
 {
         const char *name = DEFAULT_WORKSPACE_NAMES[index];
 
@@ -105,18 +102,16 @@ workspace_init(const struct config_array *workspace_names, size_t index)
         const struct config_value *name_value = workspace_names->values[index];
 
         if (name_value == NULL || name_value->type != STRING) {
-                LOG_WARNING(
-                        natwm_logger, "Ignoring invalid workspace name", name);
+                LOG_WARNING(natwm_logger, "Ignoring invalid workspace name", name);
 
                 goto create_default_named_workspace;
         }
 
         if (strlen(name_value->data.string) > NATWM_WORKSPACE_NAME_MAX_LEN) {
-                LOG_WARNING(
-                        natwm_logger,
-                        "Workspace name '%s' is too long. Max length is %zu",
-                        name_value->data.string,
-                        NATWM_WORKSPACE_NAME_MAX_LEN);
+                LOG_WARNING(natwm_logger,
+                            "Workspace name '%s' is too long. Max length is %zu",
+                            name_value->data.string,
+                            NATWM_WORKSPACE_NAME_MAX_LEN);
 
                 goto create_default_named_workspace;
         }
@@ -129,8 +124,8 @@ create_default_named_workspace:
         return workspace_create(name, index);
 }
 
-static void client_show(const struct natwm_state *state,
-                        const struct monitor *monitor, struct client *client)
+static void client_show(const struct natwm_state *state, const struct monitor *monitor,
+                        struct client *client)
 {
         // TODO: Update to match aspect ratio
         client->rect = monitor_clamp_client_rect(monitor, client->rect);
@@ -138,8 +133,7 @@ static void client_show(const struct natwm_state *state,
         client_map(state, client, monitor);
 }
 
-static void workspace_send_to_monitor(struct natwm_state *state,
-                                      struct workspace *workspace,
+static void workspace_send_to_monitor(struct natwm_state *state, struct workspace *workspace,
                                       struct monitor *monitor)
 {
         LIST_FOR_EACH(workspace->clients, node)
@@ -169,8 +163,7 @@ static void client_hide(const struct natwm_state *state, struct client *client)
         xcb_unmap_window(state->xcb, client->window);
 }
 
-static void workspace_hide(const struct natwm_state *state,
-                           struct workspace *workspace)
+static void workspace_hide(const struct natwm_state *state, struct workspace *workspace)
 {
         if (!workspace->is_visible) {
                 return;
@@ -191,8 +184,7 @@ static void workspace_hide(const struct natwm_state *state,
         }
 }
 
-static struct node *get_client_node_from_client(struct list *client_list,
-                                                struct client *client)
+static struct node *get_client_node_from_client(struct list *client_list, struct client *client)
 {
         LIST_FOR_EACH(client_list, node)
         {
@@ -206,8 +198,8 @@ static struct node *get_client_node_from_client(struct list *client_list,
         return NULL;
 }
 
-static void focus_client(struct natwm_state *state, struct workspace *workspace,
-                         struct node *node, struct client *client)
+static void focus_client(struct natwm_state *state, struct workspace *workspace, struct node *node,
+                         struct client *client)
 {
         if (workspace->active_client) {
                 client_set_unfocused(state, workspace->active_client);
@@ -225,10 +217,8 @@ static void reset_input_focus(const struct natwm_state *state)
 {
         ewmh_update_active_window(state, state->screen->root);
 
-        xcb_set_input_focus(state->xcb,
-                            XCB_INPUT_FOCUS_NONE,
-                            state->screen->root,
-                            XCB_TIME_CURRENT_TIME);
+        xcb_set_input_focus(
+                state->xcb, XCB_INPUT_FOCUS_NONE, state->screen->root, XCB_TIME_CURRENT_TIME);
 }
 
 struct workspace *workspace_create(const char *name, size_t index)
@@ -257,8 +247,7 @@ struct workspace *workspace_create(const char *name, size_t index)
 
 struct workspace_list *workspace_list_create(size_t count)
 {
-        struct workspace_list *workspace_list
-                = malloc(sizeof(struct workspace_list));
+        struct workspace_list *workspace_list = malloc(sizeof(struct workspace_list));
 
         if (workspace_list == NULL) {
                 return NULL;
@@ -274,10 +263,8 @@ struct workspace_list *workspace_list_create(size_t count)
                 return NULL;
         }
 
-        map_set_key_compare_function(workspace_list->client_map,
-                                     compare_windows);
-        map_set_key_size_function(workspace_list->client_map,
-                                  get_client_list_key_size);
+        map_set_key_compare_function(workspace_list->client_map, compare_windows);
+        map_set_key_size_function(workspace_list->client_map, get_client_list_key_size);
 
         workspace_list->workspaces = calloc(count, sizeof(struct workspace *));
 
@@ -300,16 +287,14 @@ enum natwm_error workspace_list_init(const struct natwm_state *state,
 
         config_find_array(state->config, "workspaces", &workspace_names);
 
-        struct workspace_list *workspace_list
-                = workspace_list_create(NATWM_WORKSPACE_COUNT);
+        struct workspace_list *workspace_list = workspace_list_create(NATWM_WORKSPACE_COUNT);
 
         if (workspace_list == NULL) {
                 return MEMORY_ALLOCATION_ERROR;
         }
 
         for (size_t i = 0; i < NATWM_WORKSPACE_COUNT; ++i) {
-                struct workspace *workspace
-                        = workspace_init(workspace_names, i);
+                struct workspace *workspace = workspace_init(workspace_names, i);
 
                 if (workspace == NULL) {
                         workspace_list_destroy(workspace_list);
@@ -332,15 +317,13 @@ enum natwm_error workspace_list_init(const struct natwm_state *state,
         return NO_ERROR;
 }
 
-void workspace_set_focused(const struct natwm_state *state,
-                           struct workspace *workspace)
+void workspace_set_focused(const struct natwm_state *state, struct workspace *workspace)
 {
         if (workspace->is_focused) {
                 return;
         }
 
-        struct workspace *current_workspace
-                = workspace_list_get_focused(state->workspace_list);
+        struct workspace *current_workspace = workspace_list_get_focused(state->workspace_list);
 
         if (current_workspace && current_workspace->is_focused) {
                 workspace_set_unfocused(state, current_workspace);
@@ -353,8 +336,7 @@ void workspace_set_focused(const struct natwm_state *state,
         ewmh_update_current_desktop(state, workspace->index);
 }
 
-void workspace_set_unfocused(const struct natwm_state *state,
-                             struct workspace *workspace)
+void workspace_set_unfocused(const struct natwm_state *state, struct workspace *workspace)
 {
         if (!workspace->is_focused) {
                 return;
@@ -367,8 +349,7 @@ void workspace_set_unfocused(const struct natwm_state *state,
         workspace->is_focused = false;
 }
 
-void workspace_reset_focus(struct natwm_state *state,
-                           struct workspace *workspace)
+void workspace_reset_focus(struct natwm_state *state, struct workspace *workspace)
 {
         if (!workspace->is_focused) {
                 return;
@@ -391,8 +372,7 @@ void workspace_reset_focus(struct natwm_state *state,
                         return;
                 }
 
-                client_set_window_input_focus(state,
-                                              workspace->active_client->window);
+                client_set_window_input_focus(state, workspace->active_client->window);
 
                 return;
         }
@@ -418,16 +398,14 @@ void workspace_reset_focus(struct natwm_state *state,
         return;
 }
 
-enum natwm_error workspace_focus_client(struct natwm_state *state,
-                                        struct workspace *workspace,
+enum natwm_error workspace_focus_client(struct natwm_state *state, struct workspace *workspace,
                                         struct client *client)
 {
         if (client->is_focused || client->state & CLIENT_HIDDEN) {
                 return INVALID_INPUT_ERROR;
         }
 
-        struct node *client_node
-                = get_client_node_from_client(workspace->clients, client);
+        struct node *client_node = get_client_node_from_client(workspace->clients, client);
 
         if (client_node == NULL) {
                 return NOT_FOUND_ERROR;
@@ -442,12 +420,10 @@ enum natwm_error workspace_focus_client(struct natwm_state *state,
         return NO_ERROR;
 }
 
-enum natwm_error workspace_unfocus_client(struct natwm_state *state,
-                                          struct workspace *workspace,
+enum natwm_error workspace_unfocus_client(struct natwm_state *state, struct workspace *workspace,
                                           struct client *client)
 {
-        struct node *client_node
-                = get_client_node_from_client(workspace->clients, client);
+        struct node *client_node = get_client_node_from_client(workspace->clients, client);
 
         if (client_node == NULL) {
                 return NOT_FOUND_ERROR;
@@ -459,8 +435,7 @@ enum natwm_error workspace_unfocus_client(struct natwm_state *state,
 
         if (client->is_focused) {
                 struct node *next_node = client_node->next;
-                struct client *next_client
-                        = get_client_from_client_node(next_node);
+                struct client *next_client = get_client_from_client_node(next_node);
 
                 workspace_focus_client(state, workspace, next_client);
         }
@@ -480,12 +455,10 @@ enum natwm_error workspace_change_monitor(struct natwm_state *state,
         }
 
         // Hide the currently focused workspace
-        struct workspace *current_workspace
-                = workspace_list_get_focused(state->workspace_list);
-        struct monitor *current_monitor
-                = monitor_list_get_active_monitor(state->monitor_list);
-        struct monitor *next_monitor = monitor_list_get_workspace_monitor(
-                state->monitor_list, next_workspace);
+        struct workspace *current_workspace = workspace_list_get_focused(state->workspace_list);
+        struct monitor *current_monitor = monitor_list_get_active_monitor(state->monitor_list);
+        struct monitor *next_monitor
+                = monitor_list_get_workspace_monitor(state->monitor_list, next_workspace);
 
         if (current_workspace == NULL || current_monitor == NULL) {
                 return RESOLUTION_FAILURE;
@@ -497,8 +470,7 @@ enum natwm_error workspace_change_monitor(struct natwm_state *state,
         if (next_workspace->is_visible && next_monitor) {
                 workspace_hide(state, next_workspace);
 
-                workspace_send_to_monitor(
-                        state, current_workspace, next_monitor);
+                workspace_send_to_monitor(state, current_workspace, next_monitor);
         }
 
         workspace_send_to_monitor(state, next_workspace, current_monitor);
@@ -510,8 +482,7 @@ enum natwm_error workspace_change_monitor(struct natwm_state *state,
         return NO_ERROR;
 }
 
-enum natwm_error workspace_add_client(struct natwm_state *state,
-                                      struct workspace *workspace,
+enum natwm_error workspace_add_client(struct natwm_state *state, struct workspace *workspace,
                                       struct client *client)
 {
         struct workspace_list *list = state->workspace_list;
@@ -540,12 +511,10 @@ enum natwm_error workspace_add_client(struct natwm_state *state,
         return NO_ERROR;
 }
 
-enum natwm_error workspace_remove_client(struct natwm_state *state,
-                                         struct workspace *workspace,
+enum natwm_error workspace_remove_client(struct natwm_state *state, struct workspace *workspace,
                                          struct client *client)
 {
-        struct node *client_node
-                = get_client_node_from_client(workspace->clients, client);
+        struct node *client_node = get_client_node_from_client(workspace->clients, client);
 
         if (client_node == NULL) {
                 return NOT_FOUND_ERROR;
@@ -566,8 +535,7 @@ enum natwm_error workspace_remove_client(struct natwm_state *state,
         return NO_ERROR;
 }
 
-struct client *workspace_find_window_client(const struct workspace *workspace,
-                                            xcb_window_t window)
+struct client *workspace_find_window_client(const struct workspace *workspace, xcb_window_t window)
 {
         LIST_FOR_EACH(workspace->clients, node)
         {
@@ -590,8 +558,7 @@ struct workspace *workspace_list_get_focused(const struct workspace_list *list)
         return list->workspaces[list->active_index];
 }
 
-struct workspace *
-workspace_list_get_workspace(const struct workspace_list *list, size_t index)
+struct workspace *workspace_list_get_workspace(const struct workspace_list *list, size_t index)
 {
         if (index >= list->count) {
                 return NULL;
@@ -600,9 +567,8 @@ workspace_list_get_workspace(const struct workspace_list *list, size_t index)
         return list->workspaces[index];
 }
 
-struct workspace *
-workspace_list_find_window_workspace(const struct workspace_list *list,
-                                     xcb_window_t window)
+struct workspace *workspace_list_find_window_workspace(const struct workspace_list *list,
+                                                       xcb_window_t window)
 {
         struct map_entry *entry = map_get(list->client_map, &window);
 
@@ -615,21 +581,18 @@ workspace_list_find_window_workspace(const struct workspace_list *list,
         return workspace_list_get_workspace(list, index);
 }
 
-struct workspace *
-workspace_list_find_client_workspace(const struct workspace_list *list,
-                                     const struct client *client)
+struct workspace *workspace_list_find_client_workspace(const struct workspace_list *list,
+                                                       const struct client *client)
 {
         return workspace_list_find_window_workspace(list, client->window);
 }
 
-struct client *
-workspace_list_find_window_client(const struct workspace_list *list,
-                                  xcb_window_t window)
+struct client *workspace_list_find_window_client(const struct workspace_list *list,
+                                                 xcb_window_t window)
 {
         for (size_t i = 0; i < list->count; ++i) {
                 struct workspace *workspace = list->workspaces[i];
-                struct client *client
-                        = workspace_find_window_client(workspace, window);
+                struct client *client = workspace_find_window_client(workspace, window);
 
                 if (client != NULL) {
                         return client;
@@ -639,16 +602,14 @@ workspace_list_find_window_client(const struct workspace_list *list,
         return NULL;
 }
 
-enum natwm_error workspace_list_switch_to_workspace(struct natwm_state *state,
-                                                    size_t index)
+enum natwm_error workspace_list_switch_to_workspace(struct natwm_state *state, size_t index)
 {
         struct workspace *next_workspace
                 = workspace_list_get_workspace(state->workspace_list, index);
 
         if (!next_workspace) {
-                LOG_WARNING(natwm_logger,
-                            "Attempted to switch to non-existent workspace %u",
-                            index);
+                LOG_WARNING(
+                        natwm_logger, "Attempted to switch to non-existent workspace %u", index);
 
                 return INVALID_INPUT_ERROR;
         }
@@ -660,8 +621,7 @@ enum natwm_error workspace_list_switch_to_workspace(struct natwm_state *state,
         return workspace_change_monitor(state, next_workspace);
 }
 
-enum natwm_error workspace_list_send_to_workspace(struct natwm_state *state,
-                                                  struct client *client,
+enum natwm_error workspace_list_send_to_workspace(struct natwm_state *state, struct client *client,
                                                   size_t index)
 {
         struct workspace *next_workspace
@@ -681,8 +641,7 @@ enum natwm_error workspace_list_send_to_workspace(struct natwm_state *state,
         }
 
         struct workspace *client_workspace
-                = workspace_list_find_client_workspace(state->workspace_list,
-                                                       client);
+                = workspace_list_find_client_workspace(state->workspace_list, client);
 
         if (!client_workspace) {
                 LOG_ERROR(natwm_logger,
@@ -720,8 +679,8 @@ enum natwm_error workspace_list_send_to_workspace(struct natwm_state *state,
         }
 
         // Otherwise we need to map the client on the next monitor
-        struct monitor *next_monitor = monitor_list_get_workspace_monitor(
-                state->monitor_list, next_workspace);
+        struct monitor *next_monitor
+                = monitor_list_get_workspace_monitor(state->monitor_list, next_workspace);
 
         if (!next_monitor) {
                 LOG_ERROR(natwm_logger,
@@ -759,8 +718,7 @@ void workspace_destroy(struct workspace *workspace)
         if (workspace->clients != NULL) {
                 LIST_FOR_EACH(workspace->clients, node)
                 {
-                        struct client *client
-                                = get_client_from_client_node(node);
+                        struct client *client = get_client_from_client_node(node);
 
                         client_destroy(client);
                 }

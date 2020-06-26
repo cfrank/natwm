@@ -15,8 +15,7 @@
 static const int EMPTY_ENTRY = 1;
 
 // Forward declarations
-static enum natwm_error map_insert_entry(struct map *map,
-                                         struct map_entry *entry);
+static enum natwm_error map_insert_entry(struct map *map, struct map_entry *entry);
 
 // Default map hashing function
 // Uses Murmur v3 32bit
@@ -35,8 +34,7 @@ static size_t default_key_size_function(const void *key)
 
 // Default key compare function
 // This will compare two strings
-static bool default_key_compare_function(const void *one, const void *two,
-                                         size_t key_size)
+static bool default_key_compare_function(const void *one, const void *two, size_t key_size)
 {
         UNUSED_FUNCTION_PARAM(key_size);
 
@@ -50,8 +48,7 @@ static bool default_key_compare_function(const void *one, const void *two,
 // Given a map_entry determine if it holds valid data and is present
 static bool is_entry_present(const struct map_entry *entry)
 {
-        if (entry != NULL && entry->key != NULL
-            && entry->value != &EMPTY_ENTRY) {
+        if (entry != NULL && entry->key != NULL && entry->value != &EMPTY_ENTRY) {
                 return true;
         }
 
@@ -106,8 +103,7 @@ static int map_unlock(struct map *map)
 
 // Use the robin hood hashing method to probe the map for a sutable location to
 // place the provided entry
-static enum natwm_error map_probe(struct map *map, struct map_entry *entry,
-                                  uint32_t initial_index)
+static enum natwm_error map_probe(struct map *map, struct map_entry *entry, uint32_t initial_index)
 {
         // As we probe through the map these will continually get updated
         uint32_t probe_position = initial_index;
@@ -127,11 +123,9 @@ static enum natwm_error map_probe(struct map *map, struct map_entry *entry,
                         return NO_ERROR;
                 }
 
-                uint32_t insert_dib
-                        = get_dib(map, insert_entry, probe_position);
+                uint32_t insert_dib = get_dib(map, insert_entry, probe_position);
 
-                uint32_t current_dib
-                        = get_dib(map, current_entry, probe_position);
+                uint32_t current_dib = get_dib(map, current_entry, probe_position);
 
                 // If the current entry has a lower dib then the entry we are
                 // trying to insert then we swap the entries
@@ -148,8 +142,7 @@ static enum natwm_error map_probe(struct map *map, struct map_entry *entry,
         return CAPACITY_ERROR;
 }
 
-static enum natwm_error map_search(const struct map *map, const void *key,
-                                   uint32_t *index)
+static enum natwm_error map_search(const struct map *map, const void *key, uint32_t *index)
 {
         if (key == NULL || index == NULL) {
                 return GENERIC_ERROR;
@@ -157,8 +150,7 @@ static enum natwm_error map_search(const struct map *map, const void *key,
 
         // Initialize index with initial bucket index
         size_t key_size = map->key_size_function(key);
-        uint32_t current_index
-                = map->hash_function(key, key_size) % map->length;
+        uint32_t current_index = map->hash_function(key, key_size) % map->length;
 
         for (size_t i = 0; i <= map->length; ++i) {
                 if ((current_index) >= map->length) {
@@ -223,8 +215,7 @@ static enum natwm_error map_resize(struct map *map, int resize_direction)
                 return GENERIC_ERROR;
         }
 
-        struct map_entry **new_entries
-                = calloc(new_length, sizeof(struct map_entry *));
+        struct map_entry **new_entries = calloc(new_length, sizeof(struct map_entry *));
 
         if (new_entries == NULL) {
                 return MEMORY_ALLOCATION_ERROR;
@@ -282,8 +273,7 @@ static enum natwm_error map_resize(struct map *map, int resize_direction)
 }
 
 // Inserts a pre-hashed entry into the map
-static enum natwm_error map_insert_entry(struct map *map,
-                                         struct map_entry *entry)
+static enum natwm_error map_insert_entry(struct map *map, struct map_entry *entry)
 {
         // Get the new initial idex
         uint32_t initial_index = entry->hash % map->length;
@@ -293,8 +283,7 @@ static enum natwm_error map_insert_entry(struct map *map,
 
         // If there is a collision with the same key overwrite it
         if (is_hash_collision
-            && map->key_compare_function(
-                    entry->key, present_entry->key, key_size)) {
+            && map->key_compare_function(entry->key, present_entry->key, key_size)) {
                 map_entry_destroy(map, present_entry);
 
                 map->entries[initial_index] = entry;
@@ -303,12 +292,10 @@ static enum natwm_error map_insert_entry(struct map *map,
         }
 
         // Now we need to increase map->bucket_count
-        int resize_direction
-                = get_resize_direction(map, map->bucket_count + 1.0);
+        int resize_direction = get_resize_direction(map, map->bucket_count + 1.0);
 
         if (resize_direction != 0) {
-                enum natwm_error resize_error
-                        = map_resize(map, resize_direction);
+                enum natwm_error resize_error = map_resize(map, resize_direction);
 
                 if (resize_error != NO_ERROR) {
                         return resize_error;
@@ -352,8 +339,7 @@ static enum natwm_error map_insert_entry(struct map *map,
 }
 
 // Given a hash, key, and value construct a map entry
-enum natwm_error entry_init(uint32_t hash, const void *key, void *value,
-                            struct map_entry **dest)
+enum natwm_error entry_init(uint32_t hash, const void *key, void *value, struct map_entry **dest)
 {
         if (key == NULL || dest == NULL) {
                 return GENERIC_ERROR;
@@ -558,8 +544,7 @@ int map_set_key_size_function(struct map *map, map_key_size_function_t function)
 }
 
 // Set the key compare function
-int map_set_key_compare_function(struct map *map,
-                                 map_key_compare_function_t function)
+int map_set_key_compare_function(struct map *map, map_key_compare_function_t function)
 {
         if (map->bucket_count > 0) {
                 // Since we have added entries we can't change how we compare
@@ -573,8 +558,7 @@ int map_set_key_compare_function(struct map *map,
 }
 
 // Set a custom free function for use when destroying entries
-void map_set_entry_free_function(struct map *map,
-                                 map_entry_free_function_t function)
+void map_set_entry_free_function(struct map *map, map_entry_free_function_t function)
 {
         if (map->setting_flags & MAP_FLAG_USE_FREE) {
                 map_remove_setting_flag(map, MAP_FLAG_USE_FREE);
@@ -598,8 +582,7 @@ void map_remove_setting_flag(struct map *map, enum map_settings flag)
 /**
  * Type specific getters
  */
-uint32_t map_get_uint32(const struct map *map, const void *key,
-                        enum natwm_error *error)
+uint32_t map_get_uint32(const struct map *map, const void *key, enum natwm_error *error)
 {
         struct map_entry *entry = map_get(map, key);
 

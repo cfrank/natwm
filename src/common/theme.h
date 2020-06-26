@@ -67,12 +67,9 @@ struct border_theme *border_theme_create(void);
 struct color_theme *color_theme_create(void);
 struct theme *theme_create(const struct map *config_map);
 
-bool color_value_has_changed(struct color_value *value,
-                             const char *new_string_value);
-enum natwm_error color_value_from_string(const char *string,
-                                         struct color_value **result);
-enum natwm_error border_theme_from_config(const struct map *map,
-                                          const char *key,
+bool color_value_has_changed(struct color_value *value, const char *new_string_value);
+enum natwm_error color_value_from_string(const char *string, struct color_value **result);
+enum natwm_error border_theme_from_config(const struct map *map, const char *key,
                                           struct border_theme **result);
 enum natwm_error color_value_from_config(const struct map *map, const char *key,
                                          struct color_value **result);

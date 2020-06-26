@@ -43,8 +43,7 @@ void natwm_state_unlock(struct natwm_state *state)
         pthread_mutex_unlock(&state->mutex);
 }
 
-void natwm_state_update_config(struct natwm_state *state,
-                               const struct map *new_config)
+void natwm_state_update_config(struct natwm_state *state, const struct map *new_config)
 {
         natwm_state_lock(state);
 

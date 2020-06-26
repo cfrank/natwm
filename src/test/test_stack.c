@@ -22,8 +22,7 @@ struct non_primitive_type {
 
 struct non_primitive_type *npt_create(const char *string, size_t number)
 {
-        struct non_primitive_type *npt
-                = malloc(sizeof(struct non_primitive_type));
+        struct non_primitive_type *npt = malloc(sizeof(struct non_primitive_type));
 
         if (npt == NULL) {
                 return NULL;
@@ -128,8 +127,7 @@ static void test_stack_push_item_multiple(void **state)
 
         assert_int_equal(2, stack->length);
         assert_int_equal(expected_data_second, *(size_t *)stack->head->data);
-        assert_int_equal(expected_data_first,
-                         *(size_t *)stack->head->next->data);
+        assert_int_equal(expected_data_first, *(size_t *)stack->head->next->data);
         assert_null(stack->head->next->next);
 }
 
@@ -158,8 +156,7 @@ static void test_stack_push_multiple(void **state)
         assert_non_null(stack->head);
         assert_non_null(stack->head->next);
         assert_int_equal(expected_data_second, *(size_t *)stack->head->data);
-        assert_int_equal(expected_data_first,
-                         *(size_t *)stack->head->next->data);
+        assert_int_equal(expected_data_first, *(size_t *)stack->head->next->data);
 }
 
 static void test_stack_enqueue_item(void **state)
@@ -182,8 +179,7 @@ static void test_stack_enqueue_item_multiple(void **state)
         size_t expected_data_first = 1;
         size_t expected_data_second = 2;
         struct stack_item *item_first = stack_item_create(&expected_data_first);
-        struct stack_item *item_second
-                = stack_item_create(&expected_data_second);
+        struct stack_item *item_second = stack_item_create(&expected_data_second);
 
         stack_enqueue_item(stack, item_first);
         stack_enqueue_item(stack, item_second);
@@ -192,8 +188,7 @@ static void test_stack_enqueue_item_multiple(void **state)
         assert_non_null(stack->head);
         assert_non_null(stack->head->next);
         assert_int_equal(expected_data_first, *(size_t *)stack->head->data);
-        assert_int_equal(expected_data_second,
-                         *(size_t *)stack->head->next->data);
+        assert_int_equal(expected_data_second, *(size_t *)stack->head->next->data);
 }
 
 static void test_stack_enqueue(void **state)
@@ -219,8 +214,7 @@ static void test_stack_enqueue_multiple(void **state)
         assert_non_null(stack->head);
         assert_non_null(stack->head->next);
         assert_int_equal(expected_data_first, *(size_t *)stack->head->data);
-        assert_int_equal(expected_data_second,
-                         *(size_t *)stack->head->next->data);
+        assert_int_equal(expected_data_second, *(size_t *)stack->head->next->data);
 }
 
 static void test_stack_pop(void **state)
@@ -495,47 +489,32 @@ static void test_stack_destroy_callback_multiple(void **state)
 int main(void)
 {
         const struct CMUnitTest tests[] = {
-                cmocka_unit_test_setup_teardown(
-                        test_stack_creation, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(test_stack_creation, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(
                         test_stack_item_creation, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(test_stack_push_item, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(
-                        test_stack_push_item, test_setup, test_teardown),
-                cmocka_unit_test_setup_teardown(test_stack_push_item_multiple,
-                                                test_setup,
-                                                test_teardown),
-                cmocka_unit_test_setup_teardown(
-                        test_stack_push, test_setup, test_teardown),
+                        test_stack_push_item_multiple, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(test_stack_push, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(
                         test_stack_push_multiple, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(test_stack_enqueue_item, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(
-                        test_stack_enqueue_item, test_setup, test_teardown),
-                cmocka_unit_test_setup_teardown(
-                        test_stack_enqueue_item_multiple,
-                        test_setup,
-                        test_teardown),
-                cmocka_unit_test_setup_teardown(
-                        test_stack_enqueue, test_setup, test_teardown),
+                        test_stack_enqueue_item_multiple, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(test_stack_enqueue, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(
                         test_stack_enqueue_multiple, test_setup, test_teardown),
-                cmocka_unit_test_setup_teardown(
-                        test_stack_pop, test_setup, test_teardown),
-                cmocka_unit_test_setup_teardown(
-                        test_stack_pop_multiple, test_setup, test_teardown),
-                cmocka_unit_test_setup_teardown(
-                        test_stack_pop_empty, test_setup, test_teardown),
-                cmocka_unit_test_setup_teardown(
-                        test_stack_peek, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(test_stack_pop, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(test_stack_pop_multiple, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(test_stack_pop_empty, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(test_stack_peek, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(
                         test_stack_peek_multiple, test_setup, test_teardown),
-                cmocka_unit_test_setup_teardown(
-                        test_stack_peek_empty, test_setup, test_teardown),
-                cmocka_unit_test_setup_teardown(
-                        test_stack_peek_n, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(test_stack_peek_empty, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(test_stack_peek_n, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(
                         test_stack_peek_n_not_found, test_setup, test_teardown),
-                cmocka_unit_test_setup_teardown(
-                        test_stack_dequeue, test_setup, test_teardown),
+                cmocka_unit_test_setup_teardown(test_stack_dequeue, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(
                         test_stack_dequeue_multiple, test_setup, test_teardown),
                 cmocka_unit_test_setup_teardown(

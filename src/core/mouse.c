@@ -25,8 +25,7 @@ void mouse_event_grab_button(xcb_connection_t *connection, xcb_window_t window,
 // The only mouse event which will not be initialized here is the "click to
 // focus" event which needs to be created or destroyed based on the client
 // focus
-void mouse_initialize_client_listeners(const struct natwm_state *state,
-                                       const struct client *client)
+void mouse_initialize_client_listeners(const struct natwm_state *state, const struct client *client)
 {
         for (size_t i = 0; i < MOUSE_EVENTS_NUM; ++i) {
                 struct mouse_binding binding = mouse_events[i];

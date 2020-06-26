@@ -43,17 +43,12 @@ struct monitor_list {
 struct server_extension *server_extension_detect(xcb_connection_t *connection);
 const char *server_extension_to_string(enum server_extension_type extension);
 
-struct monitor_list *monitor_list_create(struct server_extension *extension,
-                                         struct list *monitors);
-struct monitor *
-monitor_list_get_active_monitor(const struct monitor_list *monitor_list);
-struct monitor *
-monitor_list_get_workspace_monitor(const struct monitor_list *monitor_list,
-                                   const struct workspace *workspace);
-struct monitor *monitor_create(uint32_t id, xcb_rectangle_t rect,
-                               struct workspace *workspace);
-enum natwm_error monitor_setup(const struct natwm_state *state,
-                               struct monitor_list **result);
+struct monitor_list *monitor_list_create(struct server_extension *extension, struct list *monitors);
+struct monitor *monitor_list_get_active_monitor(const struct monitor_list *monitor_list);
+struct monitor *monitor_list_get_workspace_monitor(const struct monitor_list *monitor_list,
+                                                   const struct workspace *workspace);
+struct monitor *monitor_create(uint32_t id, xcb_rectangle_t rect, struct workspace *workspace);
+enum natwm_error monitor_setup(const struct natwm_state *state, struct monitor_list **result);
 xcb_rectangle_t monitor_clamp_client_rect(const struct monitor *monitor,
                                           xcb_rectangle_t client_rect);
 xcb_rectangle_t monitor_get_offset_rect(const struct monitor *monitor);

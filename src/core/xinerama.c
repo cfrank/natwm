@@ -13,11 +13,9 @@ bool xinerama_is_active(xcb_connection_t *connection)
 {
         xcb_generic_error_t *err = XCB_NONE;
 
-        xcb_xinerama_is_active_cookie_t is_active_cookie
-                = xcb_xinerama_is_active(connection);
+        xcb_xinerama_is_active_cookie_t is_active_cookie = xcb_xinerama_is_active(connection);
         xcb_xinerama_is_active_reply_t *is_active_reply
-                = xcb_xinerama_is_active_reply(
-                        connection, is_active_cookie, &err);
+                = xcb_xinerama_is_active_reply(connection, is_active_cookie, &err);
 
         if (err != XCB_NONE) {
                 free(is_active_reply);
@@ -33,16 +31,14 @@ bool xinerama_is_active(xcb_connection_t *connection)
 }
 
 enum natwm_error xinerama_get_screens(const struct natwm_state *state,
-                                      xcb_rectangle_t **destination,
-                                      size_t *count)
+                                      xcb_rectangle_t **destination, size_t *count)
 {
         xcb_generic_error_t *err = XCB_NONE;
 
         xcb_xinerama_query_screens_cookie_t query_screens_cookie
                 = xcb_xinerama_query_screens(state->xcb);
         xcb_xinerama_query_screens_reply_t *query_screens_reply
-                = xcb_xinerama_query_screens_reply(
-                        state->xcb, query_screens_cookie, &err);
+                = xcb_xinerama_query_screens_reply(state->xcb, query_screens_cookie, &err);
 
         if (err != XCB_NONE) {
                 LOG_INFO(natwm_logger, "Failed to get xinerama screens");
@@ -61,13 +57,11 @@ enum natwm_error xinerama_get_screens(const struct natwm_state *state,
                 return GENERIC_ERROR;
         }
 
-        int screen_count = xcb_xinerama_query_screens_screen_info_length(
-                query_screens_reply);
+        int screen_count = xcb_xinerama_query_screens_screen_info_length(query_screens_reply);
 
         assert(screen_count > 0);
 
-        xcb_rectangle_t *screen_rects
-                = malloc(sizeof(xcb_rectangle_t) * (size_t)screen_count);
+        xcb_rectangle_t *screen_rects = malloc(sizeof(xcb_rectangle_t) * (size_t)screen_count);
 
         if (screen_rects == NULL) {
                 return MEMORY_ALLOCATION_ERROR;
