@@ -20,7 +20,6 @@ struct natwm_state {
         xcb_connection_t *xcb;
         xcb_ewmh_connection_t *ewmh;
         xcb_screen_t *screen;
-        xcb_window_t actively_moving_window;
         struct monitor_list *monitor_list;
         struct workspace_list *workspace_list;
         const struct map *config;
