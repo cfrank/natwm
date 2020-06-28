@@ -4,10 +4,10 @@
 
 #include <xcb/xcb.h>
 
-#include "mouse.h"
+#include "button.h"
 
-void mouse_event_grab_button(xcb_connection_t *connection, xcb_window_t window,
-                             const struct mouse_binding *binding)
+void button_event_grab(xcb_connection_t *connection, xcb_window_t window,
+                       const struct button_binding *binding)
 {
         xcb_grab_button(connection,
                         binding->pass_event,
@@ -25,19 +25,20 @@ void mouse_event_grab_button(xcb_connection_t *connection, xcb_window_t window,
 // The only mouse event which will not be initialized here is the "click to
 // focus" event which needs to be created or destroyed based on the client
 // focus
-void mouse_initialize_client_listeners(const struct natwm_state *state, const struct client *client)
+void button_initialize_client_listeners(const struct natwm_state *state,
+                                        const struct client *client)
 {
-        for (size_t i = 0; i < MOUSE_EVENTS_NUM; ++i) {
-                struct mouse_binding binding = mouse_events[i];
+        for (size_t i = 0; i < BUTTON_EVENTS_NUM; ++i) {
+                struct button_binding binding = button_events[i];
 
-                mouse_event_grab_button(state->xcb, client->window, &binding);
+                button_event_grab(state->xcb, client->window, &binding);
         };
 
         xcb_flush(state->xcb);
 }
 
-enum natwm_error mouse_handle_focus(struct natwm_state *state, struct workspace *workspace,
-                                    struct client *client)
+enum natwm_error button_handle_focus(struct natwm_state *state, struct workspace *workspace,
+                                     struct client *client)
 {
         enum natwm_error err = workspace_focus_client(state, workspace, client);
 

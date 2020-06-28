@@ -9,10 +9,10 @@
 #include <common/constants.h>
 #include <common/logger.h>
 
+#include <core/button.h>
 #include <core/client.h>
 #include <core/ewmh.h>
 #include <core/monitor.h>
-#include <core/mouse.h>
 
 #include "event.h"
 #include "randr-event.h"

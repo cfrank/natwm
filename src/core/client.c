@@ -8,10 +8,10 @@
 #include <common/constants.h>
 #include <common/logger.h>
 
+#include "button.h"
 #include "client.h"
 #include "ewmh.h"
 #include "monitor.h"
-#include "mouse.h"
 #include "workspace.h"
 
 static void handle_configure_request(xcb_connection_t *connection,
@@ -327,7 +327,7 @@ struct client *client_register_window(struct natwm_state *state, xcb_window_t wi
         client->rect = client_initialize_rect(client, workspace_monitor);
 
         // Listen for button events
-        mouse_initialize_client_listeners(state, client);
+        button_initialize_client_listeners(state, client);
 
         xcb_change_save_set(state->xcb, XCB_SET_MODE_INSERT, client->window);
 
@@ -382,7 +382,7 @@ enum natwm_error client_handle_button_press(struct natwm_state *state,
 
         switch (event->state) {
         case XCB_NONE:
-                return mouse_handle_focus(state, workspace, client);
+                return button_handle_focus(state, workspace, client);
         default:
                 return NO_ERROR;
         }
@@ -797,7 +797,7 @@ void client_set_unfocused(const struct natwm_state *state, struct client *client
 
         // When a client is unfocused we need to grab the mouse button required
         // for "click to focus"
-        mouse_event_grab_button(state->xcb, client->window, &client_focus_event);
+        button_event_grab(state->xcb, client->window, &client_focus_event);
 
         update_theme(state, client, theme->border_width->focused);
 }
