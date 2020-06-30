@@ -37,7 +37,7 @@ static uint16_t mask_from_keysym(xcb_key_symbols_t *symbols, xcb_keycode_t *modi
                                 if (*key == modifier) {
                                         free(keycodes);
 
-                                        return ((uint16_t)1 << i);
+                                        return (uint16_t)(1 << i);
                                 }
                         }
                 }
