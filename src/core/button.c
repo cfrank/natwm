@@ -16,17 +16,16 @@
 //
 // Given a xcb_keysym_t attempt to find and return the mod mask
 static uint16_t mask_from_keysym(xcb_key_symbols_t *symbols, xcb_keycode_t *modifiers,
-                                 uint16_t modifier_length, uint8_t keycodes_per_modifier,
+                                 uint8_t modifier_num, uint8_t keycodes_per_modifier,
                                  xcb_keysym_t keysym)
 {
-        uint16_t result = 0;
         xcb_keycode_t *keycodes = xcb_key_symbols_get_keycode(symbols, keysym);
 
         if (keycodes == NULL) {
-                return result;
+                return 0;
         }
 
-        for (uint16_t i = 0; i < modifier_length; ++i) {
+        for (uint8_t i = 0; i < modifier_num; ++i) {
                 for (uint8_t j = 0; j < keycodes_per_modifier; ++j) {
                         xcb_keycode_t modifier = modifiers[i * keycodes_per_modifier + j];
 
@@ -36,7 +35,9 @@ static uint16_t mask_from_keysym(xcb_key_symbols_t *symbols, xcb_keycode_t *modi
 
                         for (xcb_keycode_t *key = keycodes; *key != XCB_NO_SYMBOL; key++) {
                                 if (*key == modifier) {
-                                        result |= (uint16_t)(1 << i);
+                                        free(keycodes);
+
+                                        return ((uint16_t)1 << i);
                                 }
                         }
                 }
@@ -44,7 +45,7 @@ static uint16_t mask_from_keysym(xcb_key_symbols_t *symbols, xcb_keycode_t *modi
 
         free(keycodes);
 
-        return result;
+        return 0;
 }
 
 // Heavily influenced from bspwm:
@@ -96,24 +97,25 @@ static struct button_modifiers *resolve_button_modifiers(xcb_connection_t *conne
                 return NULL;
         }
 
-        int modifier_length
+        int modifier_num
                 = xcb_get_modifier_mapping_keycodes_length(reply) / reply->keycodes_per_modifier;
 
-        assert(modifier_length >= 0 && modifier_length <= UINT16_MAX);
+        // Usually (Mod1-Mod5, Shift, Control, Lock)
+        assert(modifier_num >= 0 && modifier_num <= UINT8_MAX);
 
         modifiers->num_lock = mask_from_keysym(symbols,
                                                modifier_keycodes,
-                                               (uint16_t)modifier_length,
+                                               (uint8_t)modifier_num,
                                                reply->keycodes_per_modifier,
                                                NUM_LOCK_KEYSYM);
         modifiers->caps_lock = mask_from_keysym(symbols,
                                                 modifier_keycodes,
-                                                (uint16_t)modifier_length,
+                                                (uint8_t)modifier_num,
                                                 reply->keycodes_per_modifier,
                                                 CAPS_LOCK_KEYSYM);
         modifiers->scroll_lock = mask_from_keysym(symbols,
                                                   modifier_keycodes,
-                                                  (uint16_t)modifier_length,
+                                                  (uint8_t)modifier_num,
                                                   reply->keycodes_per_modifier,
                                                   SCROLL_LOCK_KEYSYM);
 
