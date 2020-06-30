@@ -17,6 +17,7 @@
 #include <common/map.h>
 #include <common/theme.h>
 #include <common/util.h>
+#include <core/button.h>
 #include <core/client.h>
 #include <core/config/config.h>
 #include <core/events/event.h>
@@ -325,13 +326,11 @@ int main(int argc, char **argv)
                 state->config_path = arg_options->config_path;
         }
 
-        const struct map *config = config_initialize_path(state->config_path);
+        state->config = config_initialize_path(state->config_path);
 
-        if (config == NULL) {
+        if (state->config == NULL) {
                 goto free_and_error;
         }
-
-        state->config = config;
 
         // Catch and handle signals
         if (install_signal_handlers() != 0) {
@@ -339,26 +338,22 @@ int main(int argc, char **argv)
         }
 
         // Initialize x
-        xcb_connection_t *xcb = make_connection(arg_options->screen, &screen_num);
+        state->xcb = make_connection(arg_options->screen, &screen_num);
 
-        if (xcb == NULL) {
+        if (state->xcb == NULL) {
                 goto free_and_error;
         }
-
-        state->xcb = xcb;
 
         LOG_INFO(natwm_logger, "Successfully connected to X server");
 
         // Find the default screen
-        xcb_screen_t *default_screen = find_default_screen(state->xcb, screen_num);
+        state->screen = find_default_screen(state->xcb, screen_num);
 
-        if (default_screen == NULL) {
+        if (state->screen == NULL) {
                 LOG_ERROR(natwm_logger, "Failed to find default screen");
 
                 goto free_and_error;
         }
-
-        state->screen = default_screen;
 
         // Attempt to register for substructure events
         if (root_window_subscribe(state) != 0) {
@@ -369,34 +364,36 @@ int main(int argc, char **argv)
                 goto free_and_error;
         }
 
-        xcb_ewmh_connection_t *ewmh = ewmh_create(xcb);
+        state->ewmh = ewmh_create(state->xcb);
 
-        if (ewmh == NULL) {
+        if (state->ewmh == NULL) {
+                LOG_ERROR(natwm_logger, "Failed to setup monitor");
+
                 goto free_and_error;
         }
-
-        state->ewmh = ewmh;
 
         // Initialize ewmh hinting
         ewmh_init(state);
 
-        struct monitor_list *monitor_list = NULL;
+        state->button_state = button_state_create(state->xcb);
 
-        if (monitor_setup(state, &monitor_list) != NO_ERROR) {
+        if (state->button_state == NULL) {
+                LOG_ERROR(natwm_logger, "Failed to initialize button state");
+
                 goto free_and_error;
         }
 
-        state->monitor_list = monitor_list;
+        if (monitor_setup(state, &state->monitor_list) != NO_ERROR) {
+                LOG_ERROR(natwm_logger, "Failed to setup monitor");
 
-        struct workspace_list *workspace_list = NULL;
+                goto free_and_error;
+        }
 
-        if (workspace_list_init(state, &workspace_list) != NO_ERROR) {
+        if (workspace_list_init(state, &state->workspace_list) != NO_ERROR) {
                 LOG_ERROR(natwm_logger, "Failed to setup workspaces");
 
                 goto free_and_error;
         }
-
-        state->workspace_list = workspace_list;
 
         // Before we can start registering clients we need to load the theme
         // from the configuration file. This will save us trips to the config
