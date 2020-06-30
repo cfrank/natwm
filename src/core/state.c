@@ -3,6 +3,7 @@
 // Refer to the license.txt file included in the root of the project
 
 #include "state.h"
+#include "button.h"
 #include "config/config.h"
 #include "ewmh.h"
 #include "monitor.h"
@@ -20,6 +21,7 @@ struct natwm_state *natwm_state_create(void)
         state->xcb = NULL;
         state->ewmh = NULL;
         state->screen = NULL;
+        state->button_state = NULL;
         state->monitor_list = NULL;
         state->workspace_list = NULL;
         state->config = NULL;
@@ -58,6 +60,9 @@ void natwm_state_destroy(struct natwm_state *state)
                 return;
         }
 
+        if (state->button_state != NULL) {
+                button_state_destroy(state->button_state);
+        }
         if (state->workspace_list != NULL) {
                 workspace_list_destroy(state->workspace_list);
         }

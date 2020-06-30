@@ -12,6 +12,7 @@
 #include <common/map.h>
 
 // Forward declare needed types
+struct button_state;
 struct monitor_list;
 struct workspace_list;
 
@@ -20,6 +21,7 @@ struct natwm_state {
         xcb_connection_t *xcb;
         xcb_ewmh_connection_t *ewmh;
         xcb_screen_t *screen;
+        struct button_state *button_state;
         struct monitor_list *monitor_list;
         struct workspace_list *workspace_list;
         const struct map *config;
