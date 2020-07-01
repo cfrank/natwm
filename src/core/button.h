@@ -33,15 +33,15 @@ struct button_binding {
         uint16_t modifiers;
 };
 
-struct button_modifiers {
+struct toggle_modifiers {
         uint16_t num_lock;
         uint16_t caps_lock;
         uint16_t scroll_lock;
-        uint16_t *modifier_masks;
+        uint16_t *masks;
 };
 
 struct button_state {
-        struct button_modifiers *modifiers;
+        struct toggle_modifiers *modifiers;
         struct client *grabbed_client;
 };
 
@@ -68,7 +68,8 @@ static const struct button_binding button_events[BUTTON_EVENTS_NUM] = {
 };
 
 struct button_state *button_state_create(xcb_connection_t *connection);
-uint16_t button_modifiers_get_clean_mask(const struct button_modifiers *modifiers, uint16_t mask);
+
+uint16_t toggle_modifiers_get_clean_mask(const struct toggle_modifiers *modifiers, uint16_t mask);
 
 void button_binding_grab(const struct natwm_state *state, xcb_window_t window,
                          const struct button_binding *binding);
