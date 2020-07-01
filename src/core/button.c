@@ -7,6 +7,7 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_keysyms.h>
 
+#include <common/constants.h>
 #include <common/logger.h>
 
 #include "button.h"
@@ -146,6 +147,15 @@ struct button_state *button_state_create(xcb_connection_t *connection)
         state->grabbed_client = NULL;
 
         return state;
+}
+
+ATTR_INLINE uint16_t button_modifiers_get_clean_mask(const struct button_modifiers *modifiers,
+                                                     uint16_t mask)
+{
+        uint16_t modifier_mask
+                = (modifiers->num_lock | modifiers->caps_lock | modifiers->scroll_lock);
+
+        return (uint16_t)(mask & ~(modifier_mask));
 }
 
 void button_event_grab(xcb_connection_t *connection, xcb_window_t window,
