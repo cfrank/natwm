@@ -12,6 +12,50 @@
 
 #include "button.h"
 
+static uint16_t *resolve_modifier_masks(const struct button_modifiers *modifiers)
+{
+        int index = -1;
+        uint16_t *modifier_masks = malloc(sizeof(uint16_t) * 8);
+
+        if (modifier_masks == NULL) {
+                return NULL;
+        }
+
+        if (modifiers->num_lock != XCB_NO_SYMBOL && modifiers->caps_lock != XCB_NO_SYMBOL
+            && modifiers->scroll_lock != XCB_NO_SYMBOL) {
+                modifier_masks[++index]
+                        = (modifiers->num_lock | modifiers->caps_lock | modifiers->scroll_lock);
+        }
+
+        if (modifiers->num_lock != XCB_NO_SYMBOL && modifiers->caps_lock != XCB_NO_SYMBOL) {
+                modifier_masks[++index] = (modifiers->num_lock | modifiers->caps_lock);
+        }
+
+        if (modifiers->num_lock != XCB_NO_SYMBOL && modifiers->scroll_lock != XCB_NO_SYMBOL) {
+                modifier_masks[++index] = (modifiers->num_lock | modifiers->scroll_lock);
+        }
+
+        if (modifiers->caps_lock != XCB_NO_SYMBOL && modifiers->scroll_lock != XCB_NO_SYMBOL) {
+                modifier_masks[++index] = (modifiers->caps_lock | modifiers->scroll_lock);
+        }
+
+        if (modifiers->num_lock != XCB_NO_SYMBOL) {
+                modifier_masks[++index] = modifiers->num_lock;
+        }
+
+        if (modifiers->caps_lock != XCB_NO_SYMBOL) {
+                modifier_masks[++index] = modifiers->caps_lock;
+        }
+
+        if (modifiers->scroll_lock != XCB_NO_SYMBOL) {
+                modifier_masks[++index] = modifiers->scroll_lock;
+        }
+
+        modifier_masks[++index] = XCB_NO_SYMBOL;
+
+        return modifier_masks;
+}
+
 // Heavily influenced from bspwm:
 // https://github.com/baskerville/bspwm/blob/master/src/pointer.c
 //
@@ -124,6 +168,18 @@ static struct button_modifiers *resolve_button_modifiers(xcb_connection_t *conne
                 modifiers->caps_lock = XCB_MOD_MASK_LOCK;
         }
 
+        modifiers->modifier_masks = resolve_modifier_masks(modifiers);
+
+        if (modifiers->modifier_masks == NULL) {
+                free(modifiers);
+
+                xcb_key_symbols_free(symbols);
+
+                free(reply);
+
+                return NULL;
+        }
+
         xcb_key_symbols_free(symbols);
         free(reply);
 
@@ -158,10 +214,10 @@ ATTR_INLINE uint16_t button_modifiers_get_clean_mask(const struct button_modifie
         return (uint16_t)(mask & ~(modifier_mask));
 }
 
-void button_event_grab(xcb_connection_t *connection, xcb_window_t window,
-                       const struct button_binding *binding)
+ATTR_INLINE void button_binding_grab(const struct natwm_state *state, xcb_window_t window,
+                                     const struct button_binding *binding)
 {
-        xcb_grab_button(connection,
+        xcb_grab_button(state->xcb,
                         binding->pass_event,
                         window,
                         binding->mask,
@@ -171,6 +227,25 @@ void button_event_grab(xcb_connection_t *connection, xcb_window_t window,
                         binding->cursor,
                         binding->button,
                         binding->modifiers);
+
+        struct button_modifiers *modifiers = state->button_state->modifiers;
+
+        if (modifiers == NULL) {
+                return;
+        }
+
+        for (uint16_t *mask = modifiers->modifier_masks; *mask != XCB_NO_SYMBOL; mask++) {
+                xcb_grab_button(state->xcb,
+                                binding->pass_event,
+                                window,
+                                binding->mask,
+                                binding->pointer_mode,
+                                binding->keyboard_mode,
+                                XCB_NONE,
+                                binding->cursor,
+                                binding->button,
+                                binding->modifiers | *mask);
+        }
 }
 
 // These are the mouse events which will persist for the life of the client.
@@ -183,7 +258,7 @@ void button_initialize_client_listeners(const struct natwm_state *state,
         for (size_t i = 0; i < BUTTON_EVENTS_NUM; ++i) {
                 struct button_binding binding = button_events[i];
 
-                button_event_grab(state->xcb, client->window, &binding);
+                button_binding_grab(state, client->window, &binding);
         };
 
         xcb_flush(state->xcb);
@@ -210,6 +285,7 @@ enum natwm_error button_handle_focus(struct natwm_state *state, struct workspace
 void button_state_destroy(struct button_state *state)
 {
         if (state->modifiers != NULL) {
+                free(state->modifiers->modifier_masks);
                 free(state->modifiers);
         }
 
