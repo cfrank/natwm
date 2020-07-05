@@ -122,7 +122,11 @@ static struct toggle_modifiers *resolve_toggle_modifiers(xcb_connection_t *conne
         xcb_get_modifier_mapping_reply_t *reply
                 = xcb_get_modifier_mapping_reply(connection, cookie, NULL);
 
+#ifdef __APPLE__
+        if (reply == NULL) {
+#else
         if (reply == NULL || reply->keycodes_per_modifier < 1) {
+#endif
                 free(modifiers);
 
                 xcb_key_symbols_free(symbols);
@@ -136,11 +140,18 @@ static struct toggle_modifiers *resolve_toggle_modifiers(xcb_connection_t *conne
                 goto handle_error;
         }
 
+#ifdef __APPLE__
+        // On OSX keycodes_per_modifier returns 0 for some reason.
+        //
+        // TODO: Determine if this is correct
+        int modifier_num = 8;
+#else
         int modifier_num
                 = xcb_get_modifier_mapping_keycodes_length(reply) / reply->keycodes_per_modifier;
 
         // Usually (Mod1-Mod5, Shift, Control, Lock)
         assert(modifier_num >= 0 && modifier_num <= UINT8_MAX);
+#endif
 
         modifiers->num_lock = modifier_mask_from_keysym(symbols,
                                                         modifier_keycodes,
