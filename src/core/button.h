@@ -64,12 +64,10 @@ static const struct button_binding button_events[BUTTON_EVENTS_NUM] = {
 struct button_state *button_state_create(xcb_connection_t *connection);
 
 uint16_t toggle_modifiers_get_clean_mask(const struct toggle_modifiers *modifiers, uint16_t mask);
-
 void button_binding_grab(const struct natwm_state *state, xcb_window_t window,
                          const struct button_binding *binding);
 void button_initialize_client_listeners(const struct natwm_state *state,
                                         const struct client *client);
-
 enum natwm_error button_handle_focus(struct natwm_state *state, struct workspace *workspace,
                                      struct client *client);
 

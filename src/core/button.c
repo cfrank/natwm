@@ -26,44 +26,45 @@
 // xcb_grab_button
 static uint16_t *resolve_toggle_masks(const struct toggle_modifiers *modifiers)
 {
-        int index = -1;
         uint16_t *masks = malloc(sizeof(uint16_t) * 8);
 
         if (masks == NULL) {
                 return NULL;
         }
 
-        if (modifiers->num_lock != XCB_NO_SYMBOL && modifiers->caps_lock != XCB_NO_SYMBOL
-            && modifiers->scroll_lock != XCB_NO_SYMBOL) {
+        int index = -1;
+
+        if (modifiers->num_lock != XCB_NONE && modifiers->caps_lock != XCB_NONE
+            && modifiers->scroll_lock != XCB_NONE) {
                 masks[++index]
                         = (modifiers->num_lock | modifiers->caps_lock | modifiers->scroll_lock);
         }
 
-        if (modifiers->num_lock != XCB_NO_SYMBOL && modifiers->caps_lock != XCB_NO_SYMBOL) {
+        if (modifiers->num_lock != XCB_NONE && modifiers->caps_lock != XCB_NONE) {
                 masks[++index] = (modifiers->num_lock | modifiers->caps_lock);
         }
 
-        if (modifiers->num_lock != XCB_NO_SYMBOL && modifiers->scroll_lock != XCB_NO_SYMBOL) {
+        if (modifiers->num_lock != XCB_NONE && modifiers->scroll_lock != XCB_NONE) {
                 masks[++index] = (modifiers->num_lock | modifiers->scroll_lock);
         }
 
-        if (modifiers->caps_lock != XCB_NO_SYMBOL && modifiers->scroll_lock != XCB_NO_SYMBOL) {
+        if (modifiers->caps_lock != XCB_NONE && modifiers->scroll_lock != XCB_NONE) {
                 masks[++index] = (modifiers->caps_lock | modifiers->scroll_lock);
         }
 
-        if (modifiers->num_lock != XCB_NO_SYMBOL) {
+        if (modifiers->num_lock != XCB_NONE) {
                 masks[++index] = modifiers->num_lock;
         }
 
-        if (modifiers->caps_lock != XCB_NO_SYMBOL) {
+        if (modifiers->caps_lock != XCB_NONE) {
                 masks[++index] = modifiers->caps_lock;
         }
 
-        if (modifiers->scroll_lock != XCB_NO_SYMBOL) {
+        if (modifiers->scroll_lock != XCB_NONE) {
                 masks[++index] = modifiers->scroll_lock;
         }
 
-        masks[++index] = XCB_NO_SYMBOL;
+        masks[++index] = XCB_NONE;
 
         return masks;
 }
@@ -86,11 +87,11 @@ static uint16_t modifier_mask_from_keysym(xcb_key_symbols_t *symbols,
                 for (uint8_t j = 0; j < keycodes_per_modifier; ++j) {
                         xcb_keycode_t modifier = modifiers[i * keycodes_per_modifier + j];
 
-                        if (modifier == XCB_NO_SYMBOL) {
+                        if (modifier == XCB_NONE) {
                                 continue;
                         }
 
-                        for (xcb_keycode_t *key = keycodes; *key != XCB_NO_SYMBOL; key++) {
+                        for (xcb_keycode_t *key = keycodes; *key != XCB_NONE; key++) {
                                 if (*key == modifier) {
                                         free(keycodes);
 
@@ -181,7 +182,7 @@ static struct toggle_modifiers *resolve_toggle_modifiers(xcb_connection_t *conne
                                                            reply->keycodes_per_modifier,
                                                            SCROLL_LOCK_KEYSYM);
 
-        if (modifiers->caps_lock == XCB_NO_SYMBOL) {
+        if (modifiers->caps_lock == XCB_NONE) {
                 modifiers->caps_lock = XCB_MOD_MASK_LOCK;
         }
 
@@ -260,7 +261,7 @@ void button_binding_grab(const struct natwm_state *state, xcb_window_t window,
                 return;
         }
 
-        for (uint16_t *mask = modifiers->masks; *mask != XCB_NO_SYMBOL; mask++) {
+        for (uint16_t *mask = modifiers->masks; *mask != XCB_NONE; mask++) {
                 xcb_grab_button(state->xcb,
                                 binding->pass_event,
                                 window,
