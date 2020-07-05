@@ -17,12 +17,6 @@
 
 #define DEFAULT_BUTTON_MASK XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE
 
-// Toggleable keys
-// https://cgit.freedesktop.org/xorg/proto/x11proto/tree/keysymdef.h
-#define NUM_LOCK_KEYSYM 0xff7f
-#define CAPS_LOCK_KEYSYM 0xffe5
-#define SCROLL_LOCK_KEYSYM 0xff14
-
 struct button_binding {
         uint8_t pass_event;
         uint16_t mask;

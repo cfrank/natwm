@@ -12,10 +12,18 @@
 
 #include "button.h"
 
+// Toggleable keys
+// https://cgit.freedesktop.org/xorg/proto/x11proto/tree/keysymdef.h
+#define NUM_LOCK_KEYSYM 0xff7f
+#define CAPS_LOCK_KEYSYM 0xffe5
+#define SCROLL_LOCK_KEYSYM 0xff14
+
 #ifdef __APPLE__
 #define MODIFIER_COUNT_FALLBACK 8
 #endif
 
+// Return a list of all the modifier masks we need to account for in our calls to
+// xcb_grab_button
 static uint16_t *resolve_toggle_masks(const struct toggle_modifiers *modifiers)
 {
         int index = -1;
@@ -104,8 +112,8 @@ static uint16_t modifier_mask_from_keysym(xcb_key_symbols_t *symbols,
 // up button handlers in the future.
 //
 // An example is when you are trying to focus on a window with caps lock active. This no longer
-// resolves as just a simple XCB_BUTTON_INDEX_1 event it is a XCB_BUTTON_INDEX_1 event with
-// the additional CAPS_LOCK modifier active.
+// resolves as just a simple XCB_BUTTON_INDEX_1 event since it is now a XCB_BUTTON_INDEX_1 event
+// with the additional CAPS_LOCK modifier active.
 static struct toggle_modifiers *resolve_toggle_modifiers(xcb_connection_t *connection)
 {
         struct toggle_modifiers *modifiers = malloc(sizeof(struct toggle_modifiers));
@@ -221,6 +229,11 @@ struct button_state *button_state_create(xcb_connection_t *connection)
 ATTR_INLINE uint16_t toggle_modifiers_get_clean_mask(const struct toggle_modifiers *modifiers,
                                                      uint16_t mask)
 {
+        if (modifiers == NULL) {
+                // Use simple clean mask if we were unable to resolve modifiers
+                return (uint16_t)(mask & ~(XCB_MOD_MASK_LOCK));
+        }
+
         uint16_t modifier_mask
                 = (modifiers->num_lock | modifiers->caps_lock | modifiers->scroll_lock);
 
