@@ -8,10 +8,10 @@
 #include <common/constants.h>
 #include <common/logger.h>
 
+#include "button.h"
 #include "client.h"
 #include "ewmh.h"
 #include "monitor.h"
-#include "mouse.h"
 #include "workspace.h"
 
 static void handle_configure_request(xcb_connection_t *connection,
@@ -327,7 +327,7 @@ struct client *client_register_window(struct natwm_state *state, xcb_window_t wi
         client->rect = client_initialize_rect(client, workspace_monitor);
 
         // Listen for button events
-        mouse_initialize_client_listeners(state, client);
+        button_initialize_client_listeners(state, client);
 
         xcb_change_save_set(state->xcb, XCB_SET_MODE_INSERT, client->window);
 
@@ -380,25 +380,12 @@ enum natwm_error client_handle_button_press(struct natwm_state *state,
                 return RESOLUTION_FAILURE;
         }
 
-        // TODO: This will need some refactoring once we start handling more
-        // button press events
-        if (event->state == XCB_NONE) {
-                enum natwm_error err = workspace_focus_client(state, workspace, client);
-
-                if (err != NO_ERROR) {
-                        return err;
-                }
-
-                // For the focus event we queue the event, and once we have
-                // focused both the workspace (if needed) and the client we
-                // release the queued event and the client receives the event
-                // like normal
-                xcb_allow_events(state->xcb, XCB_ALLOW_REPLAY_POINTER, XCB_CURRENT_TIME);
-
+        switch (toggle_modifiers_get_clean_mask(state->button_state->modifiers, event->state)) {
+        case XCB_NONE:
+                return button_handle_focus(state, workspace, client);
+        default:
                 return NO_ERROR;
         }
-
-        return NO_ERROR;
 }
 
 enum natwm_error client_configure_window(struct natwm_state *state,
@@ -782,10 +769,7 @@ void client_set_focused(struct natwm_state *state, struct client *client)
 
         // Now that we have focused the client, there is no need for "click to
         // focus" so we can remove the button grab
-        xcb_ungrab_button(state->xcb,
-                          client_focus_event.button,
-                          client->window,
-                          client_focus_event.modifiers);
+        xcb_ungrab_button(state->xcb, client_focus_event.button, client->window, XCB_MOD_MASK_ANY);
 
         uint16_t previous_border_width = theme->border_width->unfocused;
 
@@ -810,7 +794,7 @@ void client_set_unfocused(const struct natwm_state *state, struct client *client
 
         // When a client is unfocused we need to grab the mouse button required
         // for "click to focus"
-        mouse_event_grab_button(state->xcb, client->window, &client_focus_event);
+        button_binding_grab(state, client->window, &client_focus_event);
 
         update_theme(state, client, theme->border_width->focused);
 }
