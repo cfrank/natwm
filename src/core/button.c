@@ -12,6 +12,10 @@
 
 #include "button.h"
 
+#ifdef __APPLE__
+#define MODIFIER_COUNT_FALLBACK 8
+#endif
+
 static uint16_t *resolve_toggle_masks(const struct toggle_modifiers *modifiers)
 {
         int index = -1;
@@ -61,7 +65,7 @@ static uint16_t *resolve_toggle_masks(const struct toggle_modifiers *modifiers)
 //
 // Given a xcb_keysym_t attempt to find and return the mod mask
 static uint16_t modifier_mask_from_keysym(xcb_key_symbols_t *symbols,
-                                          const xcb_keycode_t *modifiers, uint8_t modifier_num,
+                                          const xcb_keycode_t *modifiers, uint8_t modifier_count,
                                           uint8_t keycodes_per_modifier, xcb_keysym_t keysym)
 {
         xcb_keycode_t *keycodes = xcb_key_symbols_get_keycode(symbols, keysym);
@@ -70,7 +74,7 @@ static uint16_t modifier_mask_from_keysym(xcb_key_symbols_t *symbols,
                 return 0;
         }
 
-        for (uint8_t i = 0; i < modifier_num; ++i) {
+        for (uint8_t i = 0; i < modifier_count; ++i) {
                 for (uint8_t j = 0; j < keycodes_per_modifier; ++j) {
                         xcb_keycode_t modifier = modifiers[i * keycodes_per_modifier + j];
 
@@ -144,28 +148,28 @@ static struct toggle_modifiers *resolve_toggle_modifiers(xcb_connection_t *conne
         // On OSX keycodes_per_modifier returns 0 for some reason.
         //
         // TODO: Determine if this is correct
-        int modifier_num = 8;
+        int modifier_count = MODIFIER_COUNT_FALLBACK;
 #else
-        int modifier_num
+        int modifier_count
                 = xcb_get_modifier_mapping_keycodes_length(reply) / reply->keycodes_per_modifier;
 
         // Usually (Mod1-Mod5, Shift, Control, Lock)
-        assert(modifier_num >= 0 && modifier_num <= UINT8_MAX);
+        assert(modifier_count >= 0 && modifier_count <= UINT8_MAX);
 #endif
 
         modifiers->num_lock = modifier_mask_from_keysym(symbols,
                                                         modifier_keycodes,
-                                                        (uint8_t)modifier_num,
+                                                        (uint8_t)modifier_count,
                                                         reply->keycodes_per_modifier,
                                                         NUM_LOCK_KEYSYM);
         modifiers->caps_lock = modifier_mask_from_keysym(symbols,
                                                          modifier_keycodes,
-                                                         (uint8_t)modifier_num,
+                                                         (uint8_t)modifier_count,
                                                          reply->keycodes_per_modifier,
                                                          CAPS_LOCK_KEYSYM);
         modifiers->scroll_lock = modifier_mask_from_keysym(symbols,
                                                            modifier_keycodes,
-                                                           (uint8_t)modifier_num,
+                                                           (uint8_t)modifier_count,
                                                            reply->keycodes_per_modifier,
                                                            SCROLL_LOCK_KEYSYM);
 
