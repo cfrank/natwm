@@ -275,6 +275,22 @@ void button_binding_grab(const struct natwm_state *state, xcb_window_t window,
         }
 }
 
+void button_binding_ungrab(const struct natwm_state *state, xcb_window_t window,
+                           const struct button_binding *binding)
+{
+        xcb_ungrab_button(state->xcb, binding->button, window, binding->modifiers);
+
+        struct toggle_modifiers *modifiers = state->button_state->modifiers;
+
+        if (modifiers == NULL) {
+                return;
+        }
+
+        for (uint16_t *mask = modifiers->masks; *mask != XCB_NONE; ++mask) {
+                xcb_ungrab_button(state->xcb, binding->button, window, binding->modifiers | *mask);
+        }
+}
+
 // These are the mouse events which will persist for the life of the client.
 // The only mouse event which will not be initialized here is the "click to
 // focus" event which needs to be created or destroyed based on the client
