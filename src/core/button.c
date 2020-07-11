@@ -342,6 +342,21 @@ enum natwm_error button_handle_grab(struct natwm_state *state, struct client *cl
         return NO_ERROR;
 }
 
+enum natwm_error button_handle_ungrab(struct natwm_state *state)
+{
+        if (state->button_state->grabbed_client == NULL) {
+                return NO_ERROR;
+        }
+
+        natwm_state_lock(state);
+
+        state->button_state->grabbed_client = NULL;
+
+        natwm_state_unlock(state);
+
+        return NO_ERROR;
+}
+
 void button_state_destroy(struct button_state *state)
 {
         if (state->modifiers != NULL) {
