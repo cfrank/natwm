@@ -325,6 +325,23 @@ enum natwm_error button_handle_focus(struct natwm_state *state, struct workspace
         return NO_ERROR;
 }
 
+enum natwm_error button_handle_grab(struct natwm_state *state, struct client *client)
+{
+        if (state->button_state->grabbed_client != NULL) {
+                LOG_ERROR(natwm_logger, "Attempting to grab a second client");
+
+                return RESOLUTION_FAILURE;
+        }
+
+        natwm_state_lock(state);
+
+        state->button_state->grabbed_client = client;
+
+        natwm_state_unlock(state);
+
+        return NO_ERROR;
+}
+
 void button_state_destroy(struct button_state *state)
 {
         if (state->modifiers != NULL) {

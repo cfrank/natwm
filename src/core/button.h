@@ -72,5 +72,6 @@ void button_initialize_client_listeners(const struct natwm_state *state,
                                         const struct client *client);
 enum natwm_error button_handle_focus(struct natwm_state *state, struct workspace *workspace,
                                      struct client *client);
+enum natwm_error button_handle_grab(struct natwm_state *state, struct client *client);
 
 void button_state_destroy(struct button_state *state);
