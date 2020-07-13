@@ -127,6 +127,30 @@ static enum natwm_error event_handle_unmap_notify(struct natwm_state *state,
         return NO_ERROR;
 }
 
+// In order to operate we need to subscribe to events on the root window.
+//
+// The event masks placed on the root window will provide us with events which
+// occur on our child windows
+enum natwm_error event_subscribe_to_root(const struct natwm_state *state)
+{
+        xcb_event_mask_t root_mask
+                = XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY | XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT;
+        xcb_void_cookie_t cookie = xcb_change_window_attributes_checked(
+                state->xcb, state->screen->root, XCB_CW_EVENT_MASK, &root_mask);
+        xcb_generic_error_t *error = xcb_request_check(state->xcb, cookie);
+
+        xcb_flush(state->xcb);
+
+        if (error != XCB_NONE) {
+                // We will fail if there is already a window manager present
+                free(error);
+
+                return RESOLUTION_FAILURE;
+        }
+
+        return NO_ERROR;
+}
+
 enum natwm_error event_handle(struct natwm_state *state, xcb_generic_event_t *event)
 {
         uint8_t type = (uint8_t)(GET_EVENT_TYPE(event->response_type));
