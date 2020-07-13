@@ -29,6 +29,8 @@
 
 #define NATWM_CONFIG_FILE "natwm/natwm.config"
 
+#define SUPPORTING_WINDOW_CLASS_NAME "supporting_window \0" NATWM_VERSION_STRING
+
 #define NATWM_WORKSPACE_COUNT 10
 
 #define NATWM_WORKSPACE_NAME_MAX_LEN 50
