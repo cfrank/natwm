@@ -52,7 +52,7 @@ static const struct button_binding client_focus_event = {
 static const struct button_binding button_events[BUTTON_EVENTS_NUM] = {
         {
                 .pass_event = 1,
-                .mask = DEFAULT_BUTTON_MASK,
+                .mask = DEFAULT_BUTTON_MASK | XCB_EVENT_MASK_BUTTON_1_MOTION,
                 .pointer_mode = XCB_GRAB_MODE_ASYNC,
                 .keyboard_mode = XCB_GRAB_MODE_ASYNC,
                 .cursor = XCB_NONE,
