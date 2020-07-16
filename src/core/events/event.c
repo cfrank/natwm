@@ -17,12 +17,6 @@
 #include "event.h"
 #include "randr-event.h"
 
-static enum natwm_error event_handle_button_press(struct natwm_state *state,
-                                                  xcb_button_press_event_t *event)
-{
-        return client_handle_button_press(state, event);
-}
-
 static enum natwm_error event_handle_button_release(struct natwm_state *state,
                                                     xcb_button_release_event_t *event)
 {
@@ -157,7 +151,7 @@ enum natwm_error event_handle(struct natwm_state *state, xcb_generic_event_t *ev
 
         switch (type) {
         case XCB_BUTTON_PRESS:
-                return event_handle_button_press(state, (xcb_button_press_event_t *)event);
+                return client_handle_button_press(state, (xcb_button_press_event_t *)event);
         case XCB_BUTTON_RELEASE:
                 return event_handle_button_release(state, (xcb_button_release_event_t *)event);
         case XCB_CLIENT_MESSAGE:

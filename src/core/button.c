@@ -325,7 +325,8 @@ enum natwm_error button_handle_focus(struct natwm_state *state, struct workspace
         return NO_ERROR;
 }
 
-enum natwm_error button_handle_grab(struct natwm_state *state, struct client *client)
+enum natwm_error button_handle_grab(struct natwm_state *state, xcb_button_press_event_t *event,
+                                    struct client *client)
 {
         if (state->button_state->grabbed_client != NULL) {
                 LOG_ERROR(natwm_logger, "Attempting to grab a second client");
@@ -336,6 +337,8 @@ enum natwm_error button_handle_grab(struct natwm_state *state, struct client *cl
         natwm_state_lock(state);
 
         state->button_state->grabbed_client = client;
+        state->button_state->start_x = event->root_x;
+        state->button_state->start_y = event->root_y;
 
         natwm_state_unlock(state);
 

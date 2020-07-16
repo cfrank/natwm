@@ -384,7 +384,7 @@ enum natwm_error client_handle_button_press(struct natwm_state *state,
         case XCB_NONE:
                 return button_handle_focus(state, workspace, client);
         case XCB_MOD_MASK_1:
-                return button_handle_grab(state, client);
+                return button_handle_grab(state, event, client);
         default:
                 return NO_ERROR;
         }

@@ -37,6 +37,8 @@ struct toggle_modifiers {
 struct button_state {
         struct toggle_modifiers *modifiers;
         struct client *grabbed_client;
+        int16_t start_x;
+        int16_t start_y;
 };
 
 static const struct button_binding client_focus_event = {
@@ -72,7 +74,8 @@ void button_initialize_client_listeners(const struct natwm_state *state,
                                         const struct client *client);
 enum natwm_error button_handle_focus(struct natwm_state *state, struct workspace *workspace,
                                      struct client *client);
-enum natwm_error button_handle_grab(struct natwm_state *state, struct client *client);
+enum natwm_error button_handle_grab(struct natwm_state *state, xcb_button_press_event_t *event,
+                                    struct client *client);
 enum natwm_error button_handle_ungrab(struct natwm_state *state);
 
 void button_state_destroy(struct button_state *state);
