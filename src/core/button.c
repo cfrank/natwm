@@ -328,6 +328,13 @@ enum natwm_error button_handle_focus(struct natwm_state *state, struct workspace
 enum natwm_error button_handle_grab(struct natwm_state *state, xcb_button_press_event_t *event,
                                     struct client *client)
 {
+        if (!event->same_screen) {
+                LOG_ERROR(natwm_logger,
+                          "Receieved a grab event which did not occur on the root window");
+
+                return INVALID_INPUT_ERROR;
+        }
+
         if (state->button_state->grabbed_client != NULL) {
                 LOG_ERROR(natwm_logger, "Attempting to grab a second client");
 
@@ -337,12 +344,32 @@ enum natwm_error button_handle_grab(struct natwm_state *state, xcb_button_press_
         natwm_state_lock(state);
 
         state->button_state->grabbed_client = client;
-        state->button_state->start_x = event->root_x;
-        state->button_state->start_y = event->root_y;
+        state->button_state->start_x = event->event_x;
+        state->button_state->start_y = event->event_y;
 
         natwm_state_unlock(state);
 
         return NO_ERROR;
+}
+
+enum natwm_error button_handle_motion(struct natwm_state *state, int16_t x, int16_t y)
+{
+        if (state->button_state->grabbed_client == NULL) {
+                LOG_ERROR(natwm_logger,
+                          "Received motion event when there isn't a currently grabbed client");
+
+                return INVALID_INPUT_ERROR;
+        }
+
+        if (state->button_state->grabbed_client->is_fullscreen) {
+                // Ignore full screen clients
+                return NO_ERROR;
+        }
+
+        int16_t offset_x = x - state->button_state->start_x;
+        int16_t offset_y = y - state->button_state->start_y;
+
+        return client_handle_drag(state, state->button_state->grabbed_client, offset_x, offset_y);
 }
 
 enum natwm_error button_handle_ungrab(struct natwm_state *state)
@@ -354,6 +381,8 @@ enum natwm_error button_handle_ungrab(struct natwm_state *state)
         natwm_state_lock(state);
 
         state->button_state->grabbed_client = NULL;
+        state->button_state->start_x = 0;
+        state->button_state->start_y = 0;
 
         natwm_state_unlock(state);
 
