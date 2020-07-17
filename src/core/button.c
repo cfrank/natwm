@@ -366,8 +366,8 @@ enum natwm_error button_handle_motion(struct natwm_state *state, int16_t x, int1
                 return NO_ERROR;
         }
 
-        int16_t offset_x = x - state->button_state->start_x;
-        int16_t offset_y = y - state->button_state->start_y;
+        int16_t offset_x = (int16_t)(x - state->button_state->start_x);
+        int16_t offset_y = (int16_t)(y - state->button_state->start_y);
 
         return client_handle_drag(state, state->button_state->grabbed_client, offset_x, offset_y);
 }
