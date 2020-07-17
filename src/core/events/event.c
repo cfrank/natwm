@@ -111,6 +111,23 @@ static enum natwm_error event_handle_map_notify(struct natwm_state *state,
         return NO_ERROR;
 }
 
+static enum natwm_error event_handle_motion_notify(struct natwm_state *state,
+                                                   xcb_motion_notify_event_t *event)
+{
+        if (!event->same_screen) {
+                LOG_ERROR(natwm_logger,
+                          "Receieved a motion event which did not occur on the root window");
+
+                return INVALID_INPUT_ERROR;
+        }
+
+        if (event->state & XCB_BUTTON_MASK_1) {
+                return button_handle_motion(state, event->event_x, event->event_y);
+        }
+
+        return NO_ERROR;
+}
+
 static enum natwm_error event_handle_unmap_notify(struct natwm_state *state,
                                                   xcb_unmap_notify_event_t *event)
 {
@@ -168,6 +185,8 @@ enum natwm_error event_handle(struct natwm_state *state, xcb_generic_event_t *ev
                 return event_handle_map_request(state, (xcb_map_request_event_t *)event);
         case XCB_MAP_NOTIFY:
                 return event_handle_map_notify(state, (xcb_map_notify_event_t *)event);
+        case XCB_MOTION_NOTIFY:
+                return event_handle_motion_notify(state, (xcb_motion_notify_event_t *)event);
         case XCB_UNMAP_NOTIFY:
                 return event_handle_unmap_notify(state, (xcb_unmap_notify_event_t *)event);
         }
