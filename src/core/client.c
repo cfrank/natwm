@@ -563,6 +563,23 @@ enum natwm_error client_handle_map_notify(const struct natwm_state *state, xcb_w
         return NO_ERROR;
 }
 
+enum natwm_error client_handle_drag(const struct natwm_state *state, struct client *client,
+                                    int16_t x, int16_t y)
+{
+        client->rect.x += x;
+        client->rect.y += y;
+
+        uint32_t values[] = {
+                (uint32_t)client->rect.x,
+                (uint32_t)client->rect.y,
+        };
+
+        xcb_configure_window(
+                state->xcb, client->window, XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, values);
+
+        return NO_ERROR;
+}
+
 enum natwm_error client_unmap_window(struct natwm_state *state, xcb_window_t window)
 {
         struct workspace *workspace
