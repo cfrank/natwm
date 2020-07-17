@@ -383,6 +383,8 @@ enum natwm_error client_handle_button_press(struct natwm_state *state,
         switch (toggle_modifiers_get_clean_mask(state->button_state->modifiers, event->state)) {
         case XCB_NONE:
                 return button_handle_focus(state, workspace, client);
+        case XCB_MOD_MASK_1:
+                return button_handle_grab(state, event, client);
         default:
                 return NO_ERROR;
         }
@@ -557,6 +559,23 @@ enum natwm_error client_handle_map_notify(const struct natwm_state *state, xcb_w
         } else {
                 client->state &= (uint8_t)~CLIENT_OFF_SCREEN;
         }
+
+        return NO_ERROR;
+}
+
+enum natwm_error client_handle_drag(const struct natwm_state *state, struct client *client,
+                                    int16_t x, int16_t y)
+{
+        client->rect.x = (int16_t)(client->rect.x + x);
+        client->rect.y = (int16_t)(client->rect.y + y);
+
+        uint16_t mask = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y;
+        uint32_t values[] = {
+                (uint32_t)client->rect.x,
+                (uint32_t)client->rect.y,
+        };
+
+        xcb_configure_window(state->xcb, client->window, mask, values);
 
         return NO_ERROR;
 }
@@ -769,7 +788,7 @@ void client_set_focused(struct natwm_state *state, struct client *client)
 
         // Now that we have focused the client, there is no need for "click to
         // focus" so we can remove the button grab
-        xcb_ungrab_button(state->xcb, client_focus_event.button, client->window, XCB_MOD_MASK_ANY);
+        button_binding_ungrab(state, client->window, &client_focus_event);
 
         uint16_t previous_border_width = theme->border_width->unfocused;
 

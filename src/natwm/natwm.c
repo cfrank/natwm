@@ -128,30 +128,6 @@ static int install_signal_handlers(void)
         return 0;
 }
 
-// In order to operate we need to subscribe to events on the root window.
-//
-// The event masks placed on the root window will provide us with events which
-// occur on our child windows
-static int root_window_subscribe(const struct natwm_state *state)
-{
-        xcb_event_mask_t root_mask
-                = XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY | XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT;
-        xcb_void_cookie_t cookie = xcb_change_window_attributes_checked(
-                state->xcb, state->screen->root, XCB_CW_EVENT_MASK, &root_mask);
-        xcb_generic_error_t *error = xcb_request_check(state->xcb, cookie);
-
-        xcb_flush(state->xcb);
-
-        if (error != XCB_NONE) {
-                // We will fail if there is already a window manager present
-                free(error);
-
-                return -1;
-        }
-
-        return 0;
-}
-
 static void *wm_event_loop(void *passed_state)
 {
         struct natwm_state *state = (struct natwm_state *)passed_state;
@@ -356,7 +332,7 @@ int main(int argc, char **argv)
         }
 
         // Attempt to register for substructure events
-        if (root_window_subscribe(state) != 0) {
+        if (event_subscribe_to_root(state) != NO_ERROR) {
                 LOG_ERROR(natwm_logger,
                           "Failed to subscribe to root events: Other window "
                           "manager is present");

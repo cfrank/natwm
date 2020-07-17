@@ -5,10 +5,13 @@
 #include <assert.h>
 #include <string.h>
 #include <unistd.h>
+#include <xcb/xcb_icccm.h>
 
 #include <common/constants.h>
 
 #include "ewmh.h"
+
+static xcb_window_t ewmh_supporting_window = XCB_NONE;
 
 // Create a simple window for the _NET_SUPPORTING_WM_CHECK property
 //
@@ -96,14 +99,20 @@ void ewmh_init(const struct natwm_state *state)
         xcb_ewmh_set_wm_name(
                 state->ewmh, state->screen->root, (uint32_t)wm_name_len, NATWM_VERSION_STRING);
 
-        xcb_window_t supporting_win = create_supporting_window(state);
+        ewmh_supporting_window = create_supporting_window(state);
 
-        xcb_ewmh_set_supporting_wm_check(state->ewmh, state->screen->root, supporting_win);
-        xcb_ewmh_set_supporting_wm_check(state->ewmh, supporting_win, supporting_win);
+        xcb_ewmh_set_supporting_wm_check(state->ewmh, state->screen->root, ewmh_supporting_window);
+        xcb_ewmh_set_supporting_wm_check(
+                state->ewmh, ewmh_supporting_window, ewmh_supporting_window);
 
         // Set the WM name on the supporting win
         xcb_ewmh_set_wm_name(
-                state->ewmh, supporting_win, (uint32_t)wm_name_len, NATWM_VERSION_STRING);
+                state->ewmh, ewmh_supporting_window, (uint32_t)wm_name_len, NATWM_VERSION_STRING);
+
+        xcb_icccm_set_wm_class(state->xcb,
+                               ewmh_supporting_window,
+                               sizeof(SUPPORTING_WINDOW_CLASS_NAME),
+                               SUPPORTING_WINDOW_CLASS_NAME);
 
         xcb_ewmh_set_number_of_desktops(
                 state->ewmh, state->screen_num, (uint32_t)NATWM_WORKSPACE_COUNT);
@@ -231,9 +240,13 @@ void ewmh_update_window_desktop(const struct natwm_state *state, xcb_window_t wi
         xcb_ewmh_set_wm_desktop(state->ewmh, window, (uint32_t)index);
 }
 
-void ewmh_destroy(xcb_ewmh_connection_t *ewmh_connection)
+void ewmh_destroy(struct natwm_state *state)
 {
-        xcb_ewmh_connection_wipe(ewmh_connection);
+        xcb_ewmh_connection_wipe(state->ewmh);
 
-        free(ewmh_connection);
+        if (state->xcb != NULL && ewmh_supporting_window != XCB_NONE) {
+                xcb_destroy_window(state->xcb, ewmh_supporting_window);
+        }
+
+        free(state->ewmh);
 }

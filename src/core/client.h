@@ -54,6 +54,8 @@ void client_configure_window_rect(xcb_connection_t *connection, xcb_window_t win
 void client_map(const struct natwm_state *state, struct client *client,
                 const struct monitor *monitor);
 enum natwm_error client_handle_map_notify(const struct natwm_state *state, xcb_window_t window);
+enum natwm_error client_handle_drag(const struct natwm_state *state, struct client *client,
+                                    int16_t x, int16_t y);
 enum natwm_error client_unmap_window(struct natwm_state *state, xcb_window_t window);
 enum natwm_error client_handle_destroy_notify(struct natwm_state *state, xcb_window_t window);
 uint16_t client_get_active_border_width(const struct theme *theme, const struct client *client);

@@ -275,6 +275,22 @@ void button_binding_grab(const struct natwm_state *state, xcb_window_t window,
         }
 }
 
+void button_binding_ungrab(const struct natwm_state *state, xcb_window_t window,
+                           const struct button_binding *binding)
+{
+        xcb_ungrab_button(state->xcb, binding->button, window, binding->modifiers);
+
+        struct toggle_modifiers *modifiers = state->button_state->modifiers;
+
+        if (modifiers == NULL) {
+                return;
+        }
+
+        for (uint16_t *mask = modifiers->masks; *mask != XCB_NONE; ++mask) {
+                xcb_ungrab_button(state->xcb, binding->button, window, binding->modifiers | *mask);
+        }
+}
+
 // These are the mouse events which will persist for the life of the client.
 // The only mouse event which will not be initialized here is the "click to
 // focus" event which needs to be created or destroyed based on the client
@@ -305,6 +321,70 @@ enum natwm_error button_handle_focus(struct natwm_state *state, struct workspace
         // release the queued event and the client receives the event
         // like normal
         xcb_allow_events(state->xcb, XCB_ALLOW_REPLAY_POINTER, XCB_CURRENT_TIME);
+
+        return NO_ERROR;
+}
+
+enum natwm_error button_handle_grab(struct natwm_state *state, xcb_button_press_event_t *event,
+                                    struct client *client)
+{
+        if (!event->same_screen) {
+                LOG_ERROR(natwm_logger,
+                          "Receieved a grab event which did not occur on the root window");
+
+                return INVALID_INPUT_ERROR;
+        }
+
+        if (state->button_state->grabbed_client != NULL) {
+                LOG_ERROR(natwm_logger, "Attempting to grab a second client");
+
+                return RESOLUTION_FAILURE;
+        }
+
+        natwm_state_lock(state);
+
+        state->button_state->grabbed_client = client;
+        state->button_state->start_x = event->event_x;
+        state->button_state->start_y = event->event_y;
+
+        natwm_state_unlock(state);
+
+        return NO_ERROR;
+}
+
+enum natwm_error button_handle_motion(struct natwm_state *state, int16_t x, int16_t y)
+{
+        if (state->button_state->grabbed_client == NULL) {
+                LOG_ERROR(natwm_logger,
+                          "Received motion event when there isn't a currently grabbed client");
+
+                return INVALID_INPUT_ERROR;
+        }
+
+        if (state->button_state->grabbed_client->is_fullscreen) {
+                // Ignore full screen clients
+                return NO_ERROR;
+        }
+
+        int16_t offset_x = (int16_t)(x - state->button_state->start_x);
+        int16_t offset_y = (int16_t)(y - state->button_state->start_y);
+
+        return client_handle_drag(state, state->button_state->grabbed_client, offset_x, offset_y);
+}
+
+enum natwm_error button_handle_ungrab(struct natwm_state *state)
+{
+        if (state->button_state->grabbed_client == NULL) {
+                return NO_ERROR;
+        }
+
+        natwm_state_lock(state);
+
+        state->button_state->grabbed_client = NULL;
+        state->button_state->start_x = 0;
+        state->button_state->start_y = 0;
+
+        natwm_state_unlock(state);
 
         return NO_ERROR;
 }

@@ -77,7 +77,7 @@ void natwm_state_destroy(struct natwm_state *state)
         }
 
         if (state->ewmh != NULL) {
-                ewmh_destroy(state->ewmh);
+                ewmh_destroy(state);
         }
 
         if (state->xcb != NULL) {

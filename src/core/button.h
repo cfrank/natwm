@@ -37,6 +37,8 @@ struct toggle_modifiers {
 struct button_state {
         struct toggle_modifiers *modifiers;
         struct client *grabbed_client;
+        int16_t start_x;
+        int16_t start_y;
 };
 
 static const struct button_binding client_focus_event = {
@@ -52,7 +54,7 @@ static const struct button_binding client_focus_event = {
 static const struct button_binding button_events[BUTTON_EVENTS_NUM] = {
         {
                 .pass_event = 1,
-                .mask = DEFAULT_BUTTON_MASK,
+                .mask = DEFAULT_BUTTON_MASK | XCB_EVENT_MASK_BUTTON_1_MOTION,
                 .pointer_mode = XCB_GRAB_MODE_ASYNC,
                 .keyboard_mode = XCB_GRAB_MODE_ASYNC,
                 .cursor = XCB_NONE,
@@ -66,9 +68,15 @@ struct button_state *button_state_create(xcb_connection_t *connection);
 uint16_t toggle_modifiers_get_clean_mask(const struct toggle_modifiers *modifiers, uint16_t mask);
 void button_binding_grab(const struct natwm_state *state, xcb_window_t window,
                          const struct button_binding *binding);
+void button_binding_ungrab(const struct natwm_state *state, xcb_window_t window,
+                           const struct button_binding *binding);
 void button_initialize_client_listeners(const struct natwm_state *state,
                                         const struct client *client);
 enum natwm_error button_handle_focus(struct natwm_state *state, struct workspace *workspace,
                                      struct client *client);
+enum natwm_error button_handle_grab(struct natwm_state *state, xcb_button_press_event_t *event,
+                                    struct client *client);
+enum natwm_error button_handle_motion(struct natwm_state *state, int16_t x, int16_t y);
+enum natwm_error button_handle_ungrab(struct natwm_state *state);
 
 void button_state_destroy(struct button_state *state);
