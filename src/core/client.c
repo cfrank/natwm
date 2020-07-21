@@ -374,6 +374,13 @@ enum natwm_error client_handle_button_press(struct natwm_state *state,
                 return NO_ERROR;
         }
 
+        struct monitor *monitor
+                = monitor_list_get_workspace_monitor(state->monitor_list, workspace);
+
+        if (monitor == NULL) {
+                return RESOLUTION_FAILURE;
+        }
+
         struct client *client = workspace_find_window_client(workspace, event->event);
 
         if (client == NULL) {
@@ -384,7 +391,7 @@ enum natwm_error client_handle_button_press(struct natwm_state *state,
         case XCB_NONE:
                 return button_handle_focus(state, workspace, client);
         case XCB_MOD_MASK_1:
-                return button_handle_grab(state, event, client);
+                return button_handle_grab(state, event, &monitor->rect, client);
         default:
                 return NO_ERROR;
         }
@@ -570,9 +577,9 @@ enum natwm_error client_handle_drag(const struct natwm_state *state, struct clie
         client->rect.y = (int16_t)(client->rect.y + y);
 
         uint16_t mask = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y;
-        uint32_t values[] = {
-                (uint32_t)client->rect.x,
-                (uint32_t)client->rect.y,
+        int32_t values[] = {
+                (int32_t)client->rect.x + state->button_state->monitor_rect->x,
+                (int32_t)client->rect.y + state->button_state->monitor_rect->y,
         };
 
         xcb_configure_window(state->xcb, client->window, mask, values);

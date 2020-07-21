@@ -5,6 +5,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <xcb/xcb.h>
 #include <xcb/xproto.h>
 
 #include <common/error.h>
@@ -37,6 +38,7 @@ struct toggle_modifiers {
 struct button_state {
         struct toggle_modifiers *modifiers;
         struct client *grabbed_client;
+        xcb_rectangle_t *monitor_rect;
         int16_t start_x;
         int16_t start_y;
 };
@@ -75,7 +77,7 @@ void button_initialize_client_listeners(const struct natwm_state *state,
 enum natwm_error button_handle_focus(struct natwm_state *state, struct workspace *workspace,
                                      struct client *client);
 enum natwm_error button_handle_grab(struct natwm_state *state, xcb_button_press_event_t *event,
-                                    struct client *client);
+                                    xcb_rectangle_t *monitor_rect, struct client *client);
 enum natwm_error button_handle_motion(struct natwm_state *state, int16_t x, int16_t y);
 enum natwm_error button_handle_ungrab(struct natwm_state *state);
 
