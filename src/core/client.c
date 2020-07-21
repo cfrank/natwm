@@ -577,9 +577,9 @@ enum natwm_error client_handle_drag(const struct natwm_state *state, struct clie
         client->rect.y = (int16_t)(client->rect.y + y);
 
         uint16_t mask = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y;
-        int32_t values[] = {
-                (int32_t)client->rect.x + state->button_state->monitor_rect->x,
-                (int32_t)client->rect.y + state->button_state->monitor_rect->y,
+        uint32_t values[] = {
+                (uint32_t)(client->rect.x + state->button_state->monitor_rect->x),
+                (uint32_t)(client->rect.y + state->button_state->monitor_rect->y),
         };
 
         xcb_configure_window(state->xcb, client->window, mask, values);
