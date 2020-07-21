@@ -4,7 +4,6 @@
 
 #include <assert.h>
 #include <stdlib.h>
-#include <xcb/xcb.h>
 #include <xcb/xcb_keysyms.h>
 
 #include <common/constants.h>
@@ -326,7 +325,7 @@ enum natwm_error button_handle_focus(struct natwm_state *state, struct workspace
 }
 
 enum natwm_error button_handle_grab(struct natwm_state *state, xcb_button_press_event_t *event,
-                                    struct client *client)
+                                    xcb_rectangle_t *monitor_rect, struct client *client)
 {
         if (!event->same_screen) {
                 LOG_ERROR(natwm_logger,
@@ -344,6 +343,7 @@ enum natwm_error button_handle_grab(struct natwm_state *state, xcb_button_press_
         natwm_state_lock(state);
 
         state->button_state->grabbed_client = client;
+        state->button_state->monitor_rect = monitor_rect;
         state->button_state->start_x = event->event_x;
         state->button_state->start_y = event->event_y;
 
@@ -381,6 +381,7 @@ enum natwm_error button_handle_ungrab(struct natwm_state *state)
         natwm_state_lock(state);
 
         state->button_state->grabbed_client = NULL;
+        state->button_state->monitor_rect = NULL;
         state->button_state->start_x = 0;
         state->button_state->start_y = 0;
 
