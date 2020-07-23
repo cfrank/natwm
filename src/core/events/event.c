@@ -121,6 +121,15 @@ static enum natwm_error event_handle_motion_notify(struct natwm_state *state,
                 return INVALID_INPUT_ERROR;
         }
 
+        xcb_rectangle_t *monitor_rect = state->button_state->monitor_rect;
+        int32_t x = event->root_x - monitor_rect->x;
+        int32_t y = event->root_y - monitor_rect->y;
+
+        if (x < 0 || y < 0 || x > monitor_rect->width || y > monitor_rect->height) {
+                // We should only process motion events if they are within the current monitor
+                return NO_ERROR;
+        }
+
         if (event->state & XCB_BUTTON_MASK_1) {
                 return button_handle_motion(state, event->event_x, event->event_y);
         }
