@@ -119,11 +119,7 @@ static enum natwm_error event_handle_motion_notify(struct natwm_state *state,
                 return NO_ERROR;
         }
 
-        if (event->state & XCB_BUTTON_MASK_1) {
-                return button_handle_motion(state, event->event_x, event->event_y);
-        }
-
-        return NO_ERROR;
+        return button_handle_motion(state, event->state, event->event_x, event->event_y);
 }
 
 static enum natwm_error event_handle_unmap_notify(struct natwm_state *state,

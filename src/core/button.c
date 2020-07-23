@@ -352,7 +352,8 @@ enum natwm_error button_handle_grab(struct natwm_state *state, xcb_button_press_
         return NO_ERROR;
 }
 
-enum natwm_error button_handle_motion(struct natwm_state *state, int16_t x, int16_t y)
+enum natwm_error button_handle_motion(struct natwm_state *state, uint16_t mouse_mask, int16_t x,
+                                      int16_t y)
 {
         if (state->button_state->grabbed_client == NULL) {
                 LOG_ERROR(natwm_logger,
@@ -369,7 +370,12 @@ enum natwm_error button_handle_motion(struct natwm_state *state, int16_t x, int1
         int16_t offset_x = (int16_t)(x - state->button_state->start_x);
         int16_t offset_y = (int16_t)(y - state->button_state->start_y);
 
-        return client_handle_drag(state, state->button_state->grabbed_client, offset_x, offset_y);
+        if (mouse_mask & XCB_BUTTON_MASK_1) {
+                return client_handle_drag(
+                        state, state->button_state->grabbed_client, offset_x, offset_y);
+        }
+
+        return NO_ERROR;
 }
 
 enum natwm_error button_handle_ungrab(struct natwm_state *state)
