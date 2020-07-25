@@ -39,3 +39,5 @@
 
 #define WINDOW_BORDER_COLOR_CONFIG_STRING "window.border_color"
 #define WINDOW_BORDER_WIDTH_CONFIG_STRING "window.border_width"
+#define RESIZE_BACKGROUND_COLOR_CONFIG_STRING "resize.background_color"
+#define RESIZE_BORDER_COLOR_CONFIG_STRING "resize.border_color"

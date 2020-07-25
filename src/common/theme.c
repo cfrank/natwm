@@ -119,6 +119,20 @@ struct theme *theme_create(const struct map *config_map)
                 goto handle_error;
         }
 
+        err = color_value_from_config(
+                config_map, RESIZE_BACKGROUND_COLOR_CONFIG_STRING, &theme->resize_background_color);
+
+        if (err != NO_ERROR) {
+                goto handle_error;
+        }
+
+        err = color_value_from_config(
+                config_map, RESIZE_BORDER_COLOR_CONFIG_STRING, &theme->resize_border_color);
+
+        if (err != NO_ERROR) {
+                goto handle_error;
+        }
+
         return theme;
 
 handle_error:
