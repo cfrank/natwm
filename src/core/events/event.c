@@ -164,7 +164,7 @@ enum natwm_error event_handle(struct natwm_state *state, xcb_generic_event_t *ev
         case XCB_BUTTON_PRESS:
                 return client_handle_button_press(state, (xcb_button_press_event_t *)event);
         case XCB_BUTTON_RELEASE:
-                return button_handle_ungrab(state);
+                return button_handle_ungrab(state, (xcb_button_release_event_t *)event);
         case XCB_CLIENT_MESSAGE:
                 return event_handle_client_message(state, (xcb_client_message_event_t *)event);
         case XCB_CONFIGURE_REQUEST:
