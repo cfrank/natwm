@@ -277,7 +277,22 @@ static void initialize_resize_helper(struct natwm_state *state, const xcb_rectan
         xcb_flush(state->xcb);
 }
 
-static void hide_resize_helper(struct natwm_state *state)
+static void resize_helper(const struct natwm_state *state, int16_t offset_x, int16_t offset_y)
+{
+        if (state->button_state->resize_helper == XCB_NONE) {
+                return;
+        }
+
+        uint16_t mask = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
+        uint32_t values[] = {
+                (uint32_t)(state->button_state->grabbed_client->rect.width + offset_x),
+                (uint32_t)(state->button_state->grabbed_client->rect.height + offset_y),
+        };
+
+        xcb_configure_window(state->xcb, state->button_state->resize_helper, mask, values);
+}
+
+static void hide_resize_helper(const struct natwm_state *state)
 {
         if (state->button_state->resize_helper == XCB_NONE) {
                 return;
@@ -298,6 +313,18 @@ static void hide_resize_helper(struct natwm_state *state)
         xcb_configure_window(state->xcb, state->button_state->resize_helper, mask, values);
 
         xcb_flush(state->xcb);
+}
+
+static void button_state_reset(struct natwm_state *state)
+{
+        natwm_state_lock(state);
+
+        state->button_state->grabbed_client = NULL;
+        state->button_state->monitor_rect = NULL;
+        state->button_state->start_x = 0;
+        state->button_state->start_y = 0;
+
+        natwm_state_unlock(state);
 }
 
 struct button_state *button_state_create(xcb_connection_t *connection)
@@ -436,6 +463,11 @@ enum natwm_error button_handle_grab(struct natwm_state *state,
                 return RESOLUTION_FAILURE;
         }
 
+        if (client->is_fullscreen) {
+                // Ignore clients if they are currently fullscreen
+                return NO_ERROR;
+        }
+
         natwm_state_lock(state);
 
         state->button_state->grabbed_client = client;
@@ -475,28 +507,44 @@ enum natwm_error button_handle_motion(struct natwm_state *state, uint16_t mouse_
                         state, state->button_state->grabbed_client, offset_x, offset_y);
         }
 
+        if (mouse_mask & XCB_BUTTON_MASK_3) {
+                resize_helper(state, offset_x, offset_y);
+        }
+
         return NO_ERROR;
 }
 
-enum natwm_error button_handle_ungrab(struct natwm_state *state,
-                                      const xcb_button_release_event_t *event)
+void button_handle_drag_end(struct natwm_state *state)
+{
+        if (state->button_state->grabbed_client == NULL) {
+                return;
+        }
+
+        hide_resize_helper(state);
+        button_state_reset(state);
+}
+
+enum natwm_error button_handle_resize_end(struct natwm_state *state,
+                                          const xcb_button_release_event_t *event)
 {
         if (state->button_state->grabbed_client == NULL) {
                 return NO_ERROR;
         }
 
-        natwm_state_lock(state);
+        int16_t offset_x = (int16_t)(event->event_x - state->button_state->start_x);
+        int16_t offset_y = (int16_t)(event->event_y - state->button_state->start_y);
 
-        state->button_state->grabbed_client = NULL;
-        state->button_state->monitor_rect = NULL;
-        state->button_state->start_x = 0;
-        state->button_state->start_y = 0;
+        enum natwm_error err = client_handle_resize(
+                state, state->button_state->grabbed_client, offset_x, offset_y);
 
-        natwm_state_unlock(state);
+        if (err != NO_ERROR) {
+                LOG_ERROR(natwm_logger, "Failed to perform resize");
 
-        if (event->detail == XCB_BUTTON_INDEX_3) {
-                hide_resize_helper(state);
+                return err;
         }
+
+        hide_resize_helper(state);
+        button_state_reset(state);
 
         return NO_ERROR;
 }

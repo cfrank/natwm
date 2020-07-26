@@ -90,7 +90,8 @@ enum natwm_error button_handle_grab(struct natwm_state *state,
                                     xcb_rectangle_t *monitor_rect, struct client *client);
 enum natwm_error button_handle_motion(struct natwm_state *state, uint16_t mouse_mask, int16_t x,
                                       int16_t y);
-enum natwm_error button_handle_ungrab(struct natwm_state *state,
-                                      const xcb_button_release_event_t *event);
+void button_handle_drag_end(struct natwm_state *state);
+enum natwm_error button_handle_resize_end(struct natwm_state *state,
+                                          const xcb_button_release_event_t *event);
 
 void button_state_destroy(struct natwm_state *state);

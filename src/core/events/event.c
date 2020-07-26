@@ -17,6 +17,25 @@
 #include "event.h"
 #include "randr-event.h"
 
+static enum natwm_error event_handle_button_release(struct natwm_state *state,
+                                                    xcb_button_release_event_t *event)
+{
+        switch (event->detail) {
+        case XCB_BUTTON_INDEX_1:
+                button_handle_drag_end(state);
+
+                break;
+        case XCB_BUTTON_INDEX_3:
+                return button_handle_resize_end(state, event);
+        default:
+                LOG_WARNING(natwm_logger, "Received invalid button release event - ignoring");
+
+                break;
+        }
+
+        return NO_ERROR;
+}
+
 static enum natwm_error event_handle_client_message(struct natwm_state *state,
                                                     xcb_client_message_event_t *event)
 {
@@ -115,7 +134,8 @@ static enum natwm_error event_handle_motion_notify(struct natwm_state *state,
         int32_t y = event->root_y - monitor_rect->y;
 
         if (x < 0 || y < 0 || x > monitor_rect->width || y > monitor_rect->height) {
-                // We should only process motion events if they are within the current monitor
+                // We should only process motion events if they are within the current
+                // monitor
                 return NO_ERROR;
         }
 
@@ -164,7 +184,7 @@ enum natwm_error event_handle(struct natwm_state *state, xcb_generic_event_t *ev
         case XCB_BUTTON_PRESS:
                 return client_handle_button_press(state, (xcb_button_press_event_t *)event);
         case XCB_BUTTON_RELEASE:
-                return button_handle_ungrab(state, (xcb_button_release_event_t *)event);
+                return event_handle_button_release(state, (xcb_button_release_event_t *)event);
         case XCB_CLIENT_MESSAGE:
                 return event_handle_client_message(state, (xcb_client_message_event_t *)event);
         case XCB_CONFIGURE_REQUEST:

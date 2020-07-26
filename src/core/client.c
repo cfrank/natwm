@@ -587,6 +587,46 @@ enum natwm_error client_handle_drag(const struct natwm_state *state, struct clie
         return NO_ERROR;
 }
 
+enum natwm_error client_handle_resize(const struct natwm_state *state, struct client *client,
+                                      int16_t x, int16_t y)
+{
+        struct workspace *workspace
+                = workspace_list_find_window_workspace(state->workspace_list, client->window);
+
+        if (workspace == NULL) {
+                return INVALID_INPUT_ERROR;
+        }
+
+        struct monitor *monitor
+                = monitor_list_get_workspace_monitor(state->monitor_list, workspace);
+
+        if (monitor == NULL) {
+                return INVALID_INPUT_ERROR;
+        }
+
+        uint16_t border_width
+                = client_get_active_border_width(state->workspace_list->theme, client);
+        xcb_rectangle_t desired_rect = {
+                .x = client->rect.x,
+                .y = client->rect.y,
+                .width = (uint16_t)(client->rect.width + x),
+                .height = (uint16_t)(client->rect.height + y),
+        };
+
+        client->rect = monitor_clamp_client_rect(monitor, desired_rect);
+
+        xcb_rectangle_t final_rect = {
+                .x = (int16_t)(client->rect.x + monitor->rect.x),
+                .y = (int16_t)(client->rect.y + monitor->rect.y),
+                .width = client->rect.width,
+                .height = client->rect.height,
+        };
+
+        client_configure_window_rect(state->xcb, client->window, final_rect, border_width);
+
+        return NO_ERROR;
+}
+
 enum natwm_error client_unmap_window(struct natwm_state *state, xcb_window_t window)
 {
         struct workspace *workspace
