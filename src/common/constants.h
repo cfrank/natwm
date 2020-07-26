@@ -29,7 +29,8 @@
 
 #define NATWM_CONFIG_FILE "natwm/natwm.config"
 
-#define SUPPORTING_WINDOW_CLASS_NAME "supporting_window \0" NATWM_VERSION_STRING
+#define SUPPORTING_WINDOW_CLASS_NAME "supporting_window\0" NATWM_VERSION_STRING
+#define RESIZE_HELPER_WINDOW_CLASS_NAME "resize_helper_window\0" NATWM_VERSION_STRING
 
 #define NATWM_WORKSPACE_COUNT 10
 
