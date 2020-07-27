@@ -19,6 +19,10 @@
 
 ---
 
+## Screenshot
+
+<img align="center" src="https://user-images.githubusercontent.com/2308484/88531138-3bf38000-cfb7-11ea-9bdf-086b8bc034ae.png" />
+
 ## About
 
 natwm is a simple non-reparenting floating window manager for the X Window System build on top of XCB. I set out to create something which would fulfill my needs for a window manager, while also being an example for others who wish to pursue the same. The code should be easy to follow for anyone familiar with C99 and serves as an example of modern XCB practices.
