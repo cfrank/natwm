@@ -29,7 +29,7 @@ While the aim was to create something simple, minimalism wasn't a goal, and ther
 
 ### Screenshot
 
-<img align="center" src="https://user-images.githubusercontent.com/2308484/88531138-3bf38000-cfb7-11ea-9bdf-086b8bc034ae.png" />
+<img align="center" src="https://user-images.githubusercontent.com/2308484/88532062-bffa3780-cfb8-11ea-8904-195b571a8399.png" />
 
 ## Features
 <div align="center">
