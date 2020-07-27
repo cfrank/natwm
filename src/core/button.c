@@ -214,10 +214,11 @@ static xcb_window_t create_resize_helper(const struct natwm_state *state)
 {
         xcb_window_t resize_helper = xcb_generate_id(state->xcb);
         const struct theme *theme = state->workspace_list->theme;
-        uint16_t mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL;
+        uint16_t mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL | XCB_CW_OVERRIDE_REDIRECT;
         uint32_t values[] = {
                 theme->resize_background_color->color_value,
                 theme->resize_border_color->color_value,
+                1,
         };
 
         xcb_create_window(state->xcb,
@@ -263,16 +264,16 @@ static void initialize_resize_helper(struct natwm_state *state, const xcb_rectan
         uint16_t mask = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH
                 | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH
                 | XCB_CONFIG_WINDOW_STACK_MODE;
-        uint32_t values[] = {
-                (uint32_t)(client->rect.x + monitor_rect->x),
-                (uint32_t)(client->rect.y + monitor_rect->y),
-                client->rect.width,
-                client->rect.height,
-                border_width,
-                XCB_STACK_MODE_ABOVE,
+        xcb_configure_window_value_list_t values = {
+                .x = (int32_t)(client->rect.x + monitor_rect->x),
+                .y = (int32_t)(client->rect.y + monitor_rect->y),
+                .width = client->rect.width,
+                .height = client->rect.height,
+                .border_width = border_width,
+                .stack_mode = XCB_STACK_MODE_ABOVE,
         };
 
-        xcb_configure_window(state->xcb, state->button_state->resize_helper, mask, values);
+        xcb_configure_window_aux(state->xcb, state->button_state->resize_helper, mask, &values);
 
         xcb_flush(state->xcb);
 }
@@ -284,12 +285,12 @@ static void resize_helper(const struct natwm_state *state, int16_t offset_x, int
         }
 
         uint16_t mask = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
-        uint32_t values[] = {
-                (uint32_t)(state->button_state->grabbed_client->rect.width + offset_x),
-                (uint32_t)(state->button_state->grabbed_client->rect.height + offset_y),
+        xcb_configure_window_value_list_t values = {
+                .width = (uint32_t)(state->button_state->grabbed_client->rect.width + offset_x),
+                .height = (uint32_t)(state->button_state->grabbed_client->rect.height + offset_y),
         };
 
-        xcb_configure_window(state->xcb, state->button_state->resize_helper, mask, values);
+        xcb_configure_window_aux(state->xcb, state->button_state->resize_helper, mask, &values);
 }
 
 static void hide_resize_helper(const struct natwm_state *state)
@@ -301,16 +302,16 @@ static void hide_resize_helper(const struct natwm_state *state)
         uint16_t mask = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH
                 | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH
                 | XCB_CONFIG_WINDOW_STACK_MODE;
-        int32_t values[] = {
-                -1,
-                -1,
-                1,
-                1,
-                0,
-                XCB_STACK_MODE_BELOW,
+        xcb_configure_window_value_list_t values = {
+                .x = -1,
+                .y = -1,
+                .width = 1,
+                .height = 1,
+                .border_width = 0,
+                .stack_mode = XCB_STACK_MODE_BELOW,
         };
 
-        xcb_configure_window(state->xcb, state->button_state->resize_helper, mask, values);
+        xcb_configure_window_aux(state->xcb, state->button_state->resize_helper, mask, &values);
 
         xcb_flush(state->xcb);
 }
