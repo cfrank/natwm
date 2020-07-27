@@ -27,6 +27,10 @@ During development I leaned on countless resources to compensate for the lack of
 
 While the aim was to create something simple, minimalism wasn't a goal, and there are numerous features and quality of life additions which make this more usable as a daily driver.
 
+### Screenshot
+
+<img align="center" src="https://user-images.githubusercontent.com/2308484/88531138-3bf38000-cfb7-11ea-9bdf-086b8bc034ae.png" />
+
 ## Features
 <div align="center">
 
