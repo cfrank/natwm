@@ -61,7 +61,7 @@ void natwm_state_destroy(struct natwm_state *state)
         }
 
         if (state->button_state != NULL) {
-                button_state_destroy(state->button_state);
+                button_state_destroy(state);
         }
 
         if (state->workspace_list != NULL) {

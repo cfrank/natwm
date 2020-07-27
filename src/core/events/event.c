@@ -22,10 +22,18 @@ static enum natwm_error event_handle_button_release(struct natwm_state *state,
 {
         switch (event->detail) {
         case XCB_BUTTON_INDEX_1:
-                return button_handle_ungrab(state);
+                button_handle_drag_end(state);
+
+                break;
+        case XCB_BUTTON_INDEX_3:
+                return button_handle_resize_end(state, event);
         default:
-                return NO_ERROR;
+                LOG_WARNING(natwm_logger, "Received invalid button release event - ignoring");
+
+                break;
         }
+
+        return NO_ERROR;
 }
 
 static enum natwm_error event_handle_client_message(struct natwm_state *state,
@@ -126,15 +134,12 @@ static enum natwm_error event_handle_motion_notify(struct natwm_state *state,
         int32_t y = event->root_y - monitor_rect->y;
 
         if (x < 0 || y < 0 || x > monitor_rect->width || y > monitor_rect->height) {
-                // We should only process motion events if they are within the current monitor
+                // We should only process motion events if they are within the current
+                // monitor
                 return NO_ERROR;
         }
 
-        if (event->state & XCB_BUTTON_MASK_1) {
-                return button_handle_motion(state, event->event_x, event->event_y);
-        }
-
-        return NO_ERROR;
+        return button_handle_motion(state, event->state, event->event_x, event->event_y);
 }
 
 static enum natwm_error event_handle_unmap_notify(struct natwm_state *state,

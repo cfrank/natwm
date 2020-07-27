@@ -61,6 +61,8 @@ struct border_theme {
 struct theme {
         struct border_theme *border_width;
         struct color_theme *color;
+        struct color_value *resize_background_color;
+        struct color_value *resize_border_color;
 };
 
 struct border_theme *border_theme_create(void);
