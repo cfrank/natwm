@@ -11,7 +11,7 @@
   <a href="#about">About</a> •
   <a href="#features">Features</a> •
   <a href="#installation">Installation</a> •
-  <a href="#installation">Configuration</a> •
+  <a href="#configuration">Configuration</a> •
   <a href="#keybinds">Keybinds</a> •
   <a href="#thanks">Thanks</a> •
   <a href="#license">License</a>
