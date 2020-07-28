@@ -7,6 +7,8 @@ set_target_properties(natwm
     VERSION ${PROJECT_VERSION}
 )
 
+install(TARGETS natwm RUNTIME DESTINATION bin)
+
 target_link_libraries(natwm
     PRIVATE
         common
